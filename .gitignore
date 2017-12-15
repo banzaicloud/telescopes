@@ -1,0 +1,8 @@
+.idea*
+.DS_Store
+bin/*
+.idea/
+.spot-recommender
+spot-recommender
+conf/config.toml
+*.swp
