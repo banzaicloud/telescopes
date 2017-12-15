@@ -45,7 +45,7 @@ var regionMap = map[string]string{
 	"us-west-2":      "US West (Oregon)",
 }
 
-var log *logrus.Entry
+var log = conf.Logger().WithField("package", "recommender")
 var sess *session.Session
 
 func init() {
@@ -67,8 +67,6 @@ func (a ByNumericValue) Less(i, j int) bool {
 }
 
 func RecommendSpotInstanceTypes(region string, requestedAZs []string, baseInstanceType string) (AZRecommendation, error) {
-
-	log = conf.Logger().WithField("package", "recommender")
 
 	log.WithFields(logrus.Fields{
 		"region":             region,

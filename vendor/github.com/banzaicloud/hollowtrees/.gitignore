@@ -1,0 +1,11 @@
+_state*
+.idea*
+.DS_Store
+bin/*
+.idea/
+hollowtrees.iml
+.hollowtrees
+hollowtrees
+conf/config.toml
+*.swp
+dummy_plugin/dummy_plugin
