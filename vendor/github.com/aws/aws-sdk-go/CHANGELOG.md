@@ -1,3 +1,63 @@
+Release v1.12.53 (2017-12-22)
+===
+
+### Service Client Updates
+* `service/ec2`: Updates service API
+  * This release fixes an issue with tags not showing in DescribeAddresses responses.
+* `service/ecs`: Updates service API and documentation
+  * Amazon ECS users can now set a health check initialization wait period of their ECS services, the services that are associated with an Elastic Load Balancer (ELB) will wait for a period of time before the ELB become healthy. You can now configure this in Create and Update Service.
+* `service/inspector`: Updates service API and documentation
+  * PreviewAgents API now returns additional fields within the AgentPreview data type. The API now shows the agent health and availability status for all instances included in the assessment target. This allows users to check the health status of Inspector Agents before running an assessment. In addition, it shows the instance ID, hostname, and IP address of the targeted instances.
+* `service/sagemaker`: Updates service API and documentation
+  * SageMaker Models no longer support SupplementalContainers.  API's that have been affected are CreateModel and DescribeModel.
+
+Release v1.12.52 (2017-12-21)
+===
+
+### Service Client Updates
+* `service/codebuild`: Updates service API and documentation
+  * Adding support allowing AWS CodeBuild customers to select specific curated image versions.
+* `service/ec2`: Updates service API and documentation
+  * Elastic IP tagging enables you to add key and value metadata to your Elastic IPs so that you can search, filter, and organize them according to your organization's needs.
+* `aws/endpoints`: Updated Regions and Endpoints metadata.
+* `service/kinesisanalytics`: Updates service API and documentation
+  * Kinesis Analytics now supports AWS Lambda functions as output.
+
+Release v1.12.51 (2017-12-21)
+===
+
+### Service Client Updates
+* `service/config`: Updates service API
+* `aws/endpoints`: Updated Regions and Endpoints metadata.
+* `service/iot`: Updates service API and documentation
+  * This release adds support for code signed Over-the-air update functionality for Amazon FreeRTOS. Users can now create and schedule Over-the-air updates to their Amazon FreeRTOS devices using these new APIs.
+
+Release v1.12.50 (2017-12-19)
+===
+
+### Service Client Updates
+* `service/apigateway`: Updates service API and documentation
+  * API Gateway now adds support for calling API with compressed payloads using one of the supported content codings, tagging an API stage for cost allocation, and returning API keys from a custom authorizer for use with a usage plan.
+* `aws/endpoints`: Updated Regions and Endpoints metadata.
+* `service/mediastore-data`: Updates service documentation
+* `service/route53`: Updates service API and documentation
+  * Route 53 added support for a new China (Ningxia) region, cn-northwest-1. You can now specify cn-northwest-1 as the region for latency-based or geoproximity routing. Route 53 also added support for a new EU (Paris) region, eu-west-3. You can now associate VPCs in eu-west-3 with private hosted zones and create alias records that route traffic to resources in eu-west-3.
+
+Release v1.12.49 (2017-12-19)
+===
+
+### Service Client Updates
+* `aws/endpoints`: Updated Regions and Endpoints metadata.
+* `service/monitoring`: Updates service documentation
+  * Documentation updates for monitoring
+
+Release v1.12.48 (2017-12-15)
+===
+
+### Service Client Updates
+* `service/appstream`: Updates service API and documentation
+  * This API update is to enable customers to add tags to their Amazon AppStream 2.0 resources
+
 Release v1.12.47 (2017-12-14)
 ===
 

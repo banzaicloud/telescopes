@@ -1,0 +1,10 @@
+package: github.com/banzaicloud/spot-recommender
+import:
+- package: github.com/aws/aws-sdk-go
+  subpackages:
+  - aws
+  - aws/session
+  - service/ec2
+  - service/pricing
+- package: github.com/gin-gonic/gin
+- package: github.com/sirupsen/logrus
