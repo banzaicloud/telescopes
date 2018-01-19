@@ -19,11 +19,11 @@ type AZRecommendation map[string][]InstanceTypeInfo
 type InstanceTypeInfo struct {
 	InstanceTypeName   string
 	CurrentPrice       string
-	AvgPriceFor24Hours float32
+	AvgPriceFor24Hours string
 	OnDemandPrice      string
 	SuggestedBidPrice  string
 	CostScore          string
-	StabilityScore     float32
+	StabilityScore     string
 }
 
 var regionMap = map[string]string{
@@ -340,11 +340,11 @@ func getSpotPriceInfo(region string, az *string, instanceTypes map[string]string
 		instanceTypeInfo = append(instanceTypeInfo, InstanceTypeInfo{
 			InstanceTypeName:   *spot.InstanceType,
 			CurrentPrice:       *spot.SpotPrice,
-			AvgPriceFor24Hours: 0.0,
+			AvgPriceFor24Hours: "0.0",
 			OnDemandPrice:      instanceTypes[*spot.InstanceType],
 			SuggestedBidPrice:  instanceTypes[*spot.InstanceType],
 			CostScore:          normalizeSpotPrice(*spot.SpotPrice, maxPrice, minPrice),
-			StabilityScore:     0.0,
+			StabilityScore:     "0.0",
 		})
 	}
 	log.Info(fmt.Sprintf("Instance type info found: %#v", instanceTypeInfo))
