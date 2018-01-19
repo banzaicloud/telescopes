@@ -35,6 +35,6 @@ func recommendSpotInstanceTypes(c *gin.Context) {
 		// TODO: handle different error types
 		c.JSON(http.StatusInternalServerError, gin.H{"status": http.StatusInternalServerError, "message": fmt.Sprintf("%s", err)})
 	} else {
-		c.JSON(http.StatusOK, gin.H{"status": http.StatusOK, "data": response})
+		c.JSON(http.StatusOK, response)
 	}
 }
