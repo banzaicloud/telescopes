@@ -5,22 +5,30 @@ import (
 	"net/http"
 	"strings"
 
-	"github.com/gin-gonic/gin"
-	"github.com/sirupsen/logrus"
 	"github.com/banzaicloud/spot-recommender/recommender"
+	"github.com/gin-gonic/gin"
+	log "github.com/sirupsen/logrus"
 )
 
-var log = logrus.New().WithField("package", "api")
+type RouteHandler struct {
+	Engine *recommender.Engine
+}
 
-func ConfigureRoutes(router *gin.Engine) {
-	log.Info("configuring routes")
-	v1 := router.Group("/api/v1/")
-	{
-		v1.GET("/recommender/:region", recommendSpotInstanceTypes)
+func NewRouteHandler(engine *recommender.Engine) *RouteHandler {
+	return &RouteHandler{
+		Engine: engine,
 	}
 }
 
-func recommendSpotInstanceTypes(c *gin.Context) {
+func (r *RouteHandler) ConfigureRoutes(router *gin.Engine) {
+	log.Info("configuring routes")
+	v1 := router.Group("/api/v1/")
+	{
+		v1.GET("/recommender/:region", r.recommendSpotInstanceTypes)
+	}
+}
+
+func (r *RouteHandler) recommendSpotInstanceTypes(c *gin.Context) {
 	log.Info("recommend spot instance types")
 	region := c.Param("region")
 	baseInstanceType := c.DefaultQuery("baseInstanceType", "m4.xlarge")
@@ -31,7 +39,7 @@ func recommendSpotInstanceTypes(c *gin.Context) {
 	} else {
 		azs = strings.Split(azsQuery, ",")
 	}
-	if response, err := recommender.RecommendSpotInstanceTypes(region, azs, baseInstanceType); err != nil {
+	if response, err := r.Engine.RetrieveRecommendation(region, azs, baseInstanceType); err != nil {
 		// TODO: handle different error types
 		c.JSON(http.StatusInternalServerError, gin.H{"status": http.StatusInternalServerError, "message": fmt.Sprintf("%s", err)})
 	} else {

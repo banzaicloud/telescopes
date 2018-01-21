@@ -1,18 +1,35 @@
 package recommender
 
 import (
+	"fmt"
 	"sort"
 	"strconv"
 	"strings"
 	"time"
-	"fmt"
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/ec2"
 	"github.com/aws/aws-sdk-go/service/pricing"
-	"github.com/sirupsen/logrus"
+	log "github.com/sirupsen/logrus"
 )
+
+type Recommender struct {
+	Session *session.Session
+}
+
+func NewRecommender(region string) (*Recommender, error) {
+	session, err := session.NewSession(&aws.Config{
+		Region: aws.String(region),
+	})
+	if err != nil {
+		log.WithError(err).Error("Error creating AWS session")
+		return nil, err
+	}
+	return &Recommender{
+		Session: session,
+	}, nil
+}
 
 type AZRecommendation map[string][]InstanceTypeInfo
 
@@ -43,17 +60,6 @@ var regionMap = map[string]string{
 	"us-west-2":      "US West (Oregon)",
 }
 
-var log = logrus.New().WithField("package", "recommender")
-var sess *session.Session
-
-func init() {
-	var err error
-	sess, err = session.NewSession()
-	if err != nil {
-		//TODO: handle error
-	}
-}
-
 type ByNumericValue []string
 
 func (a ByNumericValue) Len() int      { return len(a) }
@@ -64,9 +70,9 @@ func (a ByNumericValue) Less(i, j int) bool {
 	return floatVal < floatVal2
 }
 
-func RecommendSpotInstanceTypes(region string, requestedAZs []string, baseInstanceType string) (AZRecommendation, error) {
+func (r *Recommender) RecommendSpotInstanceTypes(region string, requestedAZs []string, baseInstanceType string) (AZRecommendation, error) {
 
-	log.WithFields(logrus.Fields{
+	log.WithFields(log.Fields{
 		"region":             region,
 		"availability zones": requestedAZs,
 		"instance type":      baseInstanceType,
@@ -74,34 +80,34 @@ func RecommendSpotInstanceTypes(region string, requestedAZs []string, baseInstan
 
 	// TODO: validate region, az and base instance type
 
-	pricingSvc := pricing.New(sess, &aws.Config{Region: aws.String("us-east-1")})
+	pricingSvc := pricing.New(r.Session, &aws.Config{Region: aws.String("us-east-1")})
 
 	// TODO: this can be cached, product info won't change much
-	vcpu, memory, err := getBaseProductInfo(pricingSvc, region, baseInstanceType)
+	vcpu, memory, err := r.getBaseProductInfo(pricingSvc, region, baseInstanceType)
 	if err != nil {
 		//TODO: handle error
 	}
 
 	// TODO: this can be cached, available memory/vcpu attributes won't change
-	vcpuStringValues, err := getNumericSortedAttributeValues(pricingSvc, "vcpu")
+	vcpuStringValues, err := r.getNumericSortedAttributeValues(pricingSvc, "vcpu")
 	if err != nil {
 		// TODO: handle error
 		log.Info(err.Error())
 	}
 
-	memStringValues, err := getNumericSortedAttributeValues(pricingSvc, "memory")
+	memStringValues, err := r.getNumericSortedAttributeValues(pricingSvc, "memory")
 	if err != nil {
 		// TODO: handle error
 		log.Info(err.Error())
 	}
 
-	instanceTypes, err := getSimilarInstanceTypesWithPriceInfo(pricingSvc, region, memory, vcpu, memStringValues, vcpuStringValues)
+	instanceTypes, err := r.getSimilarInstanceTypesWithPriceInfo(pricingSvc, region, memory, vcpu, memStringValues, vcpuStringValues)
 	if err != nil {
 		// TODO: handle error
 		log.Info(err.Error())
 	}
 
-	ec2Svc := ec2.New(sess, &aws.Config{Region: &region})
+	ec2Svc := ec2.New(r.Session, &aws.Config{Region: &region})
 	var azs []*string
 	if requestedAZs != nil {
 		azs = aws.StringSlice(requestedAZs)
@@ -119,7 +125,7 @@ func RecommendSpotInstanceTypes(region string, requestedAZs []string, baseInstan
 
 	var azRecommendations = make(AZRecommendation)
 	for _, zone := range azs {
-		instanceTypeInfo, err := getSpotPriceInfo(region, zone, instanceTypes)
+		instanceTypeInfo, err := r.getSpotPriceInfo(region, zone, instanceTypes)
 		if err != nil {
 			// TODO: handle error
 			log.Info(err.Error())
@@ -130,8 +136,8 @@ func RecommendSpotInstanceTypes(region string, requestedAZs []string, baseInstan
 	return azRecommendations, nil
 }
 
-func getBaseProductInfo(pricingSvc *pricing.Pricing, region string, baseInstanceType string) (string, string, error) {
-	log.WithFields(logrus.Fields{
+func (r *Recommender) getBaseProductInfo(pricingSvc *pricing.Pricing, region string, baseInstanceType string) (string, string, error) {
+	log.WithFields(log.Fields{
 		"instance type": baseInstanceType,
 	}).Info("Getting product info (memory, vcpu) of instance type")
 	products, err := pricingSvc.GetProducts(&pricing.GetProductsInput{
@@ -170,7 +176,7 @@ func getBaseProductInfo(pricingSvc *pricing.Pricing, region string, baseInstance
 	return vcpu, memory, nil
 }
 
-func getNumericSortedAttributeValues(pricingSvc *pricing.Pricing, attribute string) ([]string, error) {
+func (r *Recommender) getNumericSortedAttributeValues(pricingSvc *pricing.Pricing, attribute string) ([]string, error) {
 	log.Info("Getting available ", attribute, " values from AWS API.")
 	attrValues, err := pricingSvc.GetAttributeValues(&pricing.GetAttributeValuesInput{
 		ServiceCode:   aws.String("AmazonEC2"),
@@ -188,17 +194,17 @@ func getNumericSortedAttributeValues(pricingSvc *pricing.Pricing, attribute stri
 	return stringValues, nil
 }
 
-func getSimilarInstanceTypesWithPriceInfo(pricingSvc *pricing.Pricing, region string, memory string, vcpu string, memStringValues []string, vcpuStringValues []string) (map[string]string, error) {
+func (r *Recommender) getSimilarInstanceTypesWithPriceInfo(pricingSvc *pricing.Pricing, region string, memory string, vcpu string, memStringValues []string, vcpuStringValues []string) (map[string]string, error) {
 	log.Info("Getting instance types with memory/vcpu profile similar to: ", memory, "/", vcpu)
-	instanceTypes, err := getProductsWithMemAndVcpu(pricingSvc, region, memory, vcpu)
+	instanceTypes, err := r.getProductsWithMemAndVcpu(pricingSvc, region, memory, vcpu)
 	if err != nil {
 		// TODO: handle error
 		return nil, err
 	}
-	memoryNext := getNextValue(memStringValues, memory)
-	vcpuNext := getNextValue(vcpuStringValues, vcpu)
+	memoryNext := r.getNextValue(memStringValues, memory)
+	vcpuNext := r.getNextValue(vcpuStringValues, vcpu)
 	if memoryNext != "" {
-		largerMemInstances, err := getProductsWithMemAndVcpu(pricingSvc, region, memoryNext, vcpu)
+		largerMemInstances, err := r.getProductsWithMemAndVcpu(pricingSvc, region, memoryNext, vcpu)
 		if err != nil {
 			// TODO: handle error
 			return nil, err
@@ -209,7 +215,7 @@ func getSimilarInstanceTypesWithPriceInfo(pricingSvc *pricing.Pricing, region st
 		}
 	}
 	if vcpuNext != "" {
-		largerCpuInstances, err := getProductsWithMemAndVcpu(pricingSvc, region, memory, vcpuNext)
+		largerCpuInstances, err := r.getProductsWithMemAndVcpu(pricingSvc, region, memory, vcpuNext)
 		if err != nil {
 			// TODO: handle error
 			return nil, err
@@ -220,7 +226,7 @@ func getSimilarInstanceTypesWithPriceInfo(pricingSvc *pricing.Pricing, region st
 		}
 	}
 	if memoryNext != "" && vcpuNext != "" {
-		largerInstances, err := getProductsWithMemAndVcpu(pricingSvc, region, memoryNext, vcpuNext)
+		largerInstances, err := r.getProductsWithMemAndVcpu(pricingSvc, region, memoryNext, vcpuNext)
 		if err != nil {
 			// TODO: handle error
 			return nil, err
@@ -234,7 +240,7 @@ func getSimilarInstanceTypesWithPriceInfo(pricingSvc *pricing.Pricing, region st
 	return instanceTypes, nil
 }
 
-func getProductsWithMemAndVcpu(pricingSvc *pricing.Pricing, region string, memory string, vcpu string) (map[string]string, error) {
+func (r *Recommender) getProductsWithMemAndVcpu(pricingSvc *pricing.Pricing, region string, memory string, vcpu string) (map[string]string, error) {
 	log.Info("Getting instance types and on demand prices with specification: [memory: ", memory, ", vcpu: ", vcpu, "]")
 	products, err := pricingSvc.GetProducts(&pricing.GetProductsInput{
 		ServiceCode: aws.String("AmazonEC2"),
@@ -287,7 +293,7 @@ func getProductsWithMemAndVcpu(pricingSvc *pricing.Pricing, region string, memor
 	return instanceTypes, nil
 }
 
-func getNextValue(values []string, value string) string {
+func (r *Recommender) getNextValue(values []string, value string) string {
 	for i, val := range values {
 		if val == value && i+1 < len(values) {
 			return values[i+1]
@@ -296,16 +302,16 @@ func getNextValue(values []string, value string) string {
 	return ""
 }
 
-func getSpotPriceInfo(region string, az *string, instanceTypes map[string]string) ([]InstanceTypeInfo, error) {
+func (r *Recommender) getSpotPriceInfo(region string, az *string, instanceTypes map[string]string) ([]InstanceTypeInfo, error) {
 	instanceTypeStrings := make([]*string, 0, len(instanceTypes))
 	for k := range instanceTypes {
 		instanceTypeStrings = append(instanceTypeStrings, aws.String(k))
 	}
-	log.WithFields(logrus.Fields{
+	log.WithFields(log.Fields{
 		"instance types":    aws.StringValueSlice(instanceTypeStrings),
 		"availability zone": *az,
 	}).Info("Getting current spot price of instance types")
-	ec2Svc := ec2.New(sess, &aws.Config{Region: &region})
+	ec2Svc := ec2.New(r.Session, &aws.Config{Region: &region})
 
 	history, err := ec2Svc.DescribeSpotPriceHistory(&ec2.DescribeSpotPriceHistoryInput{
 		AvailabilityZone:    az,
@@ -343,7 +349,7 @@ func getSpotPriceInfo(region string, az *string, instanceTypes map[string]string
 			AvgPriceFor24Hours: "0.0",
 			OnDemandPrice:      instanceTypes[*spot.InstanceType],
 			SuggestedBidPrice:  instanceTypes[*spot.InstanceType],
-			CostScore:          normalizeSpotPrice(*spot.SpotPrice, maxPrice, minPrice),
+			CostScore:          r.normalizeSpotPrice(*spot.SpotPrice, maxPrice, minPrice),
 			StabilityScore:     "0.0",
 		})
 	}
@@ -352,7 +358,7 @@ func getSpotPriceInfo(region string, az *string, instanceTypes map[string]string
 	return instanceTypeInfo, nil
 }
 
-func normalizeSpotPrice(spotPrice string, maxPrice float64, minPrice float64) string {
+func (r *Recommender) normalizeSpotPrice(spotPrice string, maxPrice float64, minPrice float64) string {
 	log.Debug(fmt.Sprintf("Normalizing spot price to cost score. Spot price: %v, Min Price: %v, Max Price: %v", spotPrice, minPrice, maxPrice))
 	value, _ := strconv.ParseFloat(spotPrice, 32)
 	var normalizedValue float64

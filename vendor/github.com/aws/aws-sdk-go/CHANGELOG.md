@@ -1,3 +1,173 @@
+Release v1.12.66 (2018-01-19)
+===
+
+### Service Client Updates
+* `aws/endpoints`: Updated Regions and Endpoints metadata.
+* `service/glue`: Updates service API and documentation
+  * New AWS Glue DataCatalog APIs to manage table versions and a new feature to skip archiving of the old table version when updating table.
+* `service/transcribe`: Adds new service
+
+Release v1.12.65 (2018-01-18)
+===
+
+### Service Client Updates
+* `service/sagemaker`: Updates service API and documentation
+  * CreateTrainingJob and CreateEndpointConfig now supports KMS Key for volume encryption.
+
+Release v1.12.64 (2018-01-17)
+===
+
+### Service Client Updates
+* `service/autoscaling-plans`: Updates service documentation
+* `service/ec2`: Updates service documentation
+  * Documentation updates for EC2
+
+Release v1.12.63 (2018-01-17)
+===
+
+### Service Client Updates
+* `service/application-autoscaling`: Updates service API and documentation
+* `service/autoscaling-plans`: Adds new service
+* `service/rds`: Updates service API and documentation
+  * With this release you can now integrate RDS DB instances with CloudWatch Logs. We have added parameters to the operations for creating and modifying DB instances (for example CreateDBInstance) to allow you to take advantage of this capability through the CLI and API. Once you enable this feature, a stream of log events will publish to CloudWatch Logs for each log type you enable.
+
+Release v1.12.62 (2018-01-15)
+===
+
+### Service Client Updates
+* `aws/endpoints`: Updated Regions and Endpoints metadata.
+* `service/lambda`: Updates service API and documentation
+  * Support for creating Lambda Functions using 'dotnetcore2.0' and 'go1.x'.
+
+Release v1.12.61 (2018-01-12)
+===
+
+### Service Client Updates
+* `service/glue`: Updates service API and documentation
+  * Support is added to generate ETL scripts in Scala which can now be run by  AWS Glue ETL jobs. In addition, the trigger API now supports firing when any conditions are met (in addition to all conditions). Also, jobs can be triggered based on a "failed" or "stopped" job run (in addition to a "succeeded" job run).
+
+Release v1.12.60 (2018-01-11)
+===
+
+### Service Client Updates
+* `service/elasticloadbalancing`: Updates service API and documentation
+* `service/elasticloadbalancingv2`: Updates service API and documentation
+* `service/rds`: Updates service API and documentation
+  * Read Replicas for Amazon RDS for MySQL, MariaDB, and PostgreSQL now support Multi-AZ deployments.Amazon RDS Read Replicas enable you to create one or more read-only copies of your database instance within the same AWS Region or in a different AWS Region. Updates made to the source database are asynchronously copied to the Read Replicas. In addition to providing scalability for read-heavy workloads, you can choose to promote a Read Replica to become standalone a DB instance when needed.Amazon RDS Multi-AZ Deployments provide enhanced availability for database instances within a single AWS Region. With Multi-AZ, your data is synchronously replicated to a standby in a different Availability Zone (AZ). In case of an infrastructure failure, Amazon RDS performs an automatic failover to the standby, minimizing disruption to your applications.You can now combine Read Replicas with Multi-AZ as part of a disaster recovery strategy for your production databases. A well-designed and tested plan is critical for maintaining business continuity after a disaster. Since Read Replicas can also be created in different regions than the source database, your Read Replica can be promoted to become the new production database in case of a regional disruption.You can also combine Read Replicas with Multi-AZ for your database engine upgrade process. You can create a Read Replica of your production database instance and upgrade it to a new database engine version. When the upgrade is complete, you can stop applications, promote the Read Replica to a standalone database instance and switch over your applications. Since the database instance is already a Multi-AZ deployment, no additional steps are needed.For more information, see the Amazon RDS User Guide.
+* `service/ssm`: Updates service documentation
+  * Updates documentation for the HierarchyLevelLimitExceededException error.
+
+Release v1.12.59 (2018-01-09)
+===
+
+### Service Client Updates
+* `service/kms`: Updates service documentation
+  * Documentation updates for AWS KMS
+
+Release v1.12.58 (2018-01-09)
+===
+
+### Service Client Updates
+* `service/ds`: Updates service API and documentation
+  * On October 24 we introduced AWS Directory Service for Microsoft Active Directory (Standard Edition), also known as AWS Microsoft AD (Standard Edition), which is a managed Microsoft Active Directory (AD) that is optimized for small and midsize businesses (SMBs). With this SDK release, you can now create an AWS Microsoft AD directory using API. This enables you to run typical SMB workloads using a cost-effective, highly available, and managed Microsoft AD in the AWS Cloud.
+
+Release v1.12.57 (2018-01-08)
+===
+
+### Service Client Updates
+* `service/codedeploy`: Updates service API and documentation
+  * The AWS CodeDeploy API was updated to support DeleteGitHubAccountToken, a new method that deletes a GitHub account connection.
+* `service/discovery`: Updates service API and documentation
+  * Documentation updates for AWS Application Discovery Service.
+* `service/route53`: Updates service API and documentation
+  * This release adds an exception to the CreateTrafficPolicyVersion API operation.
+
+Release v1.12.56 (2018-01-05)
+===
+
+### Service Client Updates
+* `service/inspector`: Updates service API, documentation, and examples
+  * Added 2 new attributes to the DescribeAssessmentTemplate response, indicating the total number of assessment runs and last assessment run ARN (if present.)
+* `service/snowball`: Updates service documentation
+  * Documentation updates for snowball
+* `service/ssm`: Updates service documentation
+  * Documentation updates for ssm
+
+Release v1.12.55 (2018-01-02)
+===
+
+### Service Client Updates
+* `service/rds`: Updates service documentation
+  * Documentation updates for rds
+
+Release v1.12.54 (2017-12-29)
+===
+
+### Service Client Updates
+* `aws/endpoints`: Updated Regions and Endpoints metadata.
+* `service/workspaces`: Updates service API and documentation
+  * Modify WorkSpaces have been updated with flexible storage and switching of hardware bundles feature. The following configurations have been added to ModifyWorkSpacesProperties: storage and compute. This update provides the capability to configure the storage of a WorkSpace. It also adds the capability of switching hardware bundle of a WorkSpace by specifying an eligible compute (Value, Standard, Performance, Power).
+
+Release v1.12.53 (2017-12-22)
+===
+
+### Service Client Updates
+* `service/ec2`: Updates service API
+  * This release fixes an issue with tags not showing in DescribeAddresses responses.
+* `service/ecs`: Updates service API and documentation
+  * Amazon ECS users can now set a health check initialization wait period of their ECS services, the services that are associated with an Elastic Load Balancer (ELB) will wait for a period of time before the ELB become healthy. You can now configure this in Create and Update Service.
+* `service/inspector`: Updates service API and documentation
+  * PreviewAgents API now returns additional fields within the AgentPreview data type. The API now shows the agent health and availability status for all instances included in the assessment target. This allows users to check the health status of Inspector Agents before running an assessment. In addition, it shows the instance ID, hostname, and IP address of the targeted instances.
+* `service/sagemaker`: Updates service API and documentation
+  * SageMaker Models no longer support SupplementalContainers.  API's that have been affected are CreateModel and DescribeModel.
+
+Release v1.12.52 (2017-12-21)
+===
+
+### Service Client Updates
+* `service/codebuild`: Updates service API and documentation
+  * Adding support allowing AWS CodeBuild customers to select specific curated image versions.
+* `service/ec2`: Updates service API and documentation
+  * Elastic IP tagging enables you to add key and value metadata to your Elastic IPs so that you can search, filter, and organize them according to your organization's needs.
+* `aws/endpoints`: Updated Regions and Endpoints metadata.
+* `service/kinesisanalytics`: Updates service API and documentation
+  * Kinesis Analytics now supports AWS Lambda functions as output.
+
+Release v1.12.51 (2017-12-21)
+===
+
+### Service Client Updates
+* `service/config`: Updates service API
+* `aws/endpoints`: Updated Regions and Endpoints metadata.
+* `service/iot`: Updates service API and documentation
+  * This release adds support for code signed Over-the-air update functionality for Amazon FreeRTOS. Users can now create and schedule Over-the-air updates to their Amazon FreeRTOS devices using these new APIs.
+
+Release v1.12.50 (2017-12-19)
+===
+
+### Service Client Updates
+* `service/apigateway`: Updates service API and documentation
+  * API Gateway now adds support for calling API with compressed payloads using one of the supported content codings, tagging an API stage for cost allocation, and returning API keys from a custom authorizer for use with a usage plan.
+* `aws/endpoints`: Updated Regions and Endpoints metadata.
+* `service/mediastore-data`: Updates service documentation
+* `service/route53`: Updates service API and documentation
+  * Route 53 added support for a new China (Ningxia) region, cn-northwest-1. You can now specify cn-northwest-1 as the region for latency-based or geoproximity routing. Route 53 also added support for a new EU (Paris) region, eu-west-3. You can now associate VPCs in eu-west-3 with private hosted zones and create alias records that route traffic to resources in eu-west-3.
+
+Release v1.12.49 (2017-12-19)
+===
+
+### Service Client Updates
+* `aws/endpoints`: Updated Regions and Endpoints metadata.
+* `service/monitoring`: Updates service documentation
+  * Documentation updates for monitoring
+
+Release v1.12.48 (2017-12-15)
+===
+
+### Service Client Updates
+* `service/appstream`: Updates service API and documentation
+  * This API update is to enable customers to add tags to their Amazon AppStream 2.0 resources
+
 Release v1.12.47 (2017-12-14)
 ===
 
