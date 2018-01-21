@@ -7,6 +7,7 @@ import (
 	"github.com/banzaicloud/spot-recommender/api"
 	"github.com/banzaicloud/spot-recommender/recommender"
 	"github.com/gin-gonic/gin"
+	"github.com/patrickmn/go-cache"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -29,7 +30,8 @@ func init() {
 }
 
 func main() {
-	engine, err := recommender.NewEngine(*reevaluationInterval, *region)
+	c := cache.New(5*time.Hour, 10.*time.Hour)
+	engine, err := recommender.NewEngine(*reevaluationInterval, *region, c)
 	if err != nil {
 		log.Fatal(err)
 	}
