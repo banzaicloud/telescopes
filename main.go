@@ -2,6 +2,7 @@ package main
 
 import (
 	"flag"
+	"strings"
 	"time"
 
 	"github.com/banzaicloud/spot-recommender/api"
@@ -16,6 +17,7 @@ var (
 	reevaluationInterval = flag.Duration("reevaluation-interval", 60*time.Second, "Time (in seconds) between reevaluating the recommendations")
 	rawLevel             = flag.String("log-level", "info", "log level")
 	region               = flag.String("region", "eu-west-1", "AWS region where the recommender should work")
+	cacheInstanceTypes   = flag.String("cache-instance-types", "m4.xlarge,m5.xlarge,c5.xlarge", "Recommendations are cached for these instance types (comma separated list)")
 )
 
 func init() {
@@ -31,7 +33,8 @@ func init() {
 
 func main() {
 	c := cache.New(5*time.Hour, 10.*time.Hour)
-	engine, err := recommender.NewEngine(*reevaluationInterval, *region, c)
+	cachedInstanceTypes := strings.Split(strings.Replace(*cacheInstanceTypes, " ", "", -1), ",")
+	engine, err := recommender.NewEngine(*reevaluationInterval, *region, cachedInstanceTypes, c)
 	if err != nil {
 		log.Fatal(err)
 	}
