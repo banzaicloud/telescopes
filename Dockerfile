@@ -1,10 +1,8 @@
 # build stage
 FROM golang:1.9.3-alpine3.7
 
-#RUN apk add --no-cache git mercurial
 ADD . /go/src/github.com/banzaicloud/spot-recommender
 WORKDIR /go/src/github.com/banzaicloud/spot-recommender
-#RUN go-wrapper download
 RUN go build -o /bin/spot-recommender .
 
 FROM alpine:latest
