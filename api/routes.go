@@ -22,10 +22,18 @@ func NewRouteHandler(engine *recommender.Engine) *RouteHandler {
 
 func (r *RouteHandler) ConfigureRoutes(router *gin.Engine) {
 	log.Info("configuring routes")
+	base := router.Group("/")
+	{
+		base.GET("/status", r.signalStatus)
+	}
 	v1 := router.Group("/api/v1/")
 	{
 		v1.GET("/recommender/:region", r.recommendSpotInstanceTypes)
 	}
+}
+
+func (r *RouteHandler) signalStatus(c *gin.Context) {
+	c.JSON(http.StatusOK, "ok")
 }
 
 func (r *RouteHandler) recommendSpotInstanceTypes(c *gin.Context) {
