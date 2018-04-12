@@ -1,4 +1,4 @@
-EXECUTABLE ?= spot-recommender
+EXECUTABLE ?= cluster-recommender
 IMAGE ?= banzaicloud/$(EXECUTABLE)
 TAG ?= dev-$(shell git log -1 --pretty=format:"%h")
 

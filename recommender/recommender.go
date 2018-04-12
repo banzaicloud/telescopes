@@ -31,9 +31,9 @@ func NewRecommender(region string) (*Recommender, error) {
 	}, nil
 }
 
-type AZRecommendation map[string][]InstanceTypeInfo
+type AZRecommendation map[string][]InstanceType
 
-type InstanceTypeInfo struct {
+type InstanceType struct {
 	InstanceTypeName   string
 	CurrentPrice       string
 	AvgPriceFor24Hours string
@@ -125,13 +125,13 @@ func (r *Recommender) RecommendSpotInstanceTypes(region string, requestedAZs []s
 
 	var azRecommendations = make(AZRecommendation)
 	for _, zone := range azs {
-		instanceTypeInfo, err := r.getSpotPriceInfo(region, zone, instanceTypes)
+		instanceType, err := r.getSpotPriceInfo(region, zone, instanceTypes)
 		if err != nil {
 			// TODO: handle error
 			log.Info(err.Error())
 			return nil, err
 		}
-		azRecommendations[*zone] = instanceTypeInfo
+		azRecommendations[*zone] = instanceType
 	}
 	return azRecommendations, nil
 }
@@ -302,7 +302,7 @@ func (r *Recommender) getNextValue(values []string, value string) string {
 	return ""
 }
 
-func (r *Recommender) getSpotPriceInfo(region string, az *string, instanceTypes map[string]string) ([]InstanceTypeInfo, error) {
+func (r *Recommender) getSpotPriceInfo(region string, az *string, instanceTypes map[string]string) ([]InstanceType, error) {
 	instanceTypeStrings := make([]*string, 0, len(instanceTypes))
 	for k := range instanceTypes {
 		instanceTypeStrings = append(instanceTypeStrings, aws.String(k))
@@ -324,7 +324,7 @@ func (r *Recommender) getSpotPriceInfo(region string, az *string, instanceTypes 
 		return nil, err
 	}
 
-	var instanceTypeInfo []InstanceTypeInfo
+	var instanceType []InstanceType
 	spots := make(map[string]string)
 
 	maxPrice := 0.0
@@ -343,7 +343,7 @@ func (r *Recommender) getSpotPriceInfo(region string, az *string, instanceTypes 
 	for _, spot := range history.SpotPriceHistory {
 		log.Info(*spot.InstanceType, ":", *spot.SpotPrice, " - ", *spot.AvailabilityZone, " - ", *spot.ProductDescription, " - ", *spot.Timestamp)
 		spots[*spot.InstanceType] = *spot.SpotPrice
-		instanceTypeInfo = append(instanceTypeInfo, InstanceTypeInfo{
+		instanceType = append(instanceType, InstanceType{
 			InstanceTypeName:   *spot.InstanceType,
 			CurrentPrice:       *spot.SpotPrice,
 			AvgPriceFor24Hours: "0.0",
@@ -353,9 +353,9 @@ func (r *Recommender) getSpotPriceInfo(region string, az *string, instanceTypes 
 			StabilityScore:     "0.0",
 		})
 	}
-	log.Info(fmt.Sprintf("Instance type info found: %#v", instanceTypeInfo))
+	log.Info(fmt.Sprintf("Instance type info found: %#v", instanceType))
 
-	return instanceTypeInfo, nil
+	return instanceType, nil
 }
 
 func (r *Recommender) normalizeSpotPrice(spotPrice string, maxPrice float64, minPrice float64) string {

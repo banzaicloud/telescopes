@@ -73,3 +73,87 @@ func (e *Engine) RetrieveRecommendation(requestedAZs []string, baseInstanceType 
 		return recommendation, nil
 	}
 }
+
+type ClusterRecommendationReq struct {
+	Provider    string   `json:"provider"`
+	SumCpu      int      `json:"sumCpu"`
+	SumMem      int      `json:"sumMem"`
+	MinNodes    int      `json:"minNodes,omitempty"`
+	MaxNodes    int      `json:"maxNodes,omitempty"`
+	SameSize    bool     `json:"sameSize,omitempty"`
+	OnDemandPct int      `json:"onDemandPct,omitempty"`
+	Zones       []string `json:"zones,omitempty"`
+	SumGpu      int      `json:"sumGpu,omitempty"`
+	//??? cost optimized vs stability optimized?
+	//??? i/o, network
+}
+
+type ClusterRecommendationResp struct {
+	Provider  string     `json:provider`
+	NodePools []NodePool `json:nodePools`
+}
+
+type NodePool struct {
+	VmType   VirtualMachine `json:vm`
+	SumNodes int            `json:sumNodes`
+	VmClass  string         `json:vmClass`
+	Zones    []string       `json:"zones,omitempty"`
+}
+
+type VirtualMachine struct {
+	Type          string  `json:type`
+	AvgPrice      float32 `json:avgPrice`
+	OnDemandPrice float32 `json:onDemandPrice`
+	Cpus          float32 `json:cpusPerVm`
+	Mem           float32 `json:memPerVm`
+	Gpus          float32 `json:gpusPerVm`
+	// i/o, network
+}
+
+func (e *Engine) RecommendCluster(req ClusterRecommendationReq) (ClusterRecommendationResp, error) {
+	log.Infof("recommending cluster configuration")
+	return ClusterRecommendationResp{
+		Provider: "aws",
+		NodePools: []NodePool{
+			{
+				SumNodes: 8,
+				VmClass:  "regular",
+				VmType: VirtualMachine{
+					Type:          "m5.xlarge",
+					OnDemandPrice: 0.192,
+					AvgPrice:      0.192,
+					Cpus:          4,
+					Mem:           16,
+					Gpus:          0,
+				},
+				Zones: []string{"eu-west-1a", "eu-west-1b", "eu-west-1c"},
+			},
+			{
+				SumNodes: 8,
+				VmClass:  "spot",
+				VmType: VirtualMachine{
+					Type:          "m5.xlarge",
+					OnDemandPrice: 0.192,
+					AvgPrice:      0.08,
+					Cpus:          4,
+					Mem:           16,
+					Gpus:          0,
+				},
+				Zones: []string{"eu-west-1a", "eu-west-1b", "eu-west-1c"},
+			},
+			{
+				SumNodes: 9,
+				VmClass:  "spot",
+				VmType: VirtualMachine{
+					Type:          "r4.xlarge",
+					OnDemandPrice: 0.266,
+					AvgPrice:      0.07,
+					Cpus:          4,
+					Mem:           30.5,
+					Gpus:          0,
+				},
+				Zones: []string{"eu-west-1a", "eu-west-1b", "eu-west-1c"},
+			},
+		},
+	}, nil
+}

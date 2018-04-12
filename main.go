@@ -5,8 +5,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/banzaicloud/spot-recommender/api"
-	"github.com/banzaicloud/spot-recommender/recommender"
+	"github.com/banzaicloud/cluster-recommender/api"
+	"github.com/banzaicloud/cluster-recommender/recommender"
 	"github.com/gin-gonic/gin"
 	"github.com/patrickmn/go-cache"
 	log "github.com/sirupsen/logrus"

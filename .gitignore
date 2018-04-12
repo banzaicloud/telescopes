@@ -2,7 +2,7 @@
 .DS_Store
 bin/*
 .idea/
-.spot-recommender
-spot-recommender
+.cluster-recommender
+cluster-recommender
 conf/config.toml
 *.swp
