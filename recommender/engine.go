@@ -1,6 +1,7 @@
 package recommender
 
 import (
+	"errors"
 	"time"
 
 	"github.com/patrickmn/go-cache"
@@ -110,50 +111,163 @@ type VirtualMachine struct {
 	// i/o, network
 }
 
-func (e *Engine) RecommendCluster(req ClusterRecommendationReq) (ClusterRecommendationResp, error) {
-	log.Infof("recommending cluster configuration")
-	return ClusterRecommendationResp{
-		Provider: "aws",
-		NodePools: []NodePool{
-			{
-				SumNodes: 8,
-				VmClass:  "regular",
-				VmType: VirtualMachine{
-					Type:          "m5.xlarge",
-					OnDemandPrice: 0.192,
-					AvgPrice:      0.192,
-					Cpus:          4,
-					Mem:           16,
-					Gpus:          0,
-				},
-				Zones: []string{"eu-west-1a", "eu-west-1b", "eu-west-1c"},
-			},
-			{
-				SumNodes: 8,
-				VmClass:  "spot",
-				VmType: VirtualMachine{
-					Type:          "m5.xlarge",
-					OnDemandPrice: 0.192,
-					AvgPrice:      0.08,
-					Cpus:          4,
-					Mem:           16,
-					Gpus:          0,
-				},
-				Zones: []string{"eu-west-1a", "eu-west-1b", "eu-west-1c"},
-			},
-			{
-				SumNodes: 9,
-				VmClass:  "spot",
-				VmType: VirtualMachine{
-					Type:          "r4.xlarge",
-					OnDemandPrice: 0.266,
-					AvgPrice:      0.07,
-					Cpus:          4,
-					Mem:           30.5,
-					Gpus:          0,
-				},
-				Zones: []string{"eu-west-1a", "eu-west-1b", "eu-west-1c"},
-			},
+func (e *Engine) findNearestCpuUnit(base int, larger bool) (int, error) {
+	if larger {
+		return 16, nil
+	}
+	return 8, nil
+}
+
+type vmFilter func(vm VirtualMachine, req ClusterRecommendationReq) bool
+
+func (e *Engine) memRatioFilter(vm VirtualMachine, req ClusterRecommendationReq) bool {
+	minMemToCpuRatio := float32(req.SumMem) / float32(req.SumCpu)
+	if float32(vm.Mem)/float32(vm.Cpus) < minMemToCpuRatio {
+		return false
+	}
+	return true
+}
+
+// TODO: i/o filter, nw filter, gpu filter, etc...
+
+func (e *Engine) findVmsWithCpuLimits(minCpuPerVm int, maxCpuPerVm int) ([]VirtualMachine, error) {
+	vms := []VirtualMachine{
+		{
+			Type:          "m5.xlarge",
+			OnDemandPrice: 0.192,
+			AvgPrice:      0.192,
+			Cpus:          4,
+			Mem:           16,
+			Gpus:          0,
 		},
+		{
+			Type:          "r4.xlarge",
+			OnDemandPrice: 0.266,
+			AvgPrice:      0.07,
+			Cpus:          4,
+			Mem:           30.5,
+			Gpus:          0,
+		},
+	}
+	return vms, nil
+}
+
+func (e *Engine) RecommendCluster(req ClusterRecommendationReq) (*ClusterRecommendationResp, error) {
+	log.Infof("recommending cluster configuration")
+
+	// 1. CPU based computation
+	// find max instance type:
+	maxCpuPerVm := req.SumCpu / req.MinNodes
+	// minMemForMaxCpu := req.SumCpu / req.MinNodes
+
+	minCpuPerVm := req.SumCpu / req.MaxNodes
+	// minMemForMinCpu :=
+
+	maxCpu, err := e.findNearestCpuUnit(maxCpuPerVm, false)
+	if err != nil {
+		//TODO
+	}
+	minCpu, err := e.findNearestCpuUnit(minCpuPerVm, true)
+	if err != nil {
+		//TODO
+	}
+
+	vms, err := e.findVmsWithCpuLimits(minCpu, maxCpu)
+	if err != nil {
+		//TODO
+	}
+
+	var recommendedVms []VirtualMachine
+
+	for _, vm := range vms {
+		for _, filter := range []vmFilter{e.memRatioFilter} {
+			if filter(vm, req) {
+				recommendedVms = append(recommendedVms, vm)
+			}
+		}
+	}
+
+	if len(recommendedVms) == 0 {
+		return nil, errors.New("couldn't find any VMs to recommend")
+	}
+
+	// find on-demand instance type
+
+	// create NodePool for on-demand instances
+
+	// sort vm types per price_per_cpu
+
+	// pick the first N? types
+
+	// create nodepools for the first N types
+
+	nps := []NodePool{
+		{
+			SumNodes: 0,
+			VmClass:  "regular",
+			VmType: VirtualMachine{
+				Type:          "m5.xlarge",
+				OnDemandPrice: 0.192,
+				AvgPrice:      0.192,
+				Cpus:          4,
+				Mem:           16,
+				Gpus:          0,
+			},
+			Zones: []string{"eu-west-1a", "eu-west-1b", "eu-west-1c"},
+		},
+		{
+			SumNodes: 0,
+			VmClass:  "spot",
+			VmType: VirtualMachine{
+				Type:          "m5.xlarge",
+				OnDemandPrice: 0.192,
+				AvgPrice:      0.08,
+				Cpus:          4,
+				Mem:           16,
+				Gpus:          0,
+			},
+			Zones: []string{"eu-west-1a", "eu-west-1b", "eu-west-1c"},
+		},
+		{
+			SumNodes: 0,
+			VmClass:  "spot",
+			VmType: VirtualMachine{
+				Type:          "r4.xlarge",
+				OnDemandPrice: 0.266,
+				AvgPrice:      0.07,
+				Cpus:          4,
+				Mem:           30.5,
+				Gpus:          0,
+			},
+			Zones: []string{"eu-west-1a", "eu-west-1b", "eu-west-1c"},
+		},
+	}
+
+	N := 3
+
+	i := 0
+	sumCpuInPools := 0
+
+	for sumCpuInPools < req.SumCpu {
+		nodePoolIdx := i % N
+		if nodePoolIdx == 0 {
+			// always add a new instance to the cheapest option and move on
+			nps[nodePoolIdx].SumNodes += 1
+			i++
+		} else if float32(nps[nodePoolIdx].SumNodes+1)*nps[nodePoolIdx].VmType.Cpus <= float32(nps[0].SumNodes)*nps[0].VmType.Cpus {
+			// only add a new instance to the next pool if the sum cpu won't exceed the cheapest option's sum cpu
+			nps[nodePoolIdx].SumNodes += 1
+			if float32(nps[nodePoolIdx].SumNodes+1)*nps[nodePoolIdx].VmType.Cpus > float32(nps[0].SumNodes)*nps[0].VmType.Cpus {
+				// if adding another one would exceed the sum, move on to the next one
+				i++
+			}
+		} else {
+			i++
+		}
+	}
+
+	return &ClusterRecommendationResp{
+		Provider:  "aws",
+		NodePools: nps,
 	}, nil
 }
