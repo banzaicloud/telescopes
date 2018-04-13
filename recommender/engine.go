@@ -2,6 +2,7 @@ package recommender
 
 import (
 	"errors"
+	"math"
 	"time"
 
 	"github.com/patrickmn/go-cache"
@@ -101,7 +102,8 @@ type NodePool struct {
 	VmType   VirtualMachine `json:vm`
 	SumNodes int            `json:sumNodes`
 	VmClass  string         `json:vmClass`
-	Zones    []string       `json:"zones,omitempty"`
+	// TODO: prices are different per zones
+	Zones []string `json:"zones,omitempty"`
 }
 
 type VirtualMachine struct {
@@ -131,14 +133,24 @@ type VmRegistry interface {
 	findVmsWithCpuLimits(minCpuPerVm int, maxCpuPerVm int) ([]VirtualMachine, error)
 }
 
+//type ByNumericValue []string
+//
+//func (a ByNumericValue) Len() int      { return len(a) }
+//func (a ByNumericValue) Swap(i, j int) { a[i], a[j] = a[j], a[i] }
+//func (a ByNumericValue) Less(i, j int) bool {
+//	floatVal, _ := strconv.ParseFloat(strings.Split(a[i], " ")[0], 32)
+//	floatVal2, _ := strconv.ParseFloat(strings.Split(a[j], " ")[0], 32)
+//	return floatVal < floatVal2
+//}
+//
+//sort.Sort(ByNumericValue(stringValues))
+
 func (e *Engine) RecommendCluster(req ClusterRecommendationReq) (*ClusterRecommendationResp, error) {
 	log.Infof("recommending cluster configuration")
 
 	// 1. CPU based recommendation
 	maxCpuPerVm := req.SumCpu / req.MinNodes
 	minCpuPerVm := req.SumCpu / req.MaxNodes
-
-	// TODO: provider specific logic
 
 	vmRegistry := e.VmRegistries[req.Provider]
 
@@ -156,76 +168,56 @@ func (e *Engine) RecommendCluster(req ClusterRecommendationReq) (*ClusterRecomme
 		return nil, err
 	}
 
-	var recommendedVms []VirtualMachine
+	var filteredVms []VirtualMachine
 
 	for _, vm := range vmsInRange {
 		for _, filter := range []vmFilter{e.minMemRatioFilter} {
 			if filter(vm, req) {
-				recommendedVms = append(recommendedVms, vm)
+				filteredVms = append(filteredVms, vm)
 			}
 		}
 	}
 
-	if len(recommendedVms) == 0 {
+	if len(filteredVms) == 0 {
 		return nil, errors.New("couldn't find any VMs to recommend")
 	}
 
 	var nps []NodePool
 
-	// TODO: find on-demand instance type
-
-	// TODO: create NodePool for on-demand instances
-
-	// TODO: sort vm types per price_per_cpu
-
-	// TODO: pick the first N? types
-
-	// TODO: create nodepools for the first N types
-
-	nps = []NodePool{
-		{
-			SumNodes: 0,
-			VmClass:  "regular",
-			VmType: VirtualMachine{
-				Type:          "m5.xlarge",
-				OnDemandPrice: 0.192,
-				AvgPrice:      0.192,
-				Cpus:          4,
-				Mem:           16,
-				Gpus:          0,
-			},
-			Zones: []string{"eu-west-1a", "eu-west-1b", "eu-west-1c"},
-		},
-		{
-			SumNodes: 0,
-			VmClass:  "spot",
-			VmType: VirtualMachine{
-				Type:          "m5.xlarge",
-				OnDemandPrice: 0.192,
-				AvgPrice:      0.08,
-				Cpus:          4,
-				Mem:           16,
-				Gpus:          0,
-			},
-			Zones: []string{"eu-west-1a", "eu-west-1b", "eu-west-1c"},
-		},
-		{
-			SumNodes: 0,
-			VmClass:  "spot",
-			VmType: VirtualMachine{
-				Type:          "r4.xlarge",
-				OnDemandPrice: 0.266,
-				AvgPrice:      0.07,
-				Cpus:          4,
-				Mem:           30.5,
-				Gpus:          0,
-			},
-			Zones: []string{"eu-west-1a", "eu-west-1b", "eu-west-1c"},
-		},
+	// find cheapest onDemand instance from the list - based on pricePerCpu
+	selectedOnDemand := filteredVms[0]
+	for _, vm := range filteredVms {
+		if vm.OnDemandPrice/vm.Cpus < selectedOnDemand.OnDemandPrice/selectedOnDemand.Cpus {
+			selectedOnDemand = vm
+		}
 	}
 
-	N := 3 // TODO: N=??? (min(len(nps), X)
+	var sumOnDemandCpu = float32(req.SumCpu) * float32(req.OnDemandPct) / 100
+	onDemandPool := NodePool{
+		SumNodes: int(math.Ceil(float64(sumOnDemandCpu / selectedOnDemand.Cpus))),
+		VmClass:  "regular",
+		VmType:   selectedOnDemand,
+		Zones:    req.Zones,
+	}
 
+	nps = append(nps, onDemandPool)
+
+	// TODO: sort vm types per price_per_cpu
+	// TODO: pick the first M? types
+	// TODO: create nodepools for the first N types
+	// TODO: find N/M
+
+	// M = len(vms)
+	for _, vm := range filteredVms {
+		nps = append(nps, NodePool{
+			SumNodes: 0,
+			VmClass:  "spot",
+			VmType:   vm,
+			Zones:    req.Zones,
+		})
+	}
+
+	N := 5 // TODO: N=??? (min(len(nps), X)
 	i := 0
 	var sumCpuInPools float32 = 0
 	for sumCpuInPools < float32(req.SumCpu) {
