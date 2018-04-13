@@ -62,6 +62,7 @@ func (r *RouteHandler) recommendClusterSetup(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
+	// TODO: validation
 	if response, err := r.Engine.RecommendCluster(request); err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"status": http.StatusInternalServerError, "message": fmt.Sprintf("%s", err)})
 	} else {

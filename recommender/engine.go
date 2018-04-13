@@ -12,11 +12,13 @@ type Engine struct {
 	ReevaluationInterval time.Duration
 	Recommender          *Recommender
 	CachedInstanceTypes  []string
+	RecommendationStore  *cache.Cache
+	VmRegistries         map[string]VmRegistry
+
 	//TODO: if we want to host the recommender as a service and create an HA deployment then we'll need to find a proper KV store instead of this cache
-	RecommendationStore *cache.Cache
 }
 
-func NewEngine(ri time.Duration, region string, it []string, cache *cache.Cache) (*Engine, error) {
+func NewEngine(ri time.Duration, region string, it []string, cache *cache.Cache, vmRegistries map[string]VmRegistry) (*Engine, error) {
 	recommender, err := NewRecommender(region)
 	if err != nil {
 		return nil, err
@@ -26,6 +28,7 @@ func NewEngine(ri time.Duration, region string, it []string, cache *cache.Cache)
 		Recommender:          recommender,
 		CachedInstanceTypes:  it,
 		RecommendationStore:  cache,
+		VmRegistries:         vmRegistries,
 	}, nil
 }
 
@@ -111,16 +114,9 @@ type VirtualMachine struct {
 	// i/o, network
 }
 
-func (e *Engine) findNearestCpuUnit(base int, larger bool) (int, error) {
-	if larger {
-		return 16, nil
-	}
-	return 8, nil
-}
-
 type vmFilter func(vm VirtualMachine, req ClusterRecommendationReq) bool
 
-func (e *Engine) memRatioFilter(vm VirtualMachine, req ClusterRecommendationReq) bool {
+func (e *Engine) minMemRatioFilter(vm VirtualMachine, req ClusterRecommendationReq) bool {
 	minMemToCpuRatio := float32(req.SumMem) / float32(req.SumCpu)
 	if float32(vm.Mem)/float32(vm.Cpus) < minMemToCpuRatio {
 		return false
@@ -130,57 +126,40 @@ func (e *Engine) memRatioFilter(vm VirtualMachine, req ClusterRecommendationReq)
 
 // TODO: i/o filter, nw filter, gpu filter, etc...
 
-func (e *Engine) findVmsWithCpuLimits(minCpuPerVm int, maxCpuPerVm int) ([]VirtualMachine, error) {
-	vms := []VirtualMachine{
-		{
-			Type:          "m5.xlarge",
-			OnDemandPrice: 0.192,
-			AvgPrice:      0.192,
-			Cpus:          4,
-			Mem:           16,
-			Gpus:          0,
-		},
-		{
-			Type:          "r4.xlarge",
-			OnDemandPrice: 0.266,
-			AvgPrice:      0.07,
-			Cpus:          4,
-			Mem:           30.5,
-			Gpus:          0,
-		},
-	}
-	return vms, nil
+type VmRegistry interface {
+	findNearestCpuUnit(base int, larger bool) (int, error)
+	findVmsWithCpuLimits(minCpuPerVm int, maxCpuPerVm int) ([]VirtualMachine, error)
 }
 
 func (e *Engine) RecommendCluster(req ClusterRecommendationReq) (*ClusterRecommendationResp, error) {
 	log.Infof("recommending cluster configuration")
 
-	// 1. CPU based computation
-	// find max instance type:
+	// 1. CPU based recommendation
 	maxCpuPerVm := req.SumCpu / req.MinNodes
-	// minMemForMaxCpu := req.SumCpu / req.MinNodes
-
 	minCpuPerVm := req.SumCpu / req.MaxNodes
-	// minMemForMinCpu :=
 
-	maxCpu, err := e.findNearestCpuUnit(maxCpuPerVm, false)
+	// TODO: provider specific logic
+
+	vmRegistry := e.VmRegistries[req.Provider]
+
+	maxCpu, err := vmRegistry.findNearestCpuUnit(maxCpuPerVm, false)
 	if err != nil {
-		//TODO
+		return nil, err
 	}
-	minCpu, err := e.findNearestCpuUnit(minCpuPerVm, true)
+	minCpu, err := vmRegistry.findNearestCpuUnit(minCpuPerVm, true)
 	if err != nil {
-		//TODO
+		return nil, err
 	}
 
-	vms, err := e.findVmsWithCpuLimits(minCpu, maxCpu)
+	vmsInRange, err := vmRegistry.findVmsWithCpuLimits(minCpu, maxCpu)
 	if err != nil {
-		//TODO
+		return nil, err
 	}
 
 	var recommendedVms []VirtualMachine
 
-	for _, vm := range vms {
-		for _, filter := range []vmFilter{e.memRatioFilter} {
+	for _, vm := range vmsInRange {
+		for _, filter := range []vmFilter{e.minMemRatioFilter} {
 			if filter(vm, req) {
 				recommendedVms = append(recommendedVms, vm)
 			}
@@ -191,17 +170,19 @@ func (e *Engine) RecommendCluster(req ClusterRecommendationReq) (*ClusterRecomme
 		return nil, errors.New("couldn't find any VMs to recommend")
 	}
 
-	// find on-demand instance type
+	var nps []NodePool
 
-	// create NodePool for on-demand instances
+	// TODO: find on-demand instance type
 
-	// sort vm types per price_per_cpu
+	// TODO: create NodePool for on-demand instances
 
-	// pick the first N? types
+	// TODO: sort vm types per price_per_cpu
 
-	// create nodepools for the first N types
+	// TODO: pick the first N? types
 
-	nps := []NodePool{
+	// TODO: create nodepools for the first N types
+
+	nps = []NodePool{
 		{
 			SumNodes: 0,
 			VmClass:  "regular",
@@ -243,26 +224,24 @@ func (e *Engine) RecommendCluster(req ClusterRecommendationReq) (*ClusterRecomme
 		},
 	}
 
-	N := 3
+	N := 3 // TODO: N=??? (min(len(nps), X)
 
 	i := 0
-	sumCpuInPools := 0
-
-	for sumCpuInPools < req.SumCpu {
+	var sumCpuInPools float32 = 0
+	for sumCpuInPools < float32(req.SumCpu) {
 		nodePoolIdx := i % N
 		if nodePoolIdx == 0 {
 			// always add a new instance to the cheapest option and move on
 			nps[nodePoolIdx].SumNodes += 1
+			sumCpuInPools += nps[nodePoolIdx].VmType.Cpus
 			i++
-		} else if float32(nps[nodePoolIdx].SumNodes+1)*nps[nodePoolIdx].VmType.Cpus <= float32(nps[0].SumNodes)*nps[0].VmType.Cpus {
-			// only add a new instance to the next pool if the sum cpu won't exceed the cheapest option's sum cpu
-			nps[nodePoolIdx].SumNodes += 1
-			if float32(nps[nodePoolIdx].SumNodes+1)*nps[nodePoolIdx].VmType.Cpus > float32(nps[0].SumNodes)*nps[0].VmType.Cpus {
-				// if adding another one would exceed the sum, move on to the next one
-				i++
-			}
+		} else if float32(nps[nodePoolIdx].SumNodes+1)*nps[nodePoolIdx].VmType.Cpus > float32(nps[0].SumNodes)*nps[0].VmType.Cpus {
+			// for other pools, if adding another vm would exceed the current sum cpu of the cheapest option, move on to the next one
+			i++
 		} else {
-			i++
+			// otherwise add a new one, but do not move on to the next one
+			nps[nodePoolIdx].SumNodes += 1
+			sumCpuInPools += nps[nodePoolIdx].VmType.Cpus
 		}
 	}
 
