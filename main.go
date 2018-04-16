@@ -32,11 +32,15 @@ func init() {
 }
 
 func main() {
-	c := cache.New(5*time.Hour, 10.*time.Hour)
+	c := cache.New(24*time.Hour, 24.*time.Hour)
 	cachedInstanceTypes := strings.Split(strings.Replace(*cacheInstanceTypes, " ", "", -1), ",")
 
 	vmRegistries := make(map[string]recommender.VmRegistry, 1)
-	vmRegistries["ec2"] = &recommender.Ec2VmRegistry{}
+	ec2VmRegistry, err := recommender.NewEc2VmRegistry(*region, c)
+	if err != nil {
+		log.Fatal(err)
+	}
+	vmRegistries["ec2"] = ec2VmRegistry
 
 	engine, err := recommender.NewEngine(*reevaluationInterval, *region, cachedInstanceTypes, c, vmRegistries)
 	if err != nil {

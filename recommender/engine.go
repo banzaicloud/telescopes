@@ -82,8 +82,8 @@ func (e *Engine) RetrieveRecommendation(requestedAZs []string, baseInstanceType 
 
 type ClusterRecommendationReq struct {
 	Provider    string   `json:"provider"`
-	SumCpu      int      `json:"sumCpu"`
-	SumMem      int      `json:"sumMem"`
+	SumCpu      float64  `json:"sumCpu"`
+	SumMem      float64  `json:"sumMem"`
 	MinNodes    int      `json:"minNodes,omitempty"`
 	MaxNodes    int      `json:"maxNodes,omitempty"`
 	SameSize    bool     `json:"sameSize,omitempty"`
@@ -109,19 +109,19 @@ type NodePool struct {
 
 type VirtualMachine struct {
 	Type          string  `json:type`
-	AvgPrice      float32 `json:avgPrice`
-	OnDemandPrice float32 `json:onDemandPrice`
-	Cpus          float32 `json:cpusPerVm`
-	Mem           float32 `json:memPerVm`
-	Gpus          float32 `json:gpusPerVm`
+	AvgPrice      float64 `json:avgPrice`
+	OnDemandPrice float64 `json:onDemandPrice`
+	Cpus          float64 `json:cpusPerVm`
+	Mem           float64 `json:memPerVm`
+	Gpus          float64 `json:gpusPerVm`
 	// i/o, network
 }
 
 type vmFilter func(vm VirtualMachine, req ClusterRecommendationReq) bool
 
 func (e *Engine) minMemRatioFilter(vm VirtualMachine, req ClusterRecommendationReq) bool {
-	minMemToCpuRatio := float32(req.SumMem) / float32(req.SumCpu)
-	if float32(vm.Mem)/float32(vm.Cpus) < minMemToCpuRatio {
+	minMemToCpuRatio := req.SumMem / req.SumCpu
+	if vm.Mem/vm.Cpus < minMemToCpuRatio {
 		return false
 	}
 	return true
@@ -130,8 +130,8 @@ func (e *Engine) minMemRatioFilter(vm VirtualMachine, req ClusterRecommendationR
 // TODO: i/o filter, nw filter, gpu filter, etc...
 
 type VmRegistry interface {
-	findNearestCpuUnit(base int, larger bool) (int, error)
-	findVmsWithCpuLimits(minCpuPerVm int, maxCpuPerVm int) ([]VirtualMachine, error)
+	findCpuUnits(min float64, max float64) ([]float64, error)
+	findVmsWithCpuUnits(cpuUnits []float64) ([]VirtualMachine, error)
 }
 
 type BySpotPricePerCpu []VirtualMachine
@@ -150,21 +150,17 @@ func (e *Engine) RecommendCluster(req ClusterRecommendationReq) (*ClusterRecomme
 	// TODO: MEM based recommendation
 
 	// 1. CPU based recommendation
-	maxCpuPerVm := req.SumCpu / req.MinNodes
-	minCpuPerVm := req.SumCpu / req.MaxNodes
+	maxCpuPerVm := req.SumCpu / float64(req.MinNodes)
+	minCpuPerVm := req.SumCpu / float64(req.MaxNodes)
 
 	vmRegistry := e.VmRegistries[req.Provider]
 
-	maxCpu, err := vmRegistry.findNearestCpuUnit(maxCpuPerVm, false)
-	if err != nil {
-		return nil, err
-	}
-	minCpu, err := vmRegistry.findNearestCpuUnit(minCpuPerVm, true)
+	cpuUnits, err := vmRegistry.findCpuUnits(minCpuPerVm, maxCpuPerVm)
 	if err != nil {
 		return nil, err
 	}
 
-	vmsInRange, err := vmRegistry.findVmsWithCpuLimits(minCpu, maxCpu)
+	vmsInRange, err := vmRegistry.findVmsWithCpuUnits(cpuUnits)
 	if err != nil {
 		return nil, err
 	}
@@ -185,8 +181,6 @@ func (e *Engine) RecommendCluster(req ClusterRecommendationReq) (*ClusterRecomme
 
 	var nps []NodePool
 
-	// TODO: on-demands
-
 	// find cheapest onDemand instance from the list - based on pricePerCpu
 	selectedOnDemand := filteredVms[0]
 	for _, vm := range filteredVms {
@@ -195,20 +189,18 @@ func (e *Engine) RecommendCluster(req ClusterRecommendationReq) (*ClusterRecomme
 		}
 	}
 
-	var sumOnDemandCpu = float32(req.SumCpu) * float32(req.OnDemandPct) / 100
-	var sumSpotCpu = float32(req.SumCpu) - sumOnDemandCpu
-
+	var sumOnDemandCpu = req.SumCpu * float64(req.OnDemandPct) / 100
+	var sumSpotCpu = req.SumCpu - sumOnDemandCpu
 
 	// create and append on-demand pool
 	onDemandPool := NodePool{
-		SumNodes: int(math.Ceil(float64(sumOnDemandCpu / selectedOnDemand.Cpus))),
+		SumNodes: int(math.Ceil(sumOnDemandCpu / selectedOnDemand.Cpus)),
 		VmClass:  "regular",
 		VmType:   selectedOnDemand,
 		Zones:    req.Zones,
 	}
 
 	nps = append(nps, onDemandPool)
-
 
 	// sort and cut
 	sort.Sort(BySpotPricePerCpu(filteredVms))
@@ -221,7 +213,6 @@ func (e *Engine) RecommendCluster(req ClusterRecommendationReq) (*ClusterRecomme
 
 	recommendedVms := filteredVms[:M]
 
-
 	// create spot nodepools
 	for _, vm := range recommendedVms {
 		nps = append(nps, NodePool{
@@ -232,17 +223,17 @@ func (e *Engine) RecommendCluster(req ClusterRecommendationReq) (*ClusterRecomme
 		})
 	}
 
-	// balance instances among pools
+	// fill up instances in spot pools
 	i := 0
-	var sumCpuInPools float32 = 0
+	var sumCpuInPools float64 = 0
 	for sumCpuInPools < sumSpotCpu {
-		nodePoolIdx := i % N + 1
+		nodePoolIdx := i%N + 1
 		if nodePoolIdx == 1 {
 			// always add a new instance to the cheapest option and move on
 			nps[nodePoolIdx].SumNodes += 1
 			sumCpuInPools += nps[nodePoolIdx].VmType.Cpus
 			i++
-		} else if float32(nps[nodePoolIdx].SumNodes+1)*nps[nodePoolIdx].VmType.Cpus > float32(nps[1].SumNodes)*nps[1].VmType.Cpus {
+		} else if float64(nps[nodePoolIdx].SumNodes+1)*nps[nodePoolIdx].VmType.Cpus > float64(nps[1].SumNodes)*nps[1].VmType.Cpus {
 			// for other pools, if adding another vm would exceed the current sum cpu of the cheapest option, move on to the next one
 			i++
 		} else {
