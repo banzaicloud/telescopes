@@ -134,11 +134,11 @@ type VmRegistry interface {
 	findVmsWithCpuUnits(cpuUnits []float64) ([]VirtualMachine, error)
 }
 
-type BySpotPricePerCpu []VirtualMachine
+type ByAvgPricePerCpu []VirtualMachine
 
-func (a BySpotPricePerCpu) Len() int      { return len(a) }
-func (a BySpotPricePerCpu) Swap(i, j int) { a[i], a[j] = a[j], a[i] }
-func (a BySpotPricePerCpu) Less(i, j int) bool {
+func (a ByAvgPricePerCpu) Len() int      { return len(a) }
+func (a ByAvgPricePerCpu) Swap(i, j int) { a[i], a[j] = a[j], a[i] }
+func (a ByAvgPricePerCpu) Less(i, j int) bool {
 	pricePerCpu1 := a[i].AvgPrice / a[i].Cpus
 	pricePerCpu2 := a[j].AvgPrice / a[j].Cpus
 	return pricePerCpu1 < pricePerCpu2
@@ -203,7 +203,7 @@ func (e *Engine) RecommendCluster(req ClusterRecommendationReq) (*ClusterRecomme
 	nps = append(nps, onDemandPool)
 
 	// sort and cut
-	sort.Sort(BySpotPricePerCpu(filteredVms))
+	sort.Sort(ByAvgPricePerCpu(filteredVms))
 
 	M := 6
 	N := 4

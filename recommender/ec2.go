@@ -3,14 +3,15 @@ package recommender
 import (
 	"errors"
 	"fmt"
-	"sort"
 	"strconv"
 	"strings"
 	"time"
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/session"
+	"github.com/aws/aws-sdk-go/service/ec2"
 	"github.com/aws/aws-sdk-go/service/pricing"
+	pi "github.com/banzaicloud/cluster-recommender/ec2_productinfo"
 	"github.com/patrickmn/go-cache"
 	log "github.com/sirupsen/logrus"
 )
@@ -33,12 +34,13 @@ var regionMap = map[string]string{
 }
 
 type Ec2VmRegistry struct {
-	Session     *session.Session
-	VmAttrStore *cache.Cache
+	session     *session.Session
+	vmAttrStore *cache.Cache
+	productInfo *pi.ProductInfo
 }
 
-func NewEc2VmRegistry(region string, cache *cache.Cache) (VmRegistry, error) {
-	session, err := session.NewSession(&aws.Config{
+func NewEc2VmRegistry(region string, cache *cache.Cache, pi *pi.ProductInfo) (VmRegistry, error) {
+	s, err := session.NewSession(&aws.Config{
 		Region: aws.String(region),
 	})
 	if err != nil {
@@ -46,23 +48,26 @@ func NewEc2VmRegistry(region string, cache *cache.Cache) (VmRegistry, error) {
 		return nil, err
 	}
 	return &Ec2VmRegistry{
-		Session:     session,
-		VmAttrStore: cache,
+		session:     s,
+		vmAttrStore: cache,
+		productInfo: pi,
 	}, nil
 }
-
-// TODO: collect VM info in a separate goroutine (ticker)
 
 // TODO: unit tests
 func (e *Ec2VmRegistry) findVmsWithCpuUnits(cpuUnits []float64) ([]VirtualMachine, error) {
 
-	pricingSvc := pricing.New(e.Session, &aws.Config{Region: aws.String("us-east-1")})
+	pricingSvc := pricing.New(e.session, &aws.Config{Region: aws.String("us-east-1")})
 	log.Infof("Getting instance types and on demand prices with %v vcpus", cpuUnits)
 
 	var allVms []VirtualMachine
 	for _, cpu := range cpuUnits {
+
+
+
+
 		vmCacheKey := "/banzaicloud.com/recommender/ec2/attrValues/" + fmt.Sprint(cpu)
-		if cachedVal, ok := e.VmAttrStore.Get(vmCacheKey); ok {
+		if cachedVal, ok := e.vmAttrStore.Get(vmCacheKey); ok {
 			log.Debugf("Getting available instance types with %v cpu from cache.", cpu)
 			log.Debug(cachedVal.([]VirtualMachine))
 			allVms = append(allVms, cachedVal.([]VirtualMachine)...)
@@ -85,7 +90,7 @@ func (e *Ec2VmRegistry) findVmsWithCpuUnits(cpuUnits []float64) ([]VirtualMachin
 					{
 						Type:  aws.String("TERM_MATCH"),
 						Field: aws.String("location"),
-						Value: aws.String(regionMap[*e.Session.Config.Region]),
+						Value: aws.String(regionMap[*e.session.Config.Region]),
 					},
 					{
 						Type:  aws.String("TERM_MATCH"),
@@ -126,18 +131,35 @@ func (e *Ec2VmRegistry) findVmsWithCpuUnits(cpuUnits []float64) ([]VirtualMachin
 				vm := VirtualMachine{
 					Type:          instanceType,
 					OnDemandPrice: onDemandPrice,
-					// TODO: spot price
-					AvgPrice: onDemandPrice,
-					Cpus:     cpus,
-					Mem:      mem,
-					Gpus:     gpus,
+					AvgPrice:      onDemandPrice,
+					Cpus:          cpus,
+					Mem:           mem,
+					Gpus:          gpus,
 				}
 				vms = append(vms, vm)
 			}
-			e.VmAttrStore.Set(vmCacheKey, vms, 24*time.Hour)
+			e.vmAttrStore.Set(vmCacheKey, vms, 24*time.Hour)
 			allVms = append(allVms, vms...)
 		}
 	}
+
+	instanceTypes := make([]string, len(allVms))
+	for i, vm := range allVms {
+		instanceTypes[i] = vm.Type
+	}
+	// TODO: availability zones
+	currentSpotPrices, err := e.getCurrentSpotPrices(*e.session.Config.Region+"a", instanceTypes)
+	if err != nil {
+		return nil, err
+	}
+
+	for i := range allVms {
+
+		if currentPrice, ok := currentSpotPrices[allVms[i].Type]; ok {
+			allVms[i].AvgPrice = currentPrice
+		}
+	}
+
 	log.Debugf("found vms with cpu units [%v]: %v", cpuUnits, allVms)
 	return allVms, nil
 }
@@ -145,8 +167,7 @@ func (e *Ec2VmRegistry) findVmsWithCpuUnits(cpuUnits []float64) ([]VirtualMachin
 // TODO: unit tests
 func (e *Ec2VmRegistry) findCpuUnits(min float64, max float64) ([]float64, error) {
 	log.Debugf("finding cpu units between: [%v, %v]", min, max)
-	pricingSvc := pricing.New(e.Session, &aws.Config{Region: aws.String("us-east-1")})
-	cpuValues, err := e.getSortedAttrValues(pricingSvc, "vcpu")
+	cpuValues, err := e.productInfo.GetSortedAttrValues("vcpu")
 	if err != nil {
 		return nil, err
 	}
@@ -179,34 +200,28 @@ func (e *Ec2VmRegistry) findCpuUnits(min float64, max float64) ([]float64, error
 	return values, nil
 }
 
-func (e *Ec2VmRegistry) getSortedAttrValues(pricingSvc *pricing.Pricing, attribute string) ([]float64, error) {
-	var attrValues []float64
-	attrCacheKey := "/banzaicloud.com/recommender/ec2/attrValues/" + attribute
-	if cachedVal, ok := e.VmAttrStore.Get(attrCacheKey); ok {
-		log.Debugf("Getting available %s values from cache.", attribute)
-		attrValues = cachedVal.([]float64)
-	} else {
-		log.Debugf("Getting available %s values from AWS API.", attribute)
-		apiValues, err := pricingSvc.GetAttributeValues(&pricing.GetAttributeValuesInput{
-			ServiceCode:   aws.String("AmazonEC2"),
-			AttributeName: aws.String(attribute),
-		})
+func (e *Ec2VmRegistry) getCurrentSpotPrices(az string, instanceTypes []string) (map[string]float64, error) {
+	log.Debug("getting current spot price of instance types")
+	ec2Svc := ec2.New(e.session)
+
+	history, err := ec2Svc.DescribeSpotPriceHistory(&ec2.DescribeSpotPriceHistoryInput{
+		StartTime:           aws.Time(time.Now()),
+		ProductDescriptions: []*string{aws.String("Linux/UNIX")},
+		InstanceTypes:       aws.StringSlice(instanceTypes),
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	spotPrices := make(map[string]float64)
+
+	for _, priceEntry := range history.SpotPriceHistory {
+		spotPrice, err := strconv.ParseFloat(*priceEntry.SpotPrice, 32)
 		if err != nil {
 			return nil, err
 		}
-
-		var values []float64
-		for _, attrValue := range apiValues.AttributeValues {
-			floatValue, err := strconv.ParseFloat(strings.Split(*attrValue.Value, " ")[0], 32)
-			if err != nil {
-				return nil, err
-			}
-			values = append(values, floatValue)
-		}
-		sort.Float64s(values)
-		attrValues = values
-		e.VmAttrStore.Set(attrCacheKey, values, 24*time.Hour)
+		spotPrices[*priceEntry.InstanceType] = spotPrice
 	}
-	log.Debugf("%s attribute values sorted: %v", attribute, attrValues)
-	return attrValues, nil
+
+	return spotPrices, nil
 }

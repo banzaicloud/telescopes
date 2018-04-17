@@ -1,11 +1,13 @@
 package main
 
 import (
+	"context"
 	"flag"
 	"strings"
 	"time"
 
 	"github.com/banzaicloud/cluster-recommender/api"
+	"github.com/banzaicloud/cluster-recommender/ec2_productinfo"
 	"github.com/banzaicloud/cluster-recommender/recommender"
 	"github.com/gin-gonic/gin"
 	"github.com/patrickmn/go-cache"
@@ -35,8 +37,15 @@ func main() {
 	c := cache.New(24*time.Hour, 24.*time.Hour)
 	cachedInstanceTypes := strings.Split(strings.Replace(*cacheInstanceTypes, " ", "", -1), ",")
 
+	// TODO: renewal interval
+	ec2ProductInfo, err := ec2_productinfo.NewProductInfo(24*time.Hour, c)
+	if err != nil {
+		log.Fatal(err)
+	}
+	go ec2ProductInfo.Start(context.Background())
+
 	vmRegistries := make(map[string]recommender.VmRegistry, 1)
-	ec2VmRegistry, err := recommender.NewEc2VmRegistry(*region, c)
+	ec2VmRegistry, err := recommender.NewEc2VmRegistry(*region, c, ec2ProductInfo)
 	if err != nil {
 		log.Fatal(err)
 	}
