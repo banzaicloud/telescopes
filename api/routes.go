@@ -57,13 +57,15 @@ func (r *RouteHandler) recommendInstanceTypes(c *gin.Context) {
 
 func (r *RouteHandler) recommendClusterSetup(c *gin.Context) {
 	log.Info("recommend cluster setup")
+	provider := c.Param("provider")
+	region := c.Param("region")
 	var request recommender.ClusterRecommendationReq
 	if err := c.BindJSON(&request); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
 	// TODO: validation
-	if response, err := r.Engine.RecommendCluster(request); err != nil {
+	if response, err := r.Engine.RecommendCluster(provider, region, request); err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"status": http.StatusInternalServerError, "message": fmt.Sprintf("%s", err)})
 	} else {
 		c.JSON(http.StatusOK, *response)

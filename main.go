@@ -7,7 +7,7 @@ import (
 	"time"
 
 	"github.com/banzaicloud/cluster-recommender/api"
-	"github.com/banzaicloud/cluster-recommender/ec2_productinfo"
+	pi "github.com/banzaicloud/cluster-recommender/ec2_productinfo"
 	"github.com/banzaicloud/cluster-recommender/recommender"
 	"github.com/gin-gonic/gin"
 	"github.com/patrickmn/go-cache"
@@ -15,11 +15,12 @@ import (
 )
 
 var (
-	addr                 = flag.String("listen-address", ":9090", "The address to listen on for HTTP requests.")
-	reevaluationInterval = flag.Duration("reevaluation-interval", 60*time.Second, "Time (in seconds) between reevaluating the recommendations")
-	rawLevel             = flag.String("log-level", "info", "log level")
-	region               = flag.String("region", "eu-west-1", "AWS region where the recommender should work")
-	cacheInstanceTypes   = flag.String("cache-instance-types", "m4.xlarge,m5.xlarge,c5.xlarge", "Recommendations are cached for these instance types (comma separated list)")
+	addr                       = flag.String("listen-address", ":9090", "The address to listen on for HTTP requests.")
+	reevaluationInterval       = flag.Duration("reevaluation-interval", 60*time.Second, "Time (in seconds) between reevaluating the recommendations")
+	productInfoRenewalInterval = flag.Duration("product-info-renewal-interval", 24*time.Hour, "Duration (in go syntax) between renewing the ec2 product info. Example: 2h30m")
+	rawLevel                   = flag.String("log-level", "info", "log level")
+	region                     = flag.String("region", "eu-west-1", "AWS region where the recommender should work")
+	cacheInstanceTypes         = flag.String("cache-instance-types", "m4.xlarge,m5.xlarge,c5.xlarge", "Recommendations are cached for these instance types (comma separated list)")
 )
 
 func init() {
@@ -37,15 +38,14 @@ func main() {
 	c := cache.New(24*time.Hour, 24.*time.Hour)
 	cachedInstanceTypes := strings.Split(strings.Replace(*cacheInstanceTypes, " ", "", -1), ",")
 
-	// TODO: renewal interval
-	ec2ProductInfo, err := ec2_productinfo.NewProductInfo(24*time.Hour, c)
+	ec2ProductInfo, err := pi.NewProductInfo(*productInfoRenewalInterval, c)
 	if err != nil {
 		log.Fatal(err)
 	}
 	go ec2ProductInfo.Start(context.Background())
 
 	vmRegistries := make(map[string]recommender.VmRegistry, 1)
-	ec2VmRegistry, err := recommender.NewEc2VmRegistry(*region, c, ec2ProductInfo)
+	ec2VmRegistry, err := recommender.NewEc2VmRegistry(ec2ProductInfo)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -55,7 +55,7 @@ func main() {
 	if err != nil {
 		log.Fatal(err)
 	}
-	go engine.Start()
+	//go engine.Start()
 
 	routeHandler := api.NewRouteHandler(engine)
 

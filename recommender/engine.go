@@ -81,7 +81,6 @@ func (e *Engine) RetrieveRecommendation(requestedAZs []string, baseInstanceType 
 }
 
 type ClusterRecommendationReq struct {
-	Provider    string   `json:"provider"`
 	SumCpu      float64  `json:"sumCpu"`
 	SumMem      float64  `json:"sumMem"`
 	MinNodes    int      `json:"minNodes,omitempty"`
@@ -131,7 +130,7 @@ func (e *Engine) minMemRatioFilter(vm VirtualMachine, req ClusterRecommendationR
 
 type VmRegistry interface {
 	findCpuUnits(min float64, max float64) ([]float64, error)
-	findVmsWithCpuUnits(cpuUnits []float64) ([]VirtualMachine, error)
+	findVmsWithCpuUnits(region string, cpuUnits []float64) ([]VirtualMachine, error)
 }
 
 type ByAvgPricePerCpu []VirtualMachine
@@ -144,7 +143,7 @@ func (a ByAvgPricePerCpu) Less(i, j int) bool {
 	return pricePerCpu1 < pricePerCpu2
 }
 
-func (e *Engine) RecommendCluster(req ClusterRecommendationReq) (*ClusterRecommendationResp, error) {
+func (e *Engine) RecommendCluster(provider string, region string, req ClusterRecommendationReq) (*ClusterRecommendationResp, error) {
 	log.Infof("recommending cluster configuration")
 
 	// TODO: MEM based recommendation
@@ -153,14 +152,14 @@ func (e *Engine) RecommendCluster(req ClusterRecommendationReq) (*ClusterRecomme
 	maxCpuPerVm := req.SumCpu / float64(req.MinNodes)
 	minCpuPerVm := req.SumCpu / float64(req.MaxNodes)
 
-	vmRegistry := e.VmRegistries[req.Provider]
+	vmRegistry := e.VmRegistries[provider]
 
 	cpuUnits, err := vmRegistry.findCpuUnits(minCpuPerVm, maxCpuPerVm)
 	if err != nil {
 		return nil, err
 	}
 
-	vmsInRange, err := vmRegistry.findVmsWithCpuUnits(cpuUnits)
+	vmsInRange, err := vmRegistry.findVmsWithCpuUnits(region, cpuUnits)
 	if err != nil {
 		return nil, err
 	}
