@@ -204,11 +204,9 @@ func (e *Engine) RecommendCluster(provider string, region string, req ClusterRec
 	// sort and cut
 	sort.Sort(ByAvgPricePerCpu(filteredVms))
 
-	M := 6
-	N := 4
-	// TODO: find N/M
-	// what is M? based on sumcpu / avg cluster size?
-	// N is similar.... but let's make it 6/4 first
+	N := int(math.Min(float64(findN(cpuUnits, req.SumCpu)), float64(len(filteredVms))))
+	M := int(math.Min(math.Ceil(float64(N) * 1.5), float64(len(filteredVms))))
+	log.Info(len(filteredVms), findN(cpuUnits, req.SumCpu), N, M)
 
 	recommendedVms := filteredVms[:M]
 
@@ -246,4 +244,32 @@ func (e *Engine) RecommendCluster(provider string, region string, req ClusterRec
 		Provider:  "aws",
 		NodePools: nps,
 	}, nil
+}
+func avgNodeCount(cpuUnits []float64, sumCpu float64) int {
+	var totalUnit float64
+	for _, unit := range cpuUnits {
+		totalUnit += unit
+	}
+	avgUnit := totalUnit / float64(len(cpuUnits))
+	return int(math.Ceil(sumCpu / avgUnit))
+}
+
+func findN(cpuUnits []float64, sumCpu float64) int {
+	avg := avgNodeCount(cpuUnits, sumCpu)
+	var N int
+	switch {
+	case avg <= 4:
+		N = avg
+	case avg <= 8:
+		N =4
+	case avg <= 15:
+		N =5
+	case avg <= 24:
+		N =6
+	case avg <= 35:
+		N =7
+	case avg > 35:
+		N =8
+	}
+	return N
 }
