@@ -5,7 +5,7 @@ import (
 	"net/http"
 	"strings"
 
-	"github.com/banzaicloud/spot-recommender/recommender"
+	"github.com/banzaicloud/cluster-recommender/recommender"
 	"github.com/gin-gonic/gin"
 	log "github.com/sirupsen/logrus"
 )
@@ -28,7 +28,8 @@ func (r *RouteHandler) ConfigureRoutes(router *gin.Engine) {
 	}
 	v1 := router.Group("/api/v1/")
 	{
-		v1.GET("/recommender/:region", r.recommendSpotInstanceTypes)
+		v1.GET("/recommender/:provider/:region/vm", r.recommendInstanceTypes)
+		v1.POST("/recommender/:provider/:region/cluster", r.recommendClusterSetup)
 	}
 }
 
@@ -36,7 +37,7 @@ func (r *RouteHandler) signalStatus(c *gin.Context) {
 	c.JSON(http.StatusOK, "ok")
 }
 
-func (r *RouteHandler) recommendSpotInstanceTypes(c *gin.Context) {
+func (r *RouteHandler) recommendInstanceTypes(c *gin.Context) {
 	log.Info("recommend spot instance types")
 	baseInstanceType := c.DefaultQuery("baseInstanceType", "m4.xlarge")
 	azsQuery := c.DefaultQuery("availabilityZones", "")
@@ -51,5 +52,22 @@ func (r *RouteHandler) recommendSpotInstanceTypes(c *gin.Context) {
 		c.JSON(http.StatusInternalServerError, gin.H{"status": http.StatusInternalServerError, "message": fmt.Sprintf("%s", err)})
 	} else {
 		c.JSON(http.StatusOK, response)
+	}
+}
+
+func (r *RouteHandler) recommendClusterSetup(c *gin.Context) {
+	log.Info("recommend cluster setup")
+	provider := c.Param("provider")
+	region := c.Param("region")
+	var request recommender.ClusterRecommendationReq
+	if err := c.BindJSON(&request); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+	// TODO: validation
+	if response, err := r.Engine.RecommendCluster(provider, region, request); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"status": http.StatusInternalServerError, "message": fmt.Sprintf("%s", err)})
+	} else {
+		c.JSON(http.StatusOK, *response)
 	}
 }
