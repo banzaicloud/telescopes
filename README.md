@@ -1,6 +1,6 @@
-# AWS Spot Instance recommender
+# Cluster recommender
 
-Spot instance recommender is a building block of the [Hollowtrees](https://github.com/banzaicloud/hollowtrees) project. When the HT engine is launching, changing or reconciling existing spot instances it does based on a recommendation. When EC2 is terminating the spot instances usually it does so based on increased demand for the same instancy type - thus relaunching a new bid for the same type it's usually not filled. The spot-recommender `recommends` similar spot instance types based on the following flow
+Cluster (spot) instance recommender is a building block of the [Hollowtrees](https://github.com/banzaicloud/hollowtrees) project. When the HT engine is launching, changing or reconciling existing spot instances it does based on a recommendation. When EC2 is terminating the spot instances usually it does so based on increased demand for the same instancy type - thus relaunching a new bid for the same type it's usually not filled. The spot-recommender `recommends` similar spot instance types based on the following flow
 
 1. Spot recommender is asking the AWS EC2 API for available instances in the given datacenter/region with similar `cpu` and `memory` parameters.
 2. Fetches the current spot price for the available instance types per datacenter/region
