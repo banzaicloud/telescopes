@@ -102,7 +102,6 @@ func (e *ProductInfo) Start(ctx context.Context) {
 }
 
 func (e *ProductInfo) GetSortedAttrValues(attribute string) ([]float64, error) {
-	log.Debugf("Getting available %s values from AWS API.", attribute)
 	attrCacheKey := e.getAttrKey(attribute)
 	if cachedVal, ok := e.vmAttrStore.Get(attrCacheKey); ok {
 		log.Debugf("Getting available %s values from cache.", attribute)
@@ -129,6 +128,7 @@ func (e *ProductInfo) renewAttrValues(attribute string) ([]float64, error) {
 }
 
 func (e *ProductInfo) getSortedAttrValuesFromAPI(attribute string) ([]float64, error) {
+	log.Debugf("Getting available %s values from AWS API.", attribute)
 	pricingSvc := pricing.New(e.session, &aws.Config{Region: aws.String("us-east-1")})
 	apiValues, err := pricingSvc.GetAttributeValues(&pricing.GetAttributeValuesInput{
 		ServiceCode:   aws.String("AmazonEC2"),

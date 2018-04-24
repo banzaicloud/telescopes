@@ -89,12 +89,12 @@ type ClusterRecommendationReq struct {
 	OnDemandPct int      `json:"onDemandPct,omitempty"`
 	Zones       []string `json:"zones,omitempty"`
 	SumGpu      int      `json:"sumGpu,omitempty"`
-	//??? cost optimized vs stability optimized?
-	//??? i/o, network
+	// TODO: i/o, network
 }
 
 type ClusterRecommendationResp struct {
 	Provider  string     `json:provider`
+	Zones     []string   `json:"zones,omitempty"`
 	NodePools []NodePool `json:nodePools`
 }
 
@@ -102,8 +102,6 @@ type NodePool struct {
 	VmType   VirtualMachine `json:vm`
 	SumNodes int            `json:sumNodes`
 	VmClass  string         `json:vmClass`
-	// TODO: prices are different per zones
-	Zones []string `json:"zones,omitempty"`
 }
 
 type VirtualMachine struct {
@@ -130,7 +128,7 @@ func (e *Engine) minMemRatioFilter(vm VirtualMachine, req ClusterRecommendationR
 
 type VmRegistry interface {
 	findCpuUnits(min float64, max float64) ([]float64, error)
-	findVmsWithCpuUnits(region string, cpuUnits []float64) ([]VirtualMachine, error)
+	findVmsWithCpuUnits(region string, zones []string, cpuUnits []float64) ([]VirtualMachine, error)
 }
 
 type ByAvgPricePerCpu []VirtualMachine
@@ -159,7 +157,7 @@ func (e *Engine) RecommendCluster(provider string, region string, req ClusterRec
 		return nil, err
 	}
 
-	vmsInRange, err := vmRegistry.findVmsWithCpuUnits(region, cpuUnits)
+	vmsInRange, err := vmRegistry.findVmsWithCpuUnits(region, req.Zones, cpuUnits)
 	if err != nil {
 		return nil, err
 	}
@@ -196,7 +194,6 @@ func (e *Engine) RecommendCluster(provider string, region string, req ClusterRec
 		SumNodes: int(math.Ceil(sumOnDemandCpu / selectedOnDemand.Cpus)),
 		VmClass:  "regular",
 		VmType:   selectedOnDemand,
-		Zones:    req.Zones,
 	}
 
 	nps = append(nps, onDemandPool)
@@ -205,7 +202,7 @@ func (e *Engine) RecommendCluster(provider string, region string, req ClusterRec
 	sort.Sort(ByAvgPricePerCpu(filteredVms))
 
 	N := int(math.Min(float64(findN(cpuUnits, req.SumCpu)), float64(len(filteredVms))))
-	M := int(math.Min(math.Ceil(float64(N) * 1.5), float64(len(filteredVms))))
+	M := int(math.Min(math.Ceil(float64(N)*1.5), float64(len(filteredVms))))
 	log.Info(len(filteredVms), findN(cpuUnits, req.SumCpu), N, M)
 
 	recommendedVms := filteredVms[:M]
@@ -216,7 +213,6 @@ func (e *Engine) RecommendCluster(provider string, region string, req ClusterRec
 			SumNodes: 0,
 			VmClass:  "spot",
 			VmType:   vm,
-			Zones:    req.Zones,
 		})
 	}
 
@@ -242,6 +238,7 @@ func (e *Engine) RecommendCluster(provider string, region string, req ClusterRec
 
 	return &ClusterRecommendationResp{
 		Provider:  "aws",
+		Zones:     req.Zones,
 		NodePools: nps,
 	}, nil
 }
@@ -261,15 +258,15 @@ func findN(cpuUnits []float64, sumCpu float64) int {
 	case avg <= 4:
 		N = avg
 	case avg <= 8:
-		N =4
+		N = 4
 	case avg <= 15:
-		N =5
+		N = 5
 	case avg <= 24:
-		N =6
+		N = 6
 	case avg <= 35:
-		N =7
+		N = 7
 	case avg > 35:
-		N =8
+		N = 8
 	}
 	return N
 }
