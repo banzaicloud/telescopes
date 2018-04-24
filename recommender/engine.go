@@ -127,7 +127,7 @@ func (e *Engine) minMemRatioFilter(vm VirtualMachine, req ClusterRecommendationR
 // TODO: i/o filter, nw filter, gpu filter, etc...
 
 type VmRegistry interface {
-	findCpuUnits(min float64, max float64) ([]float64, error)
+	getAvailableCpuUnits() ([]float64, error)
 	findVmsWithCpuUnits(region string, zones []string, cpuUnits []float64) ([]VirtualMachine, error)
 }
 
@@ -152,7 +152,12 @@ func (e *Engine) RecommendCluster(provider string, region string, req ClusterRec
 
 	vmRegistry := e.VmRegistries[provider]
 
-	cpuUnits, err := vmRegistry.findCpuUnits(minCpuPerVm, maxCpuPerVm)
+	allCpuUnits, err := vmRegistry.getAvailableCpuUnits()
+	if err != nil {
+		return nil, err
+	}
+
+	cpuUnits, err := e.findCpuUnitsBetween(allCpuUnits, minCpuPerVm, maxCpuPerVm)
 	if err != nil {
 		return nil, err
 	}
@@ -241,6 +246,36 @@ func (e *Engine) RecommendCluster(provider string, region string, req ClusterRec
 		NodePools: nps,
 	}, nil
 }
+
+func (e *Engine) findCpuUnitsBetween(cpuValues []float64, min float64, max float64) ([]float64, error) {
+	log.Debugf("finding cpu units between: [%v, %v]", min, max)
+	sort.Float64s(cpuValues)
+	if min > max {
+		return nil, errors.New("min value cannot be larger than the max value")
+	}
+
+	if max < cpuValues[0] {
+		log.Debug("returning smallest CPU unit: %v", cpuValues[0])
+		return []float64{cpuValues[0]}, nil
+	} else if min > cpuValues[len(cpuValues)-1] {
+		log.Debugf("returning largest CPU unit: %v", cpuValues[len(cpuValues)-1])
+		return []float64{cpuValues[len(cpuValues)-1]}, nil
+	}
+
+	var values []float64
+
+	for i := 0; i < len(cpuValues); i++ {
+		if cpuValues[i] >= min && cpuValues[i] <= max {
+			values = append(values, cpuValues[i])
+		} else if cpuValues[i] > max && len(values) < 1 {
+			log.Debugf("couldn't find values between min and max, returning nearest values: [%v, %v]", cpuValues[i-1], cpuValues[i])
+			return []float64{cpuValues[i-1], cpuValues[i]}, nil
+		}
+	}
+	log.Debugf("returning CPU units: %v", values)
+	return values, nil
+}
+
 func avgNodeCount(cpuUnits []float64, sumCpu float64) int {
 	var totalUnit float64
 	for _, unit := range cpuUnits {

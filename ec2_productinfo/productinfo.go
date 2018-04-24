@@ -3,7 +3,6 @@ package ec2_productinfo
 import (
 	"context"
 	"fmt"
-	"sort"
 	"strconv"
 	"strings"
 	"time"
@@ -86,7 +85,7 @@ func (e *ProductInfo) Start(ctx context.Context) {
 	}
 }
 
-func (e *ProductInfo) GetSortedAttrValues(attribute string) ([]float64, error) {
+func (e *ProductInfo) GetAttrValues(attribute string) ([]float64, error) {
 	attrCacheKey := e.getAttrKey(attribute)
 	if cachedVal, ok := e.vmAttrStore.Get(attrCacheKey); ok {
 		log.Debugf("Getting available %s values from cache.", attribute)
@@ -104,7 +103,7 @@ func (e *ProductInfo) getAttrKey(attribute string) string {
 }
 
 func (e *ProductInfo) renewAttrValues(attribute string) ([]float64, error) {
-	values, err := e.getSortedAttrValuesFromAPI(attribute)
+	values, err := e.getAttrValuesFromAPI(attribute)
 	if err != nil {
 		return nil, err
 	}
@@ -112,7 +111,7 @@ func (e *ProductInfo) renewAttrValues(attribute string) ([]float64, error) {
 	return values, nil
 }
 
-func (e *ProductInfo) getSortedAttrValuesFromAPI(attribute string) ([]float64, error) {
+func (e *ProductInfo) getAttrValuesFromAPI(attribute string) ([]float64, error) {
 	log.Debugf("Getting available %s values from AWS API.", attribute)
 	pricingSvc := pricing.New(e.session, &aws.Config{Region: aws.String("us-east-1")})
 	apiValues, err := pricingSvc.GetAttributeValues(&pricing.GetAttributeValuesInput{
@@ -131,7 +130,6 @@ func (e *ProductInfo) getSortedAttrValuesFromAPI(attribute string) ([]float64, e
 		}
 		values = append(values, floatValue)
 	}
-	sort.Float64s(values)
 	return values, nil
 }
 

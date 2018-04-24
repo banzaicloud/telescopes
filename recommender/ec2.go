@@ -1,7 +1,6 @@
 package recommender
 
 import (
-	"errors"
 	"strconv"
 	"time"
 
@@ -73,40 +72,13 @@ func (e *Ec2VmRegistry) findVmsWithCpuUnits(region string, zones []string, cpuUn
 	return vms, nil
 }
 
-func (e *Ec2VmRegistry) findCpuUnits(min float64, max float64) ([]float64, error) {
-	log.Debugf("finding cpu units between: [%v, %v]", min, max)
-	cpuValues, err := e.productInfo.GetSortedAttrValues(pi.Cpu)
+func (e *Ec2VmRegistry) getAvailableCpuUnits() ([]float64, error) {
+	cpuValues, err := e.productInfo.GetAttrValues(pi.Cpu)
 	if err != nil {
 		return nil, err
 	}
-	log.Debugf("cpu attribute values sorted: %v", cpuValues)
-
-	if min > max {
-		return nil, errors.New("min value cannot be larger than the max value")
-	}
-
-	if max < cpuValues[0] {
-		log.Debug("returning smallest CPU unit: %v", cpuValues[0])
-		return []float64{cpuValues[0]}, nil
-	} else if min > cpuValues[len(cpuValues)-1] {
-		log.Debugf("returning largest CPU unit: %v", cpuValues[len(cpuValues)-1])
-		return []float64{cpuValues[len(cpuValues)-1]}, nil
-	}
-
-	var values []float64
-
-	for i := 0; i < len(cpuValues); i++ {
-		if cpuValues[i] >= min && cpuValues[i] <= max {
-			values = append(values, cpuValues[i])
-		} else if cpuValues[i] > max && len(values) < 1 {
-			// 1 2 4 8 16 32 64....
-			// min value: 4.2 max 7.8
-			log.Debugf("couldn't find values between min and max, returning nearest values: [%v, %v]", cpuValues[i-1], cpuValues[i])
-			return []float64{cpuValues[i-1], cpuValues[i]}, nil
-		}
-	}
-	log.Debugf("returning CPU units: %v", values)
-	return values, nil
+	log.Debugf("cpu attribute values: %v", cpuValues)
+	return cpuValues, nil
 }
 
 func (e *Ec2VmRegistry) getCurrentSpotPrices(region string, zones []string, instanceTypes []string) (map[string]float64, error) {
