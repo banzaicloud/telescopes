@@ -1,7 +1,6 @@
 package main
 
 import (
-	"context"
 	"flag"
 	"time"
 
@@ -17,6 +16,7 @@ var (
 	rawLevel                   = flag.String("log-level", "info", "log level")
 	addr                       = flag.String("listen-address", ":9090", "The address to listen on for HTTP requests.")
 	productInfoRenewalInterval = flag.Duration("product-info-renewal-interval", 24*time.Hour, "Duration (in go syntax) between renewing the ec2 product info. Example: 2h30m")
+	prometheusAddress          = flag.String("prometheus-address", "", "http address of a Prometheus instance that has AWS spot price metrics via banzaicloud/spot-price-exporter. If empty, the recommender will use current spot prices queried directly from the AWS API.")
 )
 
 func init() {
@@ -37,10 +37,10 @@ func main() {
 	if err != nil {
 		log.Fatal(err)
 	}
-	go ec2ProductInfo.Start(context.Background())
+	//go ec2ProductInfo.Start(context.Background())
 
 	vmRegistries := make(map[string]recommender.VmRegistry, 1)
-	ec2VmRegistry, err := recommender.NewEc2VmRegistry(ec2ProductInfo)
+	ec2VmRegistry, err := recommender.NewEc2VmRegistry(ec2ProductInfo, *prometheusAddress)
 	if err != nil {
 		log.Fatal(err)
 	}
