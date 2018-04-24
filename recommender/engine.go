@@ -203,7 +203,6 @@ func (e *Engine) RecommendCluster(provider string, region string, req ClusterRec
 
 	N := int(math.Min(float64(findN(cpuUnits, req.SumCpu)), float64(len(filteredVms))))
 	M := int(math.Min(math.Ceil(float64(N)*1.5), float64(len(filteredVms))))
-	log.Info(len(filteredVms), findN(cpuUnits, req.SumCpu), N, M)
 
 	recommendedVms := filteredVms[:M]
 

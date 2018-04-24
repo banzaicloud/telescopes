@@ -154,7 +154,7 @@ func (e *Ec2VmRegistry) getCurrentSpotPrices(region string, zones []string, inst
 		if err != nil {
 			return nil, err
 		}
-		for _, value := range zones {
+		for _, value := range availabilityZones {
 			if value == *priceEntry.AvailabilityZone {
 				spotPrices[*priceEntry.InstanceType] = append(spotPrices[*priceEntry.InstanceType], SpotPrice{*priceEntry.AvailabilityZone, spotPrice})
 				continue
@@ -163,7 +163,7 @@ func (e *Ec2VmRegistry) getCurrentSpotPrices(region string, zones []string, inst
 	}
 
 	for vmType, prices := range spotPrices {
-		if len(prices) != len(zones) {
+		if len(prices) != len(availabilityZones) {
 			// some instance types are not available in all zones
 			continue
 		}
@@ -171,7 +171,7 @@ func (e *Ec2VmRegistry) getCurrentSpotPrices(region string, zones []string, inst
 		for _, p := range prices {
 			sumPrice += p.Price
 		}
-		zoneAvgSpotPrices[vmType] = sumPrice / float64(len(zones))
+		zoneAvgSpotPrices[vmType] = sumPrice / float64(len(availabilityZones))
 	}
 
 	return zoneAvgSpotPrices, nil
