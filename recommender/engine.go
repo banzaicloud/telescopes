@@ -2,6 +2,7 @@ package recommender
 
 import (
 	"errors"
+	"fmt"
 	"math"
 	"sort"
 	"time"
@@ -16,47 +17,22 @@ type Engine struct {
 	CachedInstanceTypes  []string
 	RecommendationStore  *cache.Cache
 	VmRegistries         map[string]VmRegistry
-
-	//TODO: if we want to host the recommender as a service and create an HA deployment then we'll need to find a proper KV store instead of this cache
 }
 
-func NewEngine(ri time.Duration, region string, it []string, cache *cache.Cache, vmRegistries map[string]VmRegistry) (*Engine, error) {
-	recommender, err := NewRecommender(region)
+func NewEngine(cache *cache.Cache, vmRegistries map[string]VmRegistry) (*Engine, error) {
+	recommender, err := NewRecommender()
 	if err != nil {
 		return nil, err
 	}
 	return &Engine{
-		ReevaluationInterval: ri,
-		Recommender:          recommender,
-		CachedInstanceTypes:  it,
-		RecommendationStore:  cache,
-		VmRegistries:         vmRegistries,
+		Recommender:         recommender,
+		RecommendationStore: cache,
+		VmRegistries:        vmRegistries,
 	}, nil
 }
 
-func (e *Engine) Start() {
-	ticker := time.NewTicker(e.ReevaluationInterval)
-	region := *e.Recommender.Session.Config.Region
-	for {
-		select {
-		//TODO: case close
-		case <-ticker.C:
-			log.Info("reevaluating recommendations...", time.Now())
-			//TODO: this is a very naive implementation: if we want to cache all the instance types then we should make it parallel, cache some AWS info, etc..
-			// depending on the complexity of the recommendation engine, we may need to make it even more complex
-			for _, it := range e.CachedInstanceTypes {
-				rec, err := e.Recommender.RecommendSpotInstanceTypes(region, nil, it)
-				if err != nil {
-					log.WithError(err).Error("Failed to reevaluate recommendations, recommendation store won't be updated")
-				}
-				e.RecommendationStore.Set(it, rec, cache.NoExpiration)
-			}
-		}
-	}
-}
-
-func (e *Engine) RetrieveRecommendation(requestedAZs []string, baseInstanceType string) (AZRecommendation, error) {
-	if rec, ok := e.RecommendationStore.Get(baseInstanceType); ok {
+func (e *Engine) RetrieveRecommendation(region string, requestedAZs []string, baseInstanceType string) (AZRecommendation, error) {
+	if rec, ok := e.RecommendationStore.Get(fmt.Sprintf("%s/%s", region, baseInstanceType)); ok {
 		log.Info("recommendation found in cache, filtering by az")
 		var recommendations AZRecommendation
 		if requestedAZs != nil {
@@ -71,11 +47,11 @@ func (e *Engine) RetrieveRecommendation(requestedAZs []string, baseInstanceType 
 		return recommendations, nil
 	} else {
 		log.Info("recommendation not found in cache")
-		recommendation, err := e.Recommender.RecommendSpotInstanceTypes(*e.Recommender.Session.Config.Region, requestedAZs, baseInstanceType)
+		recommendation, err := e.Recommender.RecommendSpotInstanceTypes(region, requestedAZs, baseInstanceType)
 		if err != nil {
 			return nil, err
 		}
-		e.RecommendationStore.Set(baseInstanceType, recommendation, 1*time.Minute)
+		e.RecommendationStore.Set(fmt.Sprintf("%s/%s", region, baseInstanceType), recommendation, 30*time.Minute)
 		return recommendation, nil
 	}
 }
