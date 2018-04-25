@@ -39,6 +39,7 @@ func (r *RouteHandler) signalStatus(c *gin.Context) {
 
 func (r *RouteHandler) recommendInstanceTypes(c *gin.Context) {
 	log.Info("recommend spot instance types")
+	region := c.Param("region")
 	baseInstanceType := c.DefaultQuery("baseInstanceType", "m4.xlarge")
 	azsQuery := c.DefaultQuery("availabilityZones", "")
 	var azs []string
@@ -47,7 +48,7 @@ func (r *RouteHandler) recommendInstanceTypes(c *gin.Context) {
 	} else {
 		azs = strings.Split(azsQuery, ",")
 	}
-	if response, err := r.Engine.RetrieveRecommendation(azs, baseInstanceType); err != nil {
+	if response, err := r.Engine.RetrieveRecommendation(region, azs, baseInstanceType); err != nil {
 		// TODO: handle different error types
 		c.JSON(http.StatusInternalServerError, gin.H{"status": http.StatusInternalServerError, "message": fmt.Sprintf("%s", err)})
 	} else {

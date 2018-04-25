@@ -2,6 +2,7 @@ package recommender
 
 import (
 	"errors"
+	"fmt"
 	"math"
 	"sort"
 	"time"
@@ -16,47 +17,22 @@ type Engine struct {
 	CachedInstanceTypes  []string
 	RecommendationStore  *cache.Cache
 	VmRegistries         map[string]VmRegistry
-
-	//TODO: if we want to host the recommender as a service and create an HA deployment then we'll need to find a proper KV store instead of this cache
 }
 
-func NewEngine(ri time.Duration, region string, it []string, cache *cache.Cache, vmRegistries map[string]VmRegistry) (*Engine, error) {
-	recommender, err := NewRecommender(region)
+func NewEngine(cache *cache.Cache, vmRegistries map[string]VmRegistry) (*Engine, error) {
+	recommender, err := NewRecommender()
 	if err != nil {
 		return nil, err
 	}
 	return &Engine{
-		ReevaluationInterval: ri,
-		Recommender:          recommender,
-		CachedInstanceTypes:  it,
-		RecommendationStore:  cache,
-		VmRegistries:         vmRegistries,
+		Recommender:         recommender,
+		RecommendationStore: cache,
+		VmRegistries:        vmRegistries,
 	}, nil
 }
 
-func (e *Engine) Start() {
-	ticker := time.NewTicker(e.ReevaluationInterval)
-	region := *e.Recommender.Session.Config.Region
-	for {
-		select {
-		//TODO: case close
-		case <-ticker.C:
-			log.Info("reevaluating recommendations...", time.Now())
-			//TODO: this is a very naive implementation: if we want to cache all the instance types then we should make it parallel, cache some AWS info, etc..
-			// depending on the complexity of the recommendation engine, we may need to make it even more complex
-			for _, it := range e.CachedInstanceTypes {
-				rec, err := e.Recommender.RecommendSpotInstanceTypes(region, nil, it)
-				if err != nil {
-					log.WithError(err).Error("Failed to reevaluate recommendations, recommendation store won't be updated")
-				}
-				e.RecommendationStore.Set(it, rec, cache.NoExpiration)
-			}
-		}
-	}
-}
-
-func (e *Engine) RetrieveRecommendation(requestedAZs []string, baseInstanceType string) (AZRecommendation, error) {
-	if rec, ok := e.RecommendationStore.Get(baseInstanceType); ok {
+func (e *Engine) RetrieveRecommendation(region string, requestedAZs []string, baseInstanceType string) (AZRecommendation, error) {
+	if rec, ok := e.RecommendationStore.Get(fmt.Sprintf("%s/%s", region, baseInstanceType)); ok {
 		log.Info("recommendation found in cache, filtering by az")
 		var recommendations AZRecommendation
 		if requestedAZs != nil {
@@ -71,11 +47,11 @@ func (e *Engine) RetrieveRecommendation(requestedAZs []string, baseInstanceType 
 		return recommendations, nil
 	} else {
 		log.Info("recommendation not found in cache")
-		recommendation, err := e.Recommender.RecommendSpotInstanceTypes(*e.Recommender.Session.Config.Region, requestedAZs, baseInstanceType)
+		recommendation, err := e.Recommender.RecommendSpotInstanceTypes(region, requestedAZs, baseInstanceType)
 		if err != nil {
 			return nil, err
 		}
-		e.RecommendationStore.Set(baseInstanceType, recommendation, 1*time.Minute)
+		e.RecommendationStore.Set(fmt.Sprintf("%s/%s", region, baseInstanceType), recommendation, 30*time.Minute)
 		return recommendation, nil
 	}
 }
@@ -89,12 +65,12 @@ type ClusterRecommendationReq struct {
 	OnDemandPct int      `json:"onDemandPct,omitempty"`
 	Zones       []string `json:"zones,omitempty"`
 	SumGpu      int      `json:"sumGpu,omitempty"`
-	//??? cost optimized vs stability optimized?
-	//??? i/o, network
+	// TODO: i/o, network
 }
 
 type ClusterRecommendationResp struct {
 	Provider  string     `json:provider`
+	Zones     []string   `json:"zones,omitempty"`
 	NodePools []NodePool `json:nodePools`
 }
 
@@ -102,8 +78,6 @@ type NodePool struct {
 	VmType   VirtualMachine `json:vm`
 	SumNodes int            `json:sumNodes`
 	VmClass  string         `json:vmClass`
-	// TODO: prices are different per zones
-	Zones []string `json:"zones,omitempty"`
 }
 
 type VirtualMachine struct {
@@ -129,8 +103,8 @@ func (e *Engine) minMemRatioFilter(vm VirtualMachine, req ClusterRecommendationR
 // TODO: i/o filter, nw filter, gpu filter, etc...
 
 type VmRegistry interface {
-	findCpuUnits(min float64, max float64) ([]float64, error)
-	findVmsWithCpuUnits(region string, cpuUnits []float64) ([]VirtualMachine, error)
+	getAvailableCpuUnits() ([]float64, error)
+	findVmsWithCpuUnits(region string, zones []string, cpuUnits []float64) ([]VirtualMachine, error)
 }
 
 type ByAvgPricePerCpu []VirtualMachine
@@ -154,12 +128,17 @@ func (e *Engine) RecommendCluster(provider string, region string, req ClusterRec
 
 	vmRegistry := e.VmRegistries[provider]
 
-	cpuUnits, err := vmRegistry.findCpuUnits(minCpuPerVm, maxCpuPerVm)
+	allCpuUnits, err := vmRegistry.getAvailableCpuUnits()
 	if err != nil {
 		return nil, err
 	}
 
-	vmsInRange, err := vmRegistry.findVmsWithCpuUnits(region, cpuUnits)
+	cpuUnits, err := e.findCpuUnitsBetween(allCpuUnits, minCpuPerVm, maxCpuPerVm)
+	if err != nil {
+		return nil, err
+	}
+
+	vmsInRange, err := vmRegistry.findVmsWithCpuUnits(region, req.Zones, cpuUnits)
 	if err != nil {
 		return nil, err
 	}
@@ -196,7 +175,6 @@ func (e *Engine) RecommendCluster(provider string, region string, req ClusterRec
 		SumNodes: int(math.Ceil(sumOnDemandCpu / selectedOnDemand.Cpus)),
 		VmClass:  "regular",
 		VmType:   selectedOnDemand,
-		Zones:    req.Zones,
 	}
 
 	nps = append(nps, onDemandPool)
@@ -205,8 +183,7 @@ func (e *Engine) RecommendCluster(provider string, region string, req ClusterRec
 	sort.Sort(ByAvgPricePerCpu(filteredVms))
 
 	N := int(math.Min(float64(findN(cpuUnits, req.SumCpu)), float64(len(filteredVms))))
-	M := int(math.Min(math.Ceil(float64(N) * 1.5), float64(len(filteredVms))))
-	log.Info(len(filteredVms), findN(cpuUnits, req.SumCpu), N, M)
+	M := int(math.Min(math.Ceil(float64(N)*1.5), float64(len(filteredVms))))
 
 	recommendedVms := filteredVms[:M]
 
@@ -216,7 +193,6 @@ func (e *Engine) RecommendCluster(provider string, region string, req ClusterRec
 			SumNodes: 0,
 			VmClass:  "spot",
 			VmType:   vm,
-			Zones:    req.Zones,
 		})
 	}
 
@@ -242,9 +218,40 @@ func (e *Engine) RecommendCluster(provider string, region string, req ClusterRec
 
 	return &ClusterRecommendationResp{
 		Provider:  "aws",
+		Zones:     req.Zones,
 		NodePools: nps,
 	}, nil
 }
+
+func (e *Engine) findCpuUnitsBetween(cpuValues []float64, min float64, max float64) ([]float64, error) {
+	log.Debugf("finding cpu units between: [%v, %v]", min, max)
+	sort.Float64s(cpuValues)
+	if min > max {
+		return nil, errors.New("min value cannot be larger than the max value")
+	}
+
+	if max < cpuValues[0] {
+		log.Debug("returning smallest CPU unit: %v", cpuValues[0])
+		return []float64{cpuValues[0]}, nil
+	} else if min > cpuValues[len(cpuValues)-1] {
+		log.Debugf("returning largest CPU unit: %v", cpuValues[len(cpuValues)-1])
+		return []float64{cpuValues[len(cpuValues)-1]}, nil
+	}
+
+	var values []float64
+
+	for i := 0; i < len(cpuValues); i++ {
+		if cpuValues[i] >= min && cpuValues[i] <= max {
+			values = append(values, cpuValues[i])
+		} else if cpuValues[i] > max && len(values) < 1 {
+			log.Debugf("couldn't find values between min and max, returning nearest values: [%v, %v]", cpuValues[i-1], cpuValues[i])
+			return []float64{cpuValues[i-1], cpuValues[i]}, nil
+		}
+	}
+	log.Debugf("returning CPU units: %v", values)
+	return values, nil
+}
+
 func avgNodeCount(cpuUnits []float64, sumCpu float64) int {
 	var totalUnit float64
 	for _, unit := range cpuUnits {
@@ -261,15 +268,15 @@ func findN(cpuUnits []float64, sumCpu float64) int {
 	case avg <= 4:
 		N = avg
 	case avg <= 8:
-		N =4
+		N = 4
 	case avg <= 15:
-		N =5
+		N = 5
 	case avg <= 24:
-		N =6
+		N = 6
 	case avg <= 35:
-		N =7
+		N = 7
 	case avg > 35:
-		N =8
+		N = 8
 	}
 	return N
 }

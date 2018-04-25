@@ -35,10 +35,8 @@ type Recommender struct {
 	Session *session.Session
 }
 
-func NewRecommender(region string) (*Recommender, error) {
-	session, err := session.NewSession(&aws.Config{
-		Region: aws.String(region),
-	})
+func NewRecommender() (*Recommender, error) {
+	session, err := session.NewSession()
 	if err != nil {
 		log.WithError(err).Error("Error creating AWS session")
 		return nil, err

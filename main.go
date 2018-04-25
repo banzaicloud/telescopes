@@ -1,9 +1,7 @@
 package main
 
 import (
-	"context"
 	"flag"
-	"strings"
 	"time"
 
 	"github.com/banzaicloud/cluster-recommender/api"
@@ -15,12 +13,10 @@ import (
 )
 
 var (
-	addr                       = flag.String("listen-address", ":9090", "The address to listen on for HTTP requests.")
-	reevaluationInterval       = flag.Duration("reevaluation-interval", 60*time.Second, "Time (in seconds) between reevaluating the recommendations")
-	productInfoRenewalInterval = flag.Duration("product-info-renewal-interval", 24*time.Hour, "Duration (in go syntax) between renewing the ec2 product info. Example: 2h30m")
 	rawLevel                   = flag.String("log-level", "info", "log level")
-	region                     = flag.String("region", "eu-west-1", "AWS region where the recommender should work")
-	cacheInstanceTypes         = flag.String("cache-instance-types", "m4.xlarge,m5.xlarge,c5.xlarge", "Recommendations are cached for these instance types (comma separated list)")
+	addr                       = flag.String("listen-address", ":9090", "The address to listen on for HTTP requests.")
+	productInfoRenewalInterval = flag.Duration("product-info-renewal-interval", 24*time.Hour, "Duration (in go syntax) between renewing the ec2 product info. Example: 2h30m")
+	prometheusAddress          = flag.String("prometheus-address", "", "http address of a Prometheus instance that has AWS spot price metrics via banzaicloud/spot-price-exporter. If empty, the recommender will use current spot prices queried directly from the AWS API.")
 )
 
 func init() {
@@ -36,26 +32,24 @@ func init() {
 
 func main() {
 	c := cache.New(24*time.Hour, 24.*time.Hour)
-	cachedInstanceTypes := strings.Split(strings.Replace(*cacheInstanceTypes, " ", "", -1), ",")
 
 	ec2ProductInfo, err := pi.NewProductInfo(*productInfoRenewalInterval, c)
 	if err != nil {
 		log.Fatal(err)
 	}
-	go ec2ProductInfo.Start(context.Background())
+	//go ec2ProductInfo.Start(context.Background())
 
 	vmRegistries := make(map[string]recommender.VmRegistry, 1)
-	ec2VmRegistry, err := recommender.NewEc2VmRegistry(ec2ProductInfo)
+	ec2VmRegistry, err := recommender.NewEc2VmRegistry(ec2ProductInfo, *prometheusAddress)
 	if err != nil {
 		log.Fatal(err)
 	}
 	vmRegistries["ec2"] = ec2VmRegistry
 
-	engine, err := recommender.NewEngine(*reevaluationInterval, *region, cachedInstanceTypes, c, vmRegistries)
+	engine, err := recommender.NewEngine(c, vmRegistries)
 	if err != nil {
 		log.Fatal(err)
 	}
-	//go engine.Start()
 
 	routeHandler := api.NewRouteHandler(engine)
 
