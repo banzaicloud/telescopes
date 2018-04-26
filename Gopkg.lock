@@ -49,6 +49,17 @@
   version = "v2.1.0"
 
 [[projects]]
+  name = "github.com/prometheus/client_golang"
+  packages = ["api","api/prometheus/v1"]
+  revision = "967789050ba94deca04a5e84cce8ad472ce313c1"
+  version = "v0.9.0-pre1"
+
+[[projects]]
+  name = "github.com/prometheus/common"
+  packages = ["model"]
+  revision = "e5b036cc37a466a0af27d604d1ee500211d16d6a"
+
+[[projects]]
   name = "github.com/sirupsen/logrus"
   packages = ["."]
   revision = "d682213848ed68c0a260ca37d6dd5ace8423f5ba"
@@ -87,6 +98,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "cd682c9df4c7ad671da86ed5f4b148e8787a6dea5529e9164d5c7d3b99913c06"
+  inputs-digest = "0fbfa98d4ce19fde26b241a24013dfc824d3c0d93662429599d383f48469a39a"
   solver-name = "gps-cdcl"
   solver-version = 1
