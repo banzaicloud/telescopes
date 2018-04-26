@@ -13,3 +13,12 @@
 [[constraint]]
   name = "github.com/patrickmn/go-cache"
   version = "2.1.0"
+
+[[constraint]]
+  name = "github.com/prometheus/client_golang"
+  version = "0.9.0-pre1"
+
+[[constraint]]
+  name = "github.com/prometheus/common"
+  revision = "e5b036cc37a466a0af27d604d1ee500211d16d6a"
+
