@@ -2,6 +2,7 @@ package ec2_productinfo
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"strconv"
 	"strings"
@@ -24,6 +25,21 @@ type ProductInfo struct {
 	renewalInterval time.Duration
 	session         *session.Session
 	vmAttrStore     *cache.Cache
+}
+
+type AttrValue struct {
+	strValue string
+	value    float64
+}
+
+type AttrValues []AttrValue
+
+func (v AttrValues) floatValues() []float64 {
+	floatValues := make([]float64, len(v))
+	for _, av := range v {
+		floatValues = append(floatValues, av.value)
+	}
+	return floatValues
 }
 
 type Ec2Vm struct {
@@ -60,8 +76,8 @@ func (e *ProductInfo) Start(ctx context.Context) {
 			}
 			awsP := endpoints.AwsPartition()
 			for _, r := range awsP.Regions() {
-				for _, value := range attrValues {
-					_, err := e.renewVmsWithAttr(&r, attr, value)
+				for _, v := range attrValues {
+					_, err := e.renewVmsWithAttr(&r, attr, v)
 					if err != nil {
 						log.Errorf("couldn't renew ec2 attribute values in cache", err.Error())
 					}
@@ -86,10 +102,18 @@ func (e *ProductInfo) Start(ctx context.Context) {
 }
 
 func (e *ProductInfo) GetAttrValues(attribute string) ([]float64, error) {
+	v, err := e.getAttrValues(attribute)
+	if err != nil {
+		return nil, err
+	}
+	return v.floatValues(), nil
+}
+
+func (e *ProductInfo) getAttrValues(attribute string) (AttrValues, error) {
 	attrCacheKey := e.getAttrKey(attribute)
 	if cachedVal, ok := e.vmAttrStore.Get(attrCacheKey); ok {
 		log.Debugf("Getting available %s values from cache.", attribute)
-		return cachedVal.([]float64), nil
+		return cachedVal.(AttrValues), nil
 	}
 	values, err := e.renewAttrValues(attribute)
 	if err != nil {
@@ -102,7 +126,7 @@ func (e *ProductInfo) getAttrKey(attribute string) string {
 	return fmt.Sprintf("/banzaicloud.com/recommender/ec2/attrValues/%s", attribute)
 }
 
-func (e *ProductInfo) renewAttrValues(attribute string) ([]float64, error) {
+func (e *ProductInfo) renewAttrValues(attribute string) (AttrValues, error) {
 	values, err := e.getAttrValuesFromAPI(attribute)
 	if err != nil {
 		return nil, err
@@ -111,7 +135,7 @@ func (e *ProductInfo) renewAttrValues(attribute string) ([]float64, error) {
 	return values, nil
 }
 
-func (e *ProductInfo) getAttrValuesFromAPI(attribute string) ([]float64, error) {
+func (e *ProductInfo) getAttrValuesFromAPI(attribute string) (AttrValues, error) {
 	log.Debugf("Getting available %s values from AWS API.", attribute)
 	pricingSvc := pricing.New(e.session, &aws.Config{Region: aws.String("us-east-1")})
 	apiValues, err := pricingSvc.GetAttributeValues(&pricing.GetAttributeValuesInput{
@@ -121,27 +145,35 @@ func (e *ProductInfo) getAttrValuesFromAPI(attribute string) ([]float64, error) 
 	if err != nil {
 		return nil, err
 	}
-	var values []float64
-	for _, attrValue := range apiValues.AttributeValues {
-		dotValue := strings.Replace(*attrValue.Value, ",", ".", -1)
-		floatValue, err := strconv.ParseFloat(strings.Split(dotValue, " ")[0], 32)
+	var values AttrValues
+	for _, v := range apiValues.AttributeValues {
+		dotValue := strings.Replace(*v.Value, ",", ".", -1)
+		floatValue, err := strconv.ParseFloat(strings.Split(dotValue, " ")[0], 64)
 		if err != nil {
 			log.Warnf("Couldn't parse attribute value: [%s=%s]: %v", attribute, dotValue, err.Error())
 		}
-		values = append(values, floatValue)
+		values = append(values, AttrValue{
+			value:    floatValue,
+			strValue: *v.Value,
+		})
 	}
+	log.Debugf("found %s values: %v", attribute, values)
 	return values, nil
 }
 
-func (e *ProductInfo) GetVmsWithCpu(region string, attrKey string, attrValue float64) ([]Ec2Vm, error) {
+func (e *ProductInfo) GetVmsWithCpu(region string, attrKey string, value float64) ([]Ec2Vm, error) {
 
-	log.Debugf("Getting instance types and on demand prices. [region=%s, %s=%v]", region, attrKey, attrValue)
-	vmCacheKey := e.getVmKey(region, attrKey, attrValue)
+	log.Debugf("Getting instance types and on demand prices. [region=%s, %s=%v]", region, attrKey, value)
+	vmCacheKey := e.getVmKey(region, attrKey, value)
 	if cachedVal, ok := e.vmAttrStore.Get(vmCacheKey); ok {
-		log.Debugf("Getting available instance types from cache. [region=%s, %s=%v]", region, attrKey, attrValue)
+		log.Debugf("Getting available instance types from cache. [region=%s, %s=%v]", region, attrKey, value)
 		return cachedVal.([]Ec2Vm), nil
 	}
-	vms, err := e.renewVmsWithAttr(e.getRegion(region), attrKey, attrValue)
+	attrValue, err := e.getAttrValue(attrKey, value)
+	if err != nil {
+		return nil, err
+	}
+	vms, err := e.renewVmsWithAttr(e.getRegion(region), attrKey, *attrValue)
 	if err != nil {
 		return nil, err
 	}
@@ -162,19 +194,19 @@ func (e *ProductInfo) getVmKey(region string, attrKey string, attrValue float64)
 	return fmt.Sprintf("/banzaicloud.com/recommender/ec2/%s/vms/%s/%s", region, attrKey, attrValue)
 }
 
-func (e *ProductInfo) renewVmsWithAttr(region *endpoints.Region, attrKey string, attrValue float64) ([]Ec2Vm, error) {
+func (e *ProductInfo) renewVmsWithAttr(region *endpoints.Region, attrKey string, attrValue AttrValue) ([]Ec2Vm, error) {
 	values, err := e.getVmsWithAttrFromAPI(region, attrKey, attrValue)
 	if err != nil {
 		return nil, err
 	}
-	e.vmAttrStore.Set(e.getVmKey(region.ID(), attrKey, attrValue), values, e.renewalInterval)
+	e.vmAttrStore.Set(e.getVmKey(region.ID(), attrKey, attrValue.value), values, e.renewalInterval)
 	return values, nil
 }
 
-func (e *ProductInfo) getVmsWithAttrFromAPI(region *endpoints.Region, attrKey string, attrValue float64) ([]Ec2Vm, error) {
+func (e *ProductInfo) getVmsWithAttrFromAPI(region *endpoints.Region, attrKey string, attrValue AttrValue) ([]Ec2Vm, error) {
 	var vms []Ec2Vm
 	pricingSvc := pricing.New(e.session, &aws.Config{Region: aws.String("us-east-1")})
-	log.Debugf("Getting available instance types from AWS API. [region=%s, %s=%v]", region.ID(), attrKey, attrValue)
+	log.Debugf("Getting available instance types from AWS API. [region=%s, %s=%s]", region.ID(), attrKey, attrValue.strValue)
 	products, err := pricingSvc.GetProducts(&pricing.GetProductsInput{
 		ServiceCode: aws.String("AmazonEC2"),
 		Filters: []*pricing.Filter{
@@ -201,7 +233,7 @@ func (e *ProductInfo) getVmsWithAttrFromAPI(region *endpoints.Region, attrKey st
 			{
 				Type:  aws.String("TERM_MATCH"),
 				Field: aws.String(attrKey),
-				Value: aws.String(fmt.Sprint(attrValue)),
+				Value: aws.String(attrValue.strValue),
 			},
 		},
 	})
@@ -238,5 +270,19 @@ func (e *ProductInfo) getVmsWithAttrFromAPI(region *endpoints.Region, attrKey st
 		}
 		vms = append(vms, vm)
 	}
+	log.Debugf("found vms [%s=%s]: %#v", attrKey, attrValue.strValue, vms)
 	return vms, nil
+}
+
+func (e *ProductInfo) getAttrValue(attrKey string, attrValue float64) (*AttrValue, error) {
+	attrValues, err := e.getAttrValues(attrKey)
+	if err != nil {
+		return nil, err
+	}
+	for _, av := range attrValues {
+		if av.value == attrValue {
+			return &av, nil
+		}
+	}
+	return nil, errors.New("couldn't find attribute value")
 }

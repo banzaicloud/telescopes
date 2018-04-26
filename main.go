@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"flag"
 	"time"
 
@@ -37,7 +38,7 @@ func main() {
 	if err != nil {
 		log.Fatal(err)
 	}
-	//go ec2ProductInfo.Start(context.Background())
+	go ec2ProductInfo.Start(context.Background())
 
 	vmRegistries := make(map[string]recommender.VmRegistry, 1)
 	ec2VmRegistry, err := recommender.NewEc2VmRegistry(ec2ProductInfo, *prometheusAddress)
