@@ -18,17 +18,14 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
-const (
-	promQuery = "avg(avg_over_time(aws_spot_current_price{region=\"%s\", instance_type=\"%s\", availability_zone=~\"%s\", product_description=\"Linux/UNIX\"}[24h]))"
-)
-
 type Ec2VmRegistry struct {
 	session     *session.Session
 	productInfo *pi.ProductInfo
 	prometheus  v1.API
+	promQuery   string
 }
 
-func NewEc2VmRegistry(pi *pi.ProductInfo, prom string) (VmRegistry, error) {
+func NewEc2VmRegistry(pi *pi.ProductInfo, prom string, pq string) (VmRegistry, error) {
 	s, err := session.NewSession()
 	if err != nil {
 		log.WithError(err).Error("Error creating AWS session")
@@ -55,6 +52,7 @@ func NewEc2VmRegistry(pi *pi.ProductInfo, prom string) (VmRegistry, error) {
 		session:     s,
 		productInfo: pi,
 		prometheus:  promApi,
+		promQuery:   pq,
 	}, nil
 }
 
@@ -135,13 +133,13 @@ func (e *Ec2VmRegistry) getSpotPriceAvgsFromPrometheus(region string, zones []st
 	log.Debug("getting spot price averages from Prometheus API")
 	avgSpotPrices := make(map[string]float64, len(instanceTypes))
 	for _, it := range instanceTypes {
-		query := fmt.Sprintf(promQuery, region, it, strings.Join(zones, "|"))
+		query := fmt.Sprintf(e.promQuery, region, it, strings.Join(zones, "|"))
 		log.Debugf("sending prometheus query: %s", query)
 		result, err := e.prometheus.Query(context.Background(), query, time.Now())
 		if err != nil {
 			return nil, err
 		} else if result.String() == "" {
-			return nil, errors.New("'aws_spot_current_price' metric is empty")
+			log.Warnf("Prometheus metric is empty, instance type won't be recommended [type=%s]", it)
 		} else {
 			r := result.(model.Vector)
 			log.Debugf("query result: %s", result.String())
@@ -152,9 +150,13 @@ func (e *Ec2VmRegistry) getSpotPriceAvgsFromPrometheus(region string, zones []st
 				}
 				avgSpotPrices[it] = avgPrice
 			} else {
-				return nil, errors.New("'aws_spot_current_price' metric is empty")
+				log.Warnf("Prometheus metric is empty, instance type won't be recommended [type=%s]", it)
 			}
 		}
+	}
+	// query returned empty response for every instance type
+	if len(avgSpotPrices) == 0 {
+		return nil, errors.New("query returned empty response for every instance type")
 	}
 	return avgSpotPrices, nil
 }
