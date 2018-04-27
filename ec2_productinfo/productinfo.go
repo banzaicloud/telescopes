@@ -161,7 +161,7 @@ func (e *ProductInfo) getAttrValuesFromAPI(attribute string) (AttrValues, error)
 	return values, nil
 }
 
-func (e *ProductInfo) GetVmsWithCpu(region string, attrKey string, value float64) ([]Ec2Vm, error) {
+func (e *ProductInfo) GetVmsWithAttrValue(region string, attrKey string, value float64) ([]Ec2Vm, error) {
 
 	log.Debugf("Getting instance types and on demand prices. [region=%s, %s=%v]", region, attrKey, value)
 	vmCacheKey := e.getVmKey(region, attrKey, value)

@@ -56,11 +56,15 @@ func NewEc2VmRegistry(pi *pi.ProductInfo, prom string, pq string) (VmRegistry, e
 	}, nil
 }
 
-func (e *Ec2VmRegistry) findVmsWithCpuUnits(region string, zones []string, cpuUnits []float64) ([]VirtualMachine, error) {
-	log.Infof("Getting instance types and on demand prices with %v vcpus", cpuUnits)
+func (e *Ec2VmRegistry) findVmsWithAttrValues(region string, zones []string, attr string, values []float64) ([]VirtualMachine, error) {
+	log.Infof("Getting instance types and on demand prices with %v %s", values, attr)
 	var vms []VirtualMachine
-	for _, cpu := range cpuUnits {
-		ec2Vms, err := e.productInfo.GetVmsWithCpu(region, pi.Cpu, cpu)
+	ec2Attr, err := e.toEC2Attribute(attr)
+	if err != nil {
+		return nil, err
+	}
+	for _, v := range values {
+		ec2Vms, err := e.productInfo.GetVmsWithAttrValue(region, ec2Attr, v)
 		if err != nil {
 			return nil, err
 		}
@@ -125,7 +129,7 @@ func (e *Ec2VmRegistry) findVmsWithCpuUnits(region string, zones []string, cpuUn
 		}
 	}
 
-	log.Debugf("found vms with cpu units %v: %v", cpuUnits, vms)
+	log.Debugf("found vms with %s values %v: %v", attr, values, vms)
 	return vms, nil
 }
 
@@ -161,13 +165,27 @@ func (e *Ec2VmRegistry) getSpotPriceAvgsFromPrometheus(region string, zones []st
 	return avgSpotPrices, nil
 }
 
-func (e *Ec2VmRegistry) getAvailableCpuUnits() ([]float64, error) {
-	cpuValues, err := e.productInfo.GetAttrValues(pi.Cpu)
+func (e *Ec2VmRegistry) getAvailableAttributeValues(attr string) ([]float64, error) {
+	ec2Attr, err := e.toEC2Attribute(attr)
 	if err != nil {
 		return nil, err
 	}
-	log.Debugf("cpu attribute values: %v", cpuValues)
-	return cpuValues, nil
+	values, err := e.productInfo.GetAttrValues(ec2Attr)
+	if err != nil {
+		return nil, err
+	}
+	log.Debugf("%s attribute values: %v", attr, values)
+	return values, nil
+}
+
+func (e *Ec2VmRegistry) toEC2Attribute(attr string) (string, error) {
+	switch attr {
+	case Cpu:
+		return pi.Cpu, nil
+	case Memory:
+		return pi.Memory, nil
+	}
+	return "", fmt.Errorf("unsupported attribute: %s", attr)
 }
 
 func (e *Ec2VmRegistry) getCurrentSpotPrices(region string, zones []string, instanceTypes []string) (map[string]float64, error) {
