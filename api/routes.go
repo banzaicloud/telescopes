@@ -8,6 +8,7 @@ import (
 	"github.com/banzaicloud/cluster-recommender/recommender"
 	"github.com/gin-gonic/gin"
 	log "github.com/sirupsen/logrus"
+	"github.com/gin-contrib/cors"
 )
 
 type RouteHandler struct {
@@ -20,9 +21,24 @@ func NewRouteHandler(engine *recommender.Engine) *RouteHandler {
 	}
 }
 
+func getCorsConfig() cors.Config {
+	config := cors.DefaultConfig()
+	config.AllowAllOrigins = true
+	if !config.AllowAllOrigins {
+		config.AllowOrigins = []string{"http://", "https://"}
+	}
+	config.AllowMethods = []string{"PUT", "DELETE", "GET", "POST", "OPTIONS"}
+	config.AllowHeaders = []string{"Origin", "Authorization", "Content-Type"}
+	config.ExposeHeaders = []string{"Content-Length"}
+	config.AllowCredentials = true
+	config.MaxAge = 12
+	return config
+}
+
 func (r *RouteHandler) ConfigureRoutes(router *gin.Engine) {
 	log.Info("configuring routes")
 	base := router.Group("/")
+	base.Use(cors.New(getCorsConfig()))
 	{
 		base.GET("/status", r.signalStatus)
 	}
