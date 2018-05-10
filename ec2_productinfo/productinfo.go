@@ -10,8 +10,7 @@ import (
 
 	"github.com/banzaicloud/cluster-recommender/cloudprovider"
 	"github.com/patrickmn/go-cache"
-	log "github.com/sirupsen/logrus"
-	"github.com/aws/aws-sdk-go/aws/endpoints"
+	"github.com/sirupsen/logrus"
 	"gopkg.in/go-playground/validator.v9"
 )
 
@@ -50,11 +49,11 @@ func (v AttrValues) floatValues() []float64 {
 }
 
 type Ec2Vm struct {
-	Type          string  `json:type`
-	OnDemandPrice float64 `json:onDemandPrice`
-	Cpus          float64 `json:cpusPerVm`
-	Mem           float64 `json:memPerVm`
-	Gpus          float64 `json:gpusPerVm`
+	Type          string  `json:"type"`
+	OnDemandPrice float64 `json:"onDemandPrice"`
+	Cpus          float64 `json:"cpusPerVm"`
+	Mem           float64 `json:"memPerVm"`
+	Gpus          float64 `json:"gpusPerVm"`
 }
 
 func NewProductInfo(ri time.Duration, cache *cache.Cache, provider cloudprovider.CloudProductInfoProvider) (*ProductInfo, error) {
@@ -75,25 +74,25 @@ func NewProductInfo(ri time.Duration, cache *cache.Cache, provider cloudprovider
 func (pi *ProductInfo) Start(ctx context.Context) {
 
 	renew := func() {
-		log.Info("renewing product info")
+		logrus.Info("renewing product info")
 		attributes := []string{Memory, Cpu}
 		for _, attr := range attributes {
 			attrValues, err := pi.renewAttrValues(attr)
 			if err != nil {
-				log.Errorf("couldn't renew ec2 attribute values in cache", err.Error())
+				logrus.Errorf("couldn't renew ec2 attribute values in cache", err.Error())
 				return
 			}
 
-			for _, r := range endpoints.AwsPartition().Regions() {
+			for _, r := range pi.CloudInfoProvider.GetRegions() {
 				for _, v := range attrValues {
-					_, err := pi.renewVmsWithAttr(&r, attr, v)
+					_, err := pi.renewVmsWithAttr(r.ID(), attr, v)
 					if err != nil {
-						log.Errorf("couldn't renew ec2 attribute values in cache", err.Error())
+						logrus.Errorf("couldn't renew ec2 attribute values in cache", err.Error())
 					}
 				}
 			}
 		}
-		log.Info("finished renewing product info")
+		logrus.Info("finished renewing product info")
 	}
 
 	go renew()
@@ -103,7 +102,7 @@ func (pi *ProductInfo) Start(ctx context.Context) {
 		case <-ticker.C:
 			renew()
 		case <-ctx.Done():
-			log.Debugf("closing ticker")
+			logrus.Debugf("closing ticker")
 			ticker.Stop()
 			return
 		}
@@ -121,7 +120,7 @@ func (pi *ProductInfo) GetAttrValues(attribute string) ([]float64, error) {
 func (pi *ProductInfo) getAttrValues(attribute string) (AttrValues, error) {
 	attrCacheKey := pi.getAttrKey(attribute)
 	if cachedVal, ok := pi.vmAttrStore.Get(attrCacheKey); ok {
-		log.Debugf("Getting available %s values from cache.", attribute)
+		logrus.Debugf("Getting available %s values from cache.", attribute)
 		return cachedVal.(AttrValues), nil
 	}
 	values, err := pi.renewAttrValues(attribute)
@@ -155,30 +154,30 @@ func (pi *ProductInfo) getAttrValuesFromAPI(attribute string) (AttrValues, error
 		dotValue := strings.Replace(*v.Value, ",", ".", -1)
 		floatValue, err := strconv.ParseFloat(strings.Split(dotValue, " ")[0], 64)
 		if err != nil {
-			log.Warnf("Couldn't parse attribute value: [%s=%s]: %v", attribute, dotValue, err.Error())
+			logrus.Warnf("Couldn't parse attribute value: [%s=%s]: %v", attribute, dotValue, err.Error())
 		}
 		values = append(values, AttrValue{
 			value:    floatValue,
 			StrValue: *v.Value,
 		})
 	}
-	log.Debugf("found %s values: %v", attribute, values)
+	logrus.Debugf("found %s values: %v", attribute, values)
 	return values, nil
 }
 
-func (pi *ProductInfo) GetVmsWithAttrValue(region string, attrKey string, value float64) ([]Ec2Vm, error) {
+func (pi *ProductInfo) GetVmsWithAttrValue(regionId string, attrKey string, value float64) ([]Ec2Vm, error) {
 
-	log.Debugf("Getting instance types and on demand prices. [region=%s, %s=%v]", region, attrKey, value)
-	vmCacheKey := pi.getVmKey(region, attrKey, value)
+	logrus.Debugf("Getting instance types and on demand prices. [regionId=%s, %s=%v]", regionId, attrKey, value)
+	vmCacheKey := pi.getVmKey(regionId, attrKey, value)
 	if cachedVal, ok := pi.vmAttrStore.Get(vmCacheKey); ok {
-		log.Debugf("Getting available instance types from cache. [region=%s, %s=%v]", region, attrKey, value)
+		logrus.Debugf("Getting available instance types from cache. [regionId=%s, %s=%v]", regionId, attrKey, value)
 		return cachedVal.([]Ec2Vm), nil
 	}
 	attrValue, err := pi.getAttrValue(attrKey, value)
 	if err != nil {
 		return nil, err
 	}
-	vms, err := pi.renewVmsWithAttr(pi.CloudInfoProvider.GetRegion(region), attrKey, *attrValue)
+	vms, err := pi.renewVmsWithAttr(regionId, attrKey, *attrValue)
 	if err != nil {
 		return nil, err
 	}
@@ -189,20 +188,20 @@ func (pi *ProductInfo) getVmKey(region string, attrKey string, attrValue float64
 	return fmt.Sprintf("/banzaicloud.com/recommender/ec2/%s/vms/%s/%s", region, attrKey, strconv.FormatFloat(attrValue, 'b', 2, 5))
 }
 
-func (pi *ProductInfo) renewVmsWithAttr(region *endpoints.Region, attrKey string, attrValue AttrValue) ([]Ec2Vm, error) {
-	values, err := pi.getVmsWithAttrFromAPI(region, attrKey, attrValue)
+func (pi *ProductInfo) renewVmsWithAttr(regionId string, attrKey string, attrValue AttrValue) ([]Ec2Vm, error) {
+	values, err := pi.getVmsWithAttrFromAPI(regionId, attrKey, attrValue)
 	if err != nil {
 		return nil, err
 	}
-	pi.vmAttrStore.Set(pi.getVmKey(region.ID(), attrKey, attrValue.value), values, pi.renewalInterval)
+	pi.vmAttrStore.Set(pi.getVmKey(regionId, attrKey, attrValue.value), values, pi.renewalInterval)
 	return values, nil
 }
 
-func (pi *ProductInfo) getVmsWithAttrFromAPI(region *endpoints.Region, attrKey string, attrValue AttrValue) ([]Ec2Vm, error) {
+func (pi *ProductInfo) getVmsWithAttrFromAPI(regionId string, attrKey string, attrValue AttrValue) ([]Ec2Vm, error) {
 	var vms []Ec2Vm
-	log.Debugf("Getting available instance types from AWS API. [region=%s, %s=%s]", region.ID(), attrKey, attrValue.StrValue)
+	logrus.Debugf("Getting available instance types from AWS API. [region=%s, %s=%s]", regionId, attrKey, attrValue.StrValue)
 
-	products, err := pi.CloudInfoProvider.GetProducts(region, attrKey, attrValue.StrValue)
+	products, err := pi.CloudInfoProvider.GetProducts(regionId, attrKey, attrValue.StrValue)
 
 	if err != nil {
 		return nil, err
@@ -237,7 +236,7 @@ func (pi *ProductInfo) getVmsWithAttrFromAPI(region *endpoints.Region, attrKey s
 		}
 		vms = append(vms, vm)
 	}
-	log.Debugf("found vms [%s=%s]: %#v", attrKey, attrValue.StrValue, vms)
+	logrus.Debugf("found vms [%s=%s]: %#v", attrKey, attrValue.StrValue, vms)
 	return vms, nil
 }
 

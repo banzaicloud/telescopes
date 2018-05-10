@@ -19,9 +19,11 @@ type CloudProductInfoProvider interface {
 	GetAttributeValues(attribute string) (*pricing.GetAttributeValuesOutput, error)
 
 	// todo transform the structs here, change the response type
-	GetProducts(region *endpoints.Region, attrKey string, attrValue string) (*pricing.GetProductsOutput, error)
+	GetProducts(regionId string, attrKey string, attrValue string) (*pricing.GetProductsOutput, error)
 
 	GetRegion(id string) *endpoints.Region
+
+	GetRegions() map[string]endpoints.Region
 }
 
 // AwsClientWrapper encapsulates the data and operations needed to access external resources
@@ -48,8 +50,8 @@ func (wr *AwsClientWrapper) GetAttributeValues(attribute string) (*pricing.GetAt
 	return wr.pricingService().GetAttributeValues(wr.newAttributeValuesInput(attribute))
 }
 
-func (wr *AwsClientWrapper) GetProducts(region *endpoints.Region, attrKey string, attrValue string) (*pricing.GetProductsOutput, error) {
-	return wr.pricingService().GetProducts(wr.newGetProductsInput(region, attrKey, attrValue))
+func (wr *AwsClientWrapper) GetProducts(regionId string, attrKey string, attrValue string) (*pricing.GetProductsOutput, error) {
+	return wr.pricingService().GetProducts(wr.newGetProductsInput(regionId, attrKey, attrValue))
 }
 
 func (wr *AwsClientWrapper) GetRegion(id string) *endpoints.Region {
@@ -75,7 +77,7 @@ func (wr *AwsClientWrapper) newAttributeValuesInput(attr string) *pricing.GetAtt
 }
 
 // newAttributeValuesInput assembles a GetAttributeValuesInput instance for querying the provider
-func (wr *AwsClientWrapper) newGetProductsInput(region *endpoints.Region, attrKey string, attrValue string) *pricing.GetProductsInput {
+func (wr *AwsClientWrapper) newGetProductsInput(regionId string, attrKey string, attrValue string) *pricing.GetProductsInput {
 	return &pricing.GetProductsInput{
 
 		ServiceCode: aws.String("AmazonEC2"),
@@ -88,7 +90,7 @@ func (wr *AwsClientWrapper) newGetProductsInput(region *endpoints.Region, attrKe
 			{
 				Type:  aws.String("TERM_MATCH"),
 				Field: aws.String("location"),
-				Value: aws.String(region.Description()),
+				Value: aws.String(wr.GetRegion(regionId).Description()),
 			},
 			{
 				Type:  aws.String("TERM_MATCH"),
@@ -107,4 +109,8 @@ func (wr *AwsClientWrapper) newGetProductsInput(region *endpoints.Region, attrKe
 			},
 		},
 	}
+}
+
+func (wr *AwsClientWrapper) GetRegions() map[string]endpoints.Region {
+	return endpoints.AwsPartition().Regions()
 }
