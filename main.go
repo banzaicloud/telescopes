@@ -11,6 +11,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/patrickmn/go-cache"
 	log "github.com/sirupsen/logrus"
+	"github.com/banzaicloud/cluster-recommender/cloudprovider"
 )
 
 var (
@@ -33,9 +34,16 @@ func init() {
 }
 
 func main() {
+
+	productInfoProvider, err := cloudprovider.NewAwsClientWrapper()
+	if err != nil {
+		log.Fatalf("could not initialize product info provider: %s", err.Error())
+		return
+	}
+
 	c := cache.New(24*time.Hour, 24.*time.Hour)
 
-	ec2ProductInfo, err := pi.NewProductInfo(*productInfoRenewalInterval, c)
+	ec2ProductInfo, err := pi.NewProductInfo(*productInfoRenewalInterval, c, productInfoProvider)
 	if err != nil {
 		log.Fatal(err)
 	}

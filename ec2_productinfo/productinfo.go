@@ -8,12 +8,11 @@ import (
 	"strings"
 	"time"
 
-	"github.com/aws/aws-sdk-go/aws"
-	"github.com/aws/aws-sdk-go/aws/endpoints"
-	"github.com/aws/aws-sdk-go/aws/session"
-	"github.com/aws/aws-sdk-go/service/pricing"
+	"github.com/banzaicloud/cluster-recommender/cloudprovider"
 	"github.com/patrickmn/go-cache"
 	log "github.com/sirupsen/logrus"
+	"github.com/aws/aws-sdk-go/aws/endpoints"
+	"gopkg.in/go-playground/validator.v9"
 )
 
 const (
@@ -21,14 +20,22 @@ const (
 	Cpu    = "vcpu"
 )
 
+var (
+	validate *validator.Validate
+)
+
+func init() {
+	validate = validator.New()
+}
+
 type ProductInfo struct {
-	renewalInterval time.Duration
-	session         *session.Session
-	vmAttrStore     *cache.Cache
+	CloudInfoProvider cloudprovider.CloudProductInfoProvider `validate:"required"`
+	renewalInterval   time.Duration
+	vmAttrStore       *cache.Cache
 }
 
 type AttrValue struct {
-	strValue string
+	StrValue string
 	value    float64
 }
 
@@ -50,34 +57,36 @@ type Ec2Vm struct {
 	Gpus          float64 `json:gpusPerVm`
 }
 
-func NewProductInfo(ri time.Duration, cache *cache.Cache) (*ProductInfo, error) {
-	session, err := session.NewSession(&aws.Config{})
-	if err != nil {
-		log.WithError(err).Error("Error creating AWS session")
-		return nil, err
+func NewProductInfo(ri time.Duration, cache *cache.Cache, provider cloudprovider.CloudProductInfoProvider) (*ProductInfo, error) {
+	pi := ProductInfo{
+		CloudInfoProvider: provider,
+		vmAttrStore:       cache,
+		renewalInterval:   ri,
 	}
-	return &ProductInfo{
-		session:         session,
-		vmAttrStore:     cache,
-		renewalInterval: ri,
-	}, nil
+
+	err := validate.Struct(pi)
+	if err != nil {
+		return nil, fmt.Errorf("validation failed: %s", err.Error())
+	}
+
+	return &pi, nil
 }
 
-func (e *ProductInfo) Start(ctx context.Context) {
+func (pi *ProductInfo) Start(ctx context.Context) {
 
 	renew := func() {
 		log.Info("renewing product info")
 		attributes := []string{Memory, Cpu}
 		for _, attr := range attributes {
-			attrValues, err := e.renewAttrValues(attr)
+			attrValues, err := pi.renewAttrValues(attr)
 			if err != nil {
 				log.Errorf("couldn't renew ec2 attribute values in cache", err.Error())
 				return
 			}
-			awsP := endpoints.AwsPartition()
-			for _, r := range awsP.Regions() {
+
+			for _, r := range endpoints.AwsPartition().Regions() {
 				for _, v := range attrValues {
-					_, err := e.renewVmsWithAttr(&r, attr, v)
+					_, err := pi.renewVmsWithAttr(&r, attr, v)
 					if err != nil {
 						log.Errorf("couldn't renew ec2 attribute values in cache", err.Error())
 					}
@@ -88,7 +97,7 @@ func (e *ProductInfo) Start(ctx context.Context) {
 	}
 
 	go renew()
-	ticker := time.NewTicker(e.renewalInterval)
+	ticker := time.NewTicker(pi.renewalInterval)
 	for {
 		select {
 		case <-ticker.C:
@@ -101,47 +110,43 @@ func (e *ProductInfo) Start(ctx context.Context) {
 	}
 }
 
-func (e *ProductInfo) GetAttrValues(attribute string) ([]float64, error) {
-	v, err := e.getAttrValues(attribute)
+func (pi *ProductInfo) GetAttrValues(attribute string) ([]float64, error) {
+	v, err := pi.getAttrValues(attribute)
 	if err != nil {
 		return nil, err
 	}
 	return v.floatValues(), nil
 }
 
-func (e *ProductInfo) getAttrValues(attribute string) (AttrValues, error) {
-	attrCacheKey := e.getAttrKey(attribute)
-	if cachedVal, ok := e.vmAttrStore.Get(attrCacheKey); ok {
+func (pi *ProductInfo) getAttrValues(attribute string) (AttrValues, error) {
+	attrCacheKey := pi.getAttrKey(attribute)
+	if cachedVal, ok := pi.vmAttrStore.Get(attrCacheKey); ok {
 		log.Debugf("Getting available %s values from cache.", attribute)
 		return cachedVal.(AttrValues), nil
 	}
-	values, err := e.renewAttrValues(attribute)
+	values, err := pi.renewAttrValues(attribute)
 	if err != nil {
 		return nil, err
 	}
 	return values, nil
 }
 
-func (e *ProductInfo) getAttrKey(attribute string) string {
+func (pi *ProductInfo) getAttrKey(attribute string) string {
 	return fmt.Sprintf("/banzaicloud.com/recommender/ec2/attrValues/%s", attribute)
 }
 
-func (e *ProductInfo) renewAttrValues(attribute string) (AttrValues, error) {
-	values, err := e.getAttrValuesFromAPI(attribute)
+func (pi *ProductInfo) renewAttrValues(attribute string) (AttrValues, error) {
+	values, err := pi.getAttrValuesFromAPI(attribute)
 	if err != nil {
 		return nil, err
 	}
-	e.vmAttrStore.Set(e.getAttrKey(attribute), values, e.renewalInterval)
+	pi.vmAttrStore.Set(pi.getAttrKey(attribute), values, pi.renewalInterval)
 	return values, nil
 }
 
-func (e *ProductInfo) getAttrValuesFromAPI(attribute string) (AttrValues, error) {
-	log.Debugf("Getting available %s values from AWS API.", attribute)
-	pricingSvc := pricing.New(e.session, &aws.Config{Region: aws.String("us-east-1")})
-	apiValues, err := pricingSvc.GetAttributeValues(&pricing.GetAttributeValuesInput{
-		ServiceCode:   aws.String("AmazonEC2"),
-		AttributeName: aws.String(attribute),
-	})
+func (pi *ProductInfo) getAttrValuesFromAPI(attribute string) (AttrValues, error) {
+
+	apiValues, err := pi.CloudInfoProvider.GetAttributeValues(attribute)
 	if err != nil {
 		return nil, err
 	}
@@ -154,89 +159,51 @@ func (e *ProductInfo) getAttrValuesFromAPI(attribute string) (AttrValues, error)
 		}
 		values = append(values, AttrValue{
 			value:    floatValue,
-			strValue: *v.Value,
+			StrValue: *v.Value,
 		})
 	}
 	log.Debugf("found %s values: %v", attribute, values)
 	return values, nil
 }
 
-func (e *ProductInfo) GetVmsWithAttrValue(region string, attrKey string, value float64) ([]Ec2Vm, error) {
+func (pi *ProductInfo) GetVmsWithAttrValue(region string, attrKey string, value float64) ([]Ec2Vm, error) {
 
 	log.Debugf("Getting instance types and on demand prices. [region=%s, %s=%v]", region, attrKey, value)
-	vmCacheKey := e.getVmKey(region, attrKey, value)
-	if cachedVal, ok := e.vmAttrStore.Get(vmCacheKey); ok {
+	vmCacheKey := pi.getVmKey(region, attrKey, value)
+	if cachedVal, ok := pi.vmAttrStore.Get(vmCacheKey); ok {
 		log.Debugf("Getting available instance types from cache. [region=%s, %s=%v]", region, attrKey, value)
 		return cachedVal.([]Ec2Vm), nil
 	}
-	attrValue, err := e.getAttrValue(attrKey, value)
+	attrValue, err := pi.getAttrValue(attrKey, value)
 	if err != nil {
 		return nil, err
 	}
-	vms, err := e.renewVmsWithAttr(e.getRegion(region), attrKey, *attrValue)
+	vms, err := pi.renewVmsWithAttr(pi.CloudInfoProvider.GetRegion(region), attrKey, *attrValue)
 	if err != nil {
 		return nil, err
 	}
 	return vms, nil
 }
 
-func (e *ProductInfo) getRegion(id string) *endpoints.Region {
-	aws := endpoints.AwsPartition()
-	for _, r := range aws.Regions() {
-		if r.ID() == id {
-			return &r
-		}
-	}
-	return nil
+func (pi *ProductInfo) getVmKey(region string, attrKey string, attrValue float64) string {
+	return fmt.Sprintf("/banzaicloud.com/recommender/ec2/%s/vms/%s/%s", region, attrKey, strconv.FormatFloat(attrValue, 'b', 2, 5))
 }
 
-func (e *ProductInfo) getVmKey(region string, attrKey string, attrValue float64) string {
-	return fmt.Sprintf("/banzaicloud.com/recommender/ec2/%s/vms/%s/%s", region, attrKey, attrValue)
-}
-
-func (e *ProductInfo) renewVmsWithAttr(region *endpoints.Region, attrKey string, attrValue AttrValue) ([]Ec2Vm, error) {
-	values, err := e.getVmsWithAttrFromAPI(region, attrKey, attrValue)
+func (pi *ProductInfo) renewVmsWithAttr(region *endpoints.Region, attrKey string, attrValue AttrValue) ([]Ec2Vm, error) {
+	values, err := pi.getVmsWithAttrFromAPI(region, attrKey, attrValue)
 	if err != nil {
 		return nil, err
 	}
-	e.vmAttrStore.Set(e.getVmKey(region.ID(), attrKey, attrValue.value), values, e.renewalInterval)
+	pi.vmAttrStore.Set(pi.getVmKey(region.ID(), attrKey, attrValue.value), values, pi.renewalInterval)
 	return values, nil
 }
 
-func (e *ProductInfo) getVmsWithAttrFromAPI(region *endpoints.Region, attrKey string, attrValue AttrValue) ([]Ec2Vm, error) {
+func (pi *ProductInfo) getVmsWithAttrFromAPI(region *endpoints.Region, attrKey string, attrValue AttrValue) ([]Ec2Vm, error) {
 	var vms []Ec2Vm
-	pricingSvc := pricing.New(e.session, &aws.Config{Region: aws.String("us-east-1")})
-	log.Debugf("Getting available instance types from AWS API. [region=%s, %s=%s]", region.ID(), attrKey, attrValue.strValue)
-	products, err := pricingSvc.GetProducts(&pricing.GetProductsInput{
-		ServiceCode: aws.String("AmazonEC2"),
-		Filters: []*pricing.Filter{
-			{
-				Type:  aws.String("TERM_MATCH"),
-				Field: aws.String("operatingSystem"),
-				Value: aws.String("Linux"),
-			},
-			{
-				Type:  aws.String("TERM_MATCH"),
-				Field: aws.String("location"),
-				Value: aws.String(region.Description()),
-			},
-			{
-				Type:  aws.String("TERM_MATCH"),
-				Field: aws.String("tenancy"),
-				Value: aws.String("shared"),
-			},
-			{
-				Type:  aws.String("TERM_MATCH"),
-				Field: aws.String("preInstalledSw"),
-				Value: aws.String("NA"),
-			},
-			{
-				Type:  aws.String("TERM_MATCH"),
-				Field: aws.String(attrKey),
-				Value: aws.String(attrValue.strValue),
-			},
-		},
-	})
+	log.Debugf("Getting available instance types from AWS API. [region=%s, %s=%s]", region.ID(), attrKey, attrValue.StrValue)
+
+	products, err := pi.CloudInfoProvider.GetProducts(region, attrKey, attrValue.StrValue)
+
 	if err != nil {
 		return nil, err
 	}
@@ -270,12 +237,12 @@ func (e *ProductInfo) getVmsWithAttrFromAPI(region *endpoints.Region, attrKey st
 		}
 		vms = append(vms, vm)
 	}
-	log.Debugf("found vms [%s=%s]: %#v", attrKey, attrValue.strValue, vms)
+	log.Debugf("found vms [%s=%s]: %#v", attrKey, attrValue.StrValue, vms)
 	return vms, nil
 }
 
-func (e *ProductInfo) getAttrValue(attrKey string, attrValue float64) (*AttrValue, error) {
-	attrValues, err := e.getAttrValues(attrKey)
+func (pi *ProductInfo) getAttrValue(attrKey string, attrValue float64) (*AttrValue, error) {
+	attrValues, err := pi.getAttrValues(attrKey)
 	if err != nil {
 		return nil, err
 	}
