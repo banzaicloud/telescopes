@@ -7,7 +7,6 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/banzaicloud/cluster-recommender/cloudprovider"
 	"github.com/patrickmn/go-cache"
 	"github.com/sirupsen/logrus"
 	"gopkg.in/go-playground/validator.v9"
@@ -27,7 +26,7 @@ func init() {
 }
 
 type ProductInfo struct {
-	CloudInfoProvider cloudprovider.CloudProductInfoProvider `validate:"required"`
+	CloudInfoProvider CloudProductInfoProvider `validate:"required"`
 	renewalInterval   time.Duration
 	vmAttrStore       *cache.Cache
 }
@@ -55,7 +54,7 @@ type Ec2Vm struct {
 	Gpus          float64 `json:"gpusPerVm"`
 }
 
-func NewProductInfo(ri time.Duration, cache *cache.Cache, provider cloudprovider.CloudProductInfoProvider) (*ProductInfo, error) {
+func NewProductInfo(ri time.Duration, cache *cache.Cache, provider CloudProductInfoProvider) (*ProductInfo, error) {
 	pi := ProductInfo{
 		CloudInfoProvider: provider,
 		vmAttrStore:       cache,
@@ -133,6 +132,7 @@ func (pi *ProductInfo) getAttrKey(attribute string) string {
 	return fmt.Sprintf("/banzaicloud.com/recommender/ec2/attrValues/%s", attribute)
 }
 
+// renewAttrValues retrieves attribute values from the cloud provider and refreshes the attribute store with them
 func (pi *ProductInfo) renewAttrValues(attribute string) (AttrValues, error) {
 	values, err := pi.CloudInfoProvider.GetAttributeValues(attribute)
 	if err != nil {

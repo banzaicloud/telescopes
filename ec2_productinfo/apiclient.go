@@ -1,4 +1,4 @@
-package cloudprovider
+package ec2_productinfo
 
 import (
 	"fmt"
@@ -10,16 +10,15 @@ import (
 	"github.com/aws/aws-sdk-go/aws/endpoints"
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/pricing"
-	"github.com/banzaicloud/cluster-recommender/ec2_productinfo"
 	"github.com/sirupsen/logrus"
 )
 
 // cloudInfoProvider gathers operations for retrieving cloud provider information for recommendations
 // it also decouples provider api specific code from the recommender
 type CloudProductInfoProvider interface {
-	GetAttributeValues(attribute string) (ec2_productinfo.AttrValues, error)
+	GetAttributeValues(attribute string) (AttrValues, error)
 
-	GetProducts(regionId string, attrKey string, attrValue ec2_productinfo.AttrValue) ([]ec2_productinfo.Ec2Vm, error)
+	GetProducts(regionId string, attrKey string, attrValue AttrValue) ([]Ec2Vm, error)
 
 	GetRegion(id string) *endpoints.Region
 
@@ -46,19 +45,19 @@ func NewAwsClientWrapper() (*AwsClientWrapper, error) {
 	}, nil
 }
 
-func (wr *AwsClientWrapper) GetAttributeValues(attribute string) (ec2_productinfo.AttrValues, error) {
+func (wr *AwsClientWrapper) GetAttributeValues(attribute string) (AttrValues, error) {
 	apiValues, err := wr.pricingService().GetAttributeValues(wr.newAttributeValuesInput(attribute))
 	if err != nil {
 		return nil, err
 	}
-	var values ec2_productinfo.AttrValues
+	var values AttrValues
 	for _, v := range apiValues.AttributeValues {
 		dotValue := strings.Replace(*v.Value, ",", ".", -1)
 		floatValue, err := strconv.ParseFloat(strings.Split(dotValue, " ")[0], 64)
 		if err != nil {
 			logrus.Warnf("Couldn't parse attribute Value: [%s=%s]: %v", attribute, dotValue, err.Error())
 		}
-		values = append(values, ec2_productinfo.AttrValue{
+		values = append(values, AttrValue{
 			Value:    floatValue,
 			StrValue: *v.Value,
 		})
@@ -67,9 +66,9 @@ func (wr *AwsClientWrapper) GetAttributeValues(attribute string) (ec2_productinf
 	return values, nil
 }
 
-func (wr *AwsClientWrapper) GetProducts(regionId string, attrKey string, attrValue ec2_productinfo.AttrValue) ([]ec2_productinfo.Ec2Vm, error) {
+func (wr *AwsClientWrapper) GetProducts(regionId string, attrKey string, attrValue AttrValue) ([]Ec2Vm, error) {
 
-	var vms []ec2_productinfo.Ec2Vm
+	var vms []Ec2Vm
 	logrus.Debugf("Getting available instance types from AWS API. [region=%s, %s=%s]", regionId, attrKey, attrValue.StrValue)
 
 	products, err := wr.pricingService().GetProducts(wr.newGetProductsInput(regionId, attrKey, attrValue))
@@ -81,8 +80,8 @@ func (wr *AwsClientWrapper) GetProducts(regionId string, attrKey string, attrVal
 		var onDemandPrice float64
 		// TODO: this is unsafe, check for nil values if needed
 		instanceType := price["product"].(map[string]interface{})["attributes"].(map[string]interface{})["instanceType"].(string)
-		cpusStr := price["product"].(map[string]interface{})["attributes"].(map[string]interface{})[ec2_productinfo.Cpu].(string)
-		memStr := price["product"].(map[string]interface{})["attributes"].(map[string]interface{})[ec2_productinfo.Memory].(string)
+		cpusStr := price["product"].(map[string]interface{})["attributes"].(map[string]interface{})[Cpu].(string)
+		memStr := price["product"].(map[string]interface{})["attributes"].(map[string]interface{})[Memory].(string)
 		var gpus float64
 		if price["product"].(map[string]interface{})["attributes"].(map[string]interface{})["gpu"] != nil {
 			gpuStr := price["product"].(map[string]interface{})["attributes"].(map[string]interface{})["gpu"].(string)
@@ -98,7 +97,7 @@ func (wr *AwsClientWrapper) GetProducts(regionId string, attrKey string, attrVal
 		}
 		cpus, _ := strconv.ParseFloat(cpusStr, 32)
 		mem, _ := strconv.ParseFloat(strings.Split(memStr, " ")[0], 32)
-		vm := ec2_productinfo.Ec2Vm{
+		vm := Ec2Vm{
 			Type:          instanceType,
 			OnDemandPrice: onDemandPrice,
 			Cpus:          cpus,
@@ -112,8 +111,8 @@ func (wr *AwsClientWrapper) GetProducts(regionId string, attrKey string, attrVal
 }
 
 func (wr *AwsClientWrapper) GetRegion(id string) *endpoints.Region {
-	aws := endpoints.AwsPartition()
-	for _, r := range aws.Regions() {
+	awsp := endpoints.AwsPartition()
+	for _, r := range awsp.Regions() {
 		if r.ID() == id {
 			return &r
 		}
@@ -134,7 +133,7 @@ func (wr *AwsClientWrapper) newAttributeValuesInput(attr string) *pricing.GetAtt
 }
 
 // newAttributeValuesInput assembles a GetAttributeValuesInput instance for querying the provider
-func (wr *AwsClientWrapper) newGetProductsInput(regionId string, attrKey string, attrValue ec2_productinfo.AttrValue) *pricing.GetProductsInput {
+func (wr *AwsClientWrapper) newGetProductsInput(regionId string, attrKey string, attrValue AttrValue) *pricing.GetProductsInput {
 	return &pricing.GetProductsInput{
 
 		ServiceCode: aws.String("AmazonEC2"),

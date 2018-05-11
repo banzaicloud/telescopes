@@ -6,7 +6,6 @@ import (
 	"time"
 
 	"github.com/banzaicloud/cluster-recommender/api"
-	"github.com/banzaicloud/cluster-recommender/cloudprovider"
 	"github.com/banzaicloud/cluster-recommender/ec2_productinfo"
 	"github.com/banzaicloud/cluster-recommender/recommender"
 	"github.com/gin-gonic/gin"
@@ -35,7 +34,7 @@ func init() {
 
 func main() {
 
-	productInfoProvider, err := cloudprovider.NewAwsClientWrapper()
+	productInfoProvider, err := ec2_productinfo.NewAwsClientWrapper()
 	if err != nil {
 		log.Fatalf("could not initialize product info provider: %s", err.Error())
 		return
