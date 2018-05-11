@@ -6,12 +6,12 @@ import (
 	"time"
 
 	"github.com/banzaicloud/cluster-recommender/api"
-	pi "github.com/banzaicloud/cluster-recommender/ec2_productinfo"
+	"github.com/banzaicloud/cluster-recommender/cloudprovider"
+	"github.com/banzaicloud/cluster-recommender/ec2_productinfo"
 	"github.com/banzaicloud/cluster-recommender/recommender"
 	"github.com/gin-gonic/gin"
 	"github.com/patrickmn/go-cache"
 	log "github.com/sirupsen/logrus"
-	"github.com/banzaicloud/cluster-recommender/cloudprovider"
 )
 
 var (
@@ -43,7 +43,7 @@ func main() {
 
 	c := cache.New(24*time.Hour, 24.*time.Hour)
 
-	ec2ProductInfo, err := pi.NewProductInfo(*productInfoRenewalInterval, c, productInfoProvider)
+	ec2ProductInfo, err := ec2_productinfo.NewProductInfo(*productInfoRenewalInterval, c, productInfoProvider)
 	if err != nil {
 		log.Fatal(err)
 	}

@@ -5,7 +5,6 @@ import (
 	"errors"
 	"fmt"
 	"strconv"
-	"strings"
 	"time"
 
 	"github.com/banzaicloud/cluster-recommender/cloudprovider"
@@ -35,7 +34,7 @@ type ProductInfo struct {
 
 type AttrValue struct {
 	StrValue string
-	value    float64
+	Value    float64
 }
 
 type AttrValues []AttrValue
@@ -43,7 +42,7 @@ type AttrValues []AttrValue
 func (v AttrValues) floatValues() []float64 {
 	floatValues := make([]float64, len(v))
 	for _, av := range v {
-		floatValues = append(floatValues, av.value)
+		floatValues = append(floatValues, av.Value)
 	}
 	return floatValues
 }
@@ -83,9 +82,9 @@ func (pi *ProductInfo) Start(ctx context.Context) {
 				return
 			}
 
-			for _, r := range pi.CloudInfoProvider.GetRegions() {
+			for _, regionId := range pi.CloudInfoProvider.GetRegions() {
 				for _, v := range attrValues {
-					_, err := pi.renewVmsWithAttr(r.ID(), attr, v)
+					_, err := pi.renewVmsWithAttr(regionId, attr, v)
 					if err != nil {
 						logrus.Errorf("couldn't renew ec2 attribute values in cache", err.Error())
 					}
@@ -135,33 +134,11 @@ func (pi *ProductInfo) getAttrKey(attribute string) string {
 }
 
 func (pi *ProductInfo) renewAttrValues(attribute string) (AttrValues, error) {
-	values, err := pi.getAttrValuesFromAPI(attribute)
+	values, err := pi.CloudInfoProvider.GetAttributeValues(attribute)
 	if err != nil {
 		return nil, err
 	}
 	pi.vmAttrStore.Set(pi.getAttrKey(attribute), values, pi.renewalInterval)
-	return values, nil
-}
-
-func (pi *ProductInfo) getAttrValuesFromAPI(attribute string) (AttrValues, error) {
-
-	apiValues, err := pi.CloudInfoProvider.GetAttributeValues(attribute)
-	if err != nil {
-		return nil, err
-	}
-	var values AttrValues
-	for _, v := range apiValues.AttributeValues {
-		dotValue := strings.Replace(*v.Value, ",", ".", -1)
-		floatValue, err := strconv.ParseFloat(strings.Split(dotValue, " ")[0], 64)
-		if err != nil {
-			logrus.Warnf("Couldn't parse attribute value: [%s=%s]: %v", attribute, dotValue, err.Error())
-		}
-		values = append(values, AttrValue{
-			value:    floatValue,
-			StrValue: *v.Value,
-		})
-	}
-	logrus.Debugf("found %s values: %v", attribute, values)
 	return values, nil
 }
 
@@ -189,55 +166,12 @@ func (pi *ProductInfo) getVmKey(region string, attrKey string, attrValue float64
 }
 
 func (pi *ProductInfo) renewVmsWithAttr(regionId string, attrKey string, attrValue AttrValue) ([]Ec2Vm, error) {
-	values, err := pi.getVmsWithAttrFromAPI(regionId, attrKey, attrValue)
+	values, err := pi.CloudInfoProvider.GetProducts(regionId, attrKey, attrValue)
 	if err != nil {
 		return nil, err
 	}
-	pi.vmAttrStore.Set(pi.getVmKey(regionId, attrKey, attrValue.value), values, pi.renewalInterval)
+	pi.vmAttrStore.Set(pi.getVmKey(regionId, attrKey, attrValue.Value), values, pi.renewalInterval)
 	return values, nil
-}
-
-func (pi *ProductInfo) getVmsWithAttrFromAPI(regionId string, attrKey string, attrValue AttrValue) ([]Ec2Vm, error) {
-	var vms []Ec2Vm
-	logrus.Debugf("Getting available instance types from AWS API. [region=%s, %s=%s]", regionId, attrKey, attrValue.StrValue)
-
-	products, err := pi.CloudInfoProvider.GetProducts(regionId, attrKey, attrValue.StrValue)
-
-	if err != nil {
-		return nil, err
-	}
-	for _, price := range products.PriceList {
-		var onDemandPrice float64
-		// TODO: this is unsafe, check for nil values if needed
-		instanceType := price["product"].(map[string]interface{})["attributes"].(map[string]interface{})["instanceType"].(string)
-		cpusStr := price["product"].(map[string]interface{})["attributes"].(map[string]interface{})[Cpu].(string)
-		memStr := price["product"].(map[string]interface{})["attributes"].(map[string]interface{})[Memory].(string)
-		var gpus float64
-		if price["product"].(map[string]interface{})["attributes"].(map[string]interface{})["gpu"] != nil {
-			gpuStr := price["product"].(map[string]interface{})["attributes"].(map[string]interface{})["gpu"].(string)
-			gpus, _ = strconv.ParseFloat(gpuStr, 32)
-		}
-		onDemandTerm := price["terms"].(map[string]interface{})["OnDemand"].(map[string]interface{})
-		for _, term := range onDemandTerm {
-			priceDimensions := term.(map[string]interface{})["priceDimensions"].(map[string]interface{})
-			for _, dimension := range priceDimensions {
-				odPriceStr := dimension.(map[string]interface{})["pricePerUnit"].(map[string]interface{})["USD"].(string)
-				onDemandPrice, _ = strconv.ParseFloat(odPriceStr, 32)
-			}
-		}
-		cpus, _ := strconv.ParseFloat(cpusStr, 32)
-		mem, _ := strconv.ParseFloat(strings.Split(memStr, " ")[0], 32)
-		vm := Ec2Vm{
-			Type:          instanceType,
-			OnDemandPrice: onDemandPrice,
-			Cpus:          cpus,
-			Mem:           mem,
-			Gpus:          gpus,
-		}
-		vms = append(vms, vm)
-	}
-	logrus.Debugf("found vms [%s=%s]: %#v", attrKey, attrValue.StrValue, vms)
-	return vms, nil
 }
 
 func (pi *ProductInfo) getAttrValue(attrKey string, attrValue float64) (*AttrValue, error) {
@@ -246,9 +180,9 @@ func (pi *ProductInfo) getAttrValue(attrKey string, attrValue float64) (*AttrVal
 		return nil, err
 	}
 	for _, av := range attrValues {
-		if av.value == attrValue {
+		if av.Value == attrValue {
 			return &av, nil
 		}
 	}
-	return nil, errors.New("couldn't find attribute value")
+	return nil, errors.New("couldn't find attribute Value")
 }
