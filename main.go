@@ -34,7 +34,7 @@ func init() {
 
 func main() {
 
-	productInfoProvider, err := ec2_productinfo.NewAwsClientWrapper()
+	productInfoProvider, err := ec2_productinfo.NewAwsInfoer()
 	if err != nil {
 		log.Fatalf("could not initialize product info provider: %s", err.Error())
 		return

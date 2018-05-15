@@ -26,27 +26,27 @@ type ProductInfoer interface {
 	GetRegions() map[string]string
 }
 
-// AwsClientWrapper encapsulates the data and operations needed to access external resources
-type AwsClientWrapper struct {
+// AwsInfoer encapsulates the data and operations needed to access external resources
+type AwsInfoer struct {
 	session *session.Session
 	// embedded interface to ensure operations are implemented (todo research if this can be avoided)
 	ProductInfoer
 }
 
-// NewAwsClientWrapper encapsulates the creation of a wrapper instance
-func NewAwsClientWrapper() (*AwsClientWrapper, error) {
+// NewAwsInfoer encapsulates the creation of a wrapper instance
+func NewAwsInfoer() (*AwsInfoer, error) {
 	newSession, err := session.NewSession(&aws.Config{})
 
 	if err != nil {
-		return &AwsClientWrapper{}, fmt.Errorf("could not create session: %s ", err.Error())
+		return &AwsInfoer{}, fmt.Errorf("could not create session: %s ", err.Error())
 	}
 
-	return &AwsClientWrapper{
+	return &AwsInfoer{
 		session: newSession,
 	}, nil
 }
 
-func (wr *AwsClientWrapper) GetAttributeValues(attribute string) (AttrValues, error) {
+func (wr *AwsInfoer) GetAttributeValues(attribute string) (AttrValues, error) {
 	apiValues, err := wr.pricingService().GetAttributeValues(wr.newAttributeValuesInput(attribute))
 	if err != nil {
 		return nil, err
@@ -67,7 +67,7 @@ func (wr *AwsClientWrapper) GetAttributeValues(attribute string) (AttrValues, er
 	return values, nil
 }
 
-func (wr *AwsClientWrapper) GetProducts(regionId string, attrKey string, attrValue AttrValue) ([]Ec2Vm, error) {
+func (wr *AwsInfoer) GetProducts(regionId string, attrKey string, attrValue AttrValue) ([]Ec2Vm, error) {
 
 	var vms []Ec2Vm
 	logrus.Debugf("Getting available instance types from AWS API. [region=%s, %s=%s]", regionId, attrKey, attrValue.StrValue)
@@ -111,7 +111,7 @@ func (wr *AwsClientWrapper) GetProducts(regionId string, attrKey string, attrVal
 	return vms, nil
 }
 
-func (wr *AwsClientWrapper) GetRegion(id string) *endpoints.Region {
+func (wr *AwsInfoer) GetRegion(id string) *endpoints.Region {
 	awsp := endpoints.AwsPartition()
 	for _, r := range awsp.Regions() {
 		if r.ID() == id {
@@ -121,12 +121,12 @@ func (wr *AwsClientWrapper) GetRegion(id string) *endpoints.Region {
 	return nil
 }
 
-func (wr *AwsClientWrapper) pricingService() *pricing.Pricing {
+func (wr *AwsInfoer) pricingService() *pricing.Pricing {
 	return pricing.New(wr.session, &aws.Config{Region: aws.String("us-east-1")})
 }
 
 // newAttributeValuesInput assembles a GetAttributeValuesInput instance for querying the provider
-func (wr *AwsClientWrapper) newAttributeValuesInput(attr string) *pricing.GetAttributeValuesInput {
+func (wr *AwsInfoer) newAttributeValuesInput(attr string) *pricing.GetAttributeValuesInput {
 	return &pricing.GetAttributeValuesInput{
 		ServiceCode:   aws.String("AmazonEC2"),
 		AttributeName: aws.String(attr),
@@ -134,7 +134,7 @@ func (wr *AwsClientWrapper) newAttributeValuesInput(attr string) *pricing.GetAtt
 }
 
 // newAttributeValuesInput assembles a GetAttributeValuesInput instance for querying the provider
-func (wr *AwsClientWrapper) newGetProductsInput(regionId string, attrKey string, attrValue AttrValue) *pricing.GetProductsInput {
+func (wr *AwsInfoer) newGetProductsInput(regionId string, attrKey string, attrValue AttrValue) *pricing.GetProductsInput {
 	return &pricing.GetProductsInput{
 
 		ServiceCode: aws.String("AmazonEC2"),
@@ -168,7 +168,7 @@ func (wr *AwsClientWrapper) newGetProductsInput(regionId string, attrKey string,
 	}
 }
 
-func (wr *AwsClientWrapper) GetRegions() map[string]string {
+func (wr *AwsInfoer) GetRegions() map[string]string {
 	regionIdMap := make(map[string]string)
 	for key, region := range endpoints.AwsPartition().Regions() {
 		regionIdMap[key] = region.ID()
