@@ -13,15 +13,16 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-// cloudInfoProvider gathers operations for retrieving cloud provider information for recommendations
+// ProductInfoer gathers operations for retrieving cloud provider information for recommendations
 // it also decouples provider api specific code from the recommender
-type CloudProductInfoProvider interface {
+type ProductInfoer interface {
+	// GetAttributeValues gets the attribute values for the given attribute from the external system
 	GetAttributeValues(attribute string) (AttrValues, error)
 
+	// GetProducts gets product information based on the given arguments from an external system
 	GetProducts(regionId string, attrKey string, attrValue AttrValue) ([]Ec2Vm, error)
 
-	GetRegion(id string) *endpoints.Region
-
+	// GetRegions retrieves the available regions form the external system
 	GetRegions() map[string]string
 }
 
@@ -29,7 +30,7 @@ type CloudProductInfoProvider interface {
 type AwsClientWrapper struct {
 	session *session.Session
 	// embedded interface to ensure operations are implemented (todo research if this can be avoided)
-	CloudProductInfoProvider
+	ProductInfoer
 }
 
 // NewAwsClientWrapper encapsulates the creation of a wrapper instance

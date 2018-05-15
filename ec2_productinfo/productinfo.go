@@ -4,7 +4,6 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"strconv"
 	"time"
 
 	"github.com/patrickmn/go-cache"
@@ -13,8 +12,10 @@ import (
 )
 
 const (
-	Memory = "memory"
-	Cpu    = "vcpu"
+	Memory          = "memory"
+	Cpu             = "vcpu"
+	VmKeyTemplate   = "/banzaicloud.com/recommender/ec2/%s/vms/%s/%f"
+	AttrKeyTemplate = "/banzaicloud.com/recommender/ec2/attrValues/%s"
 )
 
 var (
@@ -26,7 +27,7 @@ func init() {
 }
 
 type ProductInfo struct {
-	CloudInfoProvider CloudProductInfoProvider `validate:"required"`
+	CloudInfoProvider ProductInfoer `validate:"required"`
 	renewalInterval   time.Duration
 	vmAttrStore       *cache.Cache
 }
@@ -54,7 +55,7 @@ type Ec2Vm struct {
 	Gpus          float64 `json:"gpusPerVm"`
 }
 
-func NewProductInfo(ri time.Duration, cache *cache.Cache, provider CloudProductInfoProvider) (*ProductInfo, error) {
+func NewProductInfo(ri time.Duration, cache *cache.Cache, provider ProductInfoer) (*ProductInfo, error) {
 	pi := ProductInfo{
 		CloudInfoProvider: provider,
 		vmAttrStore:       cache,
@@ -129,7 +130,7 @@ func (pi *ProductInfo) getAttrValues(attribute string) (AttrValues, error) {
 }
 
 func (pi *ProductInfo) getAttrKey(attribute string) string {
-	return fmt.Sprintf("/banzaicloud.com/recommender/ec2/attrValues/%s", attribute)
+	return fmt.Sprintf(AttrKeyTemplate, attribute)
 }
 
 // renewAttrValues retrieves attribute values from the cloud provider and refreshes the attribute store with them
@@ -162,7 +163,7 @@ func (pi *ProductInfo) GetVmsWithAttrValue(regionId string, attrKey string, valu
 }
 
 func (pi *ProductInfo) getVmKey(region string, attrKey string, attrValue float64) string {
-	return fmt.Sprintf("/banzaicloud.com/recommender/ec2/%s/vms/%s/%s", region, attrKey, strconv.FormatFloat(attrValue, 'b', 2, 5))
+	return fmt.Sprintf(VmKeyTemplate, region, attrKey, attrValue)
 }
 
 func (pi *ProductInfo) renewVmsWithAttr(regionId string, attrKey string, attrValue AttrValue) ([]Ec2Vm, error) {
