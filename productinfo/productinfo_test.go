@@ -1,4 +1,4 @@
-package ec2_productinfo
+package productinfo
 
 import (
 	"testing"
@@ -43,10 +43,12 @@ func TestNewProductInfo(t *testing.T) {
 		Name          string
 		ProductInfoer ProductInfoer
 		Assert        func(info *ProductInfo, err error)
+		Cache         *cache.Cache
 	}{
 		{
 			Name:          "product info successfully created",
 			ProductInfoer: &DummyProductInfoer{},
+			Cache:         cache.New(5*time.Minute, 10*time.Minute),
 			Assert: func(info *ProductInfo, err error) {
 				assert.Nil(t, err, "should not get error")
 			},
@@ -54,6 +56,7 @@ func TestNewProductInfo(t *testing.T) {
 		{
 			Name:          "validation should fail nil values",
 			ProductInfoer: nil,
+			Cache:         cache.New(5*time.Minute, 10*time.Minute),
 			Assert: func(info *ProductInfo, err error) {
 				assert.Nil(t, info, "the productinfo should be nil in case of error")
 				assert.NotNil(t, err, "should get validation error when nil values provided")
@@ -63,7 +66,7 @@ func TestNewProductInfo(t *testing.T) {
 
 	for _, tc := range testCases {
 		t.Run(tc.Name, func(t *testing.T) {
-			tc.Assert(NewProductInfo(10*time.Second, nil, tc.ProductInfoer))
+			tc.Assert(NewProductInfo(10*time.Second, tc.Cache, tc.ProductInfoer))
 		})
 	}
 
@@ -81,7 +84,7 @@ func TestRenewAttributeValues(t *testing.T) {
 			Name: "attribute successfully renewed - empty cache",
 			ProductInfo: &DummyProductInfoer{
 				// this is returned by the AWS
-				AttrValues: []AttrValue{AttrValue{Value: float64(21), StrValue: Cpu}},
+				AttrValues: AttrValues{AttrValue{Value: float64(21), StrValue: Cpu}},
 			},
 			Cache:     cache.New(5*time.Minute, 10*time.Minute),
 			Attribute: Cpu,
@@ -126,9 +129,7 @@ func TestRenewVmsWithAttr(t *testing.T) {
 			attrValue: AttrValue{Value: float64(2), StrValue: Cpu},
 			ProductInfo: &DummyProductInfoer{
 				// test data
-				Vms: []Ec2Vm{
-					Ec2Vm{Cpus: float64(2), Mem: float64(32), OnDemandPrice: float64(0.32)},
-				},
+				Vms: []Ec2Vm{{Cpus: float64(2), Mem: float64(32), OnDemandPrice: float64(0.32)}},
 			},
 			Cache: cache.New(5*time.Minute, 10*time.Minute),
 			Assert: func(cache *cache.Cache, vms []Ec2Vm, err error) {
