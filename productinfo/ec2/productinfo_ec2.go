@@ -13,28 +13,28 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
-// AwsInfoer encapsulates the data and operations needed to access external resources
-type AwsInfoer struct {
+// Ec2Infoer encapsulates the data and operations needed to access external resources
+type Ec2Infoer struct {
 	session *session.Session
 	// embedded interface to ensure operations are implemented (todo research if this can be avoided)
 	productinfo.ProductInfoer
 }
 
 // NewAwsInfoer encapsulates the creation of a infoerapper instance
-func NewAwsInfoer() (*AwsInfoer, error) {
+func NewAwsInfoer() (*Ec2Infoer, error) {
 	newSession, err := session.NewSession(&aws.Config{})
 
 	if err != nil {
-		return &AwsInfoer{}, fmt.Errorf("could not create session: %s ", err.Error())
+		return &Ec2Infoer{}, fmt.Errorf("could not create session: %s ", err.Error())
 	}
 
-	return &AwsInfoer{
+	return &Ec2Infoer{
 		session: newSession,
 	}, nil
 }
 
-func (infoer *AwsInfoer) GetAttributeValues(attribute string) (productinfo.AttrValues, error) {
-	apiValues, err := infoer.pricingService().GetAttributeValues(infoer.newAttributeValuesInput(attribute))
+func (e *Ec2Infoer) GetAttributeValues(attribute string) (productinfo.AttrValues, error) {
+	apiValues, err := e.pricingService().GetAttributeValues(e.newAttributeValuesInput(attribute))
 	if err != nil {
 		return nil, err
 	}
@@ -54,12 +54,12 @@ func (infoer *AwsInfoer) GetAttributeValues(attribute string) (productinfo.AttrV
 	return values, nil
 }
 
-func (infoer *AwsInfoer) GetProducts(regionId string, attrKey string, attrValue productinfo.AttrValue) ([]productinfo.Ec2Vm, error) {
+func (e *Ec2Infoer) GetProducts(regionId string, attrKey string, attrValue productinfo.AttrValue) ([]productinfo.Ec2Vm, error) {
 
 	var vms []productinfo.Ec2Vm
 	log.Debugf("Getting available instance types from AWS API. [region=%s, %s=%s]", regionId, attrKey, attrValue.StrValue)
 
-	products, err := infoer.pricingService().GetProducts(infoer.newGetProductsInput(regionId, attrKey, attrValue))
+	products, err := e.pricingService().GetProducts(e.newGetProductsInput(regionId, attrKey, attrValue))
 
 	if err != nil {
 		return nil, err
@@ -98,7 +98,7 @@ func (infoer *AwsInfoer) GetProducts(regionId string, attrKey string, attrValue 
 	return vms, nil
 }
 
-func (infoer *AwsInfoer) GetRegion(id string) *endpoints.Region {
+func (e *Ec2Infoer) GetRegion(id string) *endpoints.Region {
 	awsp := endpoints.AwsPartition()
 	for _, r := range awsp.Regions() {
 		if r.ID() == id {
@@ -108,12 +108,12 @@ func (infoer *AwsInfoer) GetRegion(id string) *endpoints.Region {
 	return nil
 }
 
-func (infoer *AwsInfoer) pricingService() *pricing.Pricing {
-	return pricing.New(infoer.session, &aws.Config{Region: aws.String("us-east-1")})
+func (e *Ec2Infoer) pricingService() *pricing.Pricing {
+	return pricing.New(e.session, &aws.Config{Region: aws.String("us-east-1")})
 }
 
 // newAttributeValuesInput assembles a GetAttributeValuesInput instance for querying the provider
-func (infoer *AwsInfoer) newAttributeValuesInput(attr string) *pricing.GetAttributeValuesInput {
+func (e *Ec2Infoer) newAttributeValuesInput(attr string) *pricing.GetAttributeValuesInput {
 	return &pricing.GetAttributeValuesInput{
 		ServiceCode:   aws.String("AmazonEC2"),
 		AttributeName: aws.String(attr),
@@ -121,7 +121,7 @@ func (infoer *AwsInfoer) newAttributeValuesInput(attr string) *pricing.GetAttrib
 }
 
 // newAttributeValuesInput assembles a GetAttributeValuesInput instance for querying the provider
-func (infoer *AwsInfoer) newGetProductsInput(regionId string, attrKey string, attrValue productinfo.AttrValue) *pricing.GetProductsInput {
+func (e *Ec2Infoer) newGetProductsInput(regionId string, attrKey string, attrValue productinfo.AttrValue) *pricing.GetProductsInput {
 	return &pricing.GetProductsInput{
 
 		ServiceCode: aws.String("AmazonEC2"),
@@ -134,7 +134,7 @@ func (infoer *AwsInfoer) newGetProductsInput(regionId string, attrKey string, at
 			{
 				Type:  aws.String("TERM_MATCH"),
 				Field: aws.String("location"),
-				Value: aws.String(infoer.GetRegion(regionId).Description()),
+				Value: aws.String(e.GetRegion(regionId).Description()),
 			},
 			{
 				Type:  aws.String("TERM_MATCH"),
@@ -155,7 +155,7 @@ func (infoer *AwsInfoer) newGetProductsInput(regionId string, attrKey string, at
 	}
 }
 
-func (infoer *AwsInfoer) GetRegions() map[string]string {
+func (e *Ec2Infoer) GetRegions() map[string]string {
 	regionIdMap := make(map[string]string)
 	for key, region := range endpoints.AwsPartition().Regions() {
 		regionIdMap[key] = region.ID()
