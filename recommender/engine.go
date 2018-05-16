@@ -19,6 +19,9 @@ type Engine struct {
 }
 
 func NewEngine(vmRegistries map[string]VmRegistry) (*Engine, error) {
+	if vmRegistries == nil {
+		return nil, errors.New("could not create engine")
+	}
 	return &Engine{
 		VmRegistries: vmRegistries,
 	}, nil
@@ -48,40 +51,40 @@ type ClusterRecommendationReq struct {
 // swagger:response recommendationResp
 type ClusterRecommendationResp struct {
 	// The cloud provider
-	Provider string `json:provider`
+	Provider string `json:"provider"`
 	// Availability zones in the recommendation - a multi-zone recommendation means that all node pools should expand to all zones
 	Zones []string `json:"zones,omitempty"`
 	// Recommended node pools
-	NodePools []NodePool `json:nodePools`
+	NodePools []NodePool `json:"nodePools"`
 }
 
 // Represents a set of instances with a specific vm type
 type NodePool struct {
 	// Recommended virtual machine type
-	VmType VirtualMachine `json:vm`
+	VmType VirtualMachine `json:"vm""`
 	// Recommended number of nodes in the node pool
-	SumNodes int `json:sumNodes`
+	SumNodes int `json:"sumNodes"`
 	// Specifies if the recommended node pool consists of regular or spot/preemptible instance types
-	VmClass string `json:vmClass`
+	VmClass string `json:"vmClass"`
 }
 
 // Description of an instance type
 type VirtualMachine struct {
 	// Instance type
-	Type string `json:type`
+	Type string `json:"type"`
 	// Average price of the instance (differs from on demand price in case of spot or preemptible instances)
-	AvgPrice float64 `json:avgPrice`
+	AvgPrice float64 `json:"avgPrice"`
 	// Regular price of the instance type
-	OnDemandPrice float64 `json:onDemandPrice`
+	OnDemandPrice float64 `json:"onDemandPrice"`
 	// Number of CPUs in the instance type
-	Cpus float64 `json:cpusPerVm`
+	Cpus float64 `json:"cpusPerVm"`
 	// Available memory in the instance type (GB)
-	Mem float64 `json:memPerVm`
+	Mem float64 `json:"memPerVm"`
 	// Number of GPUs in the instance type
-	Gpus float64 `json:gpusPerVm`
+	Gpus float64 `json:"gpusPerVm"`
 }
 
-func (v VirtualMachine) getAttrValue(attr string) float64 {
+func (v *VirtualMachine) getAttrValue(attr string) float64 {
 	switch attr {
 	case Cpu:
 		return v.Cpus
