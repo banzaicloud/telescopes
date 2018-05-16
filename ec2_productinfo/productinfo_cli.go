@@ -2,7 +2,6 @@ package ec2_productinfo
 
 import (
 	"fmt"
-
 	"strconv"
 	"strings"
 
