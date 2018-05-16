@@ -6,7 +6,8 @@ import (
 	"time"
 
 	"github.com/banzaicloud/cluster-recommender/api"
-	"github.com/banzaicloud/cluster-recommender/ec2_productinfo"
+	"github.com/banzaicloud/cluster-recommender/productinfo"
+	"github.com/banzaicloud/cluster-recommender/productinfo/ec2"
 	"github.com/banzaicloud/cluster-recommender/recommender"
 	"github.com/gin-gonic/gin"
 	"github.com/patrickmn/go-cache"
@@ -34,7 +35,7 @@ func init() {
 
 func main() {
 
-	productInfoProvider, err := ec2_productinfo.NewAwsInfoer()
+	productInfoProvider, err := ec2.NewAwsInfoer()
 	if err != nil {
 		log.Fatalf("could not initialize product info provider: %s", err.Error())
 		return
@@ -42,7 +43,7 @@ func main() {
 
 	c := cache.New(24*time.Hour, 24.*time.Hour)
 
-	ec2ProductInfo, err := ec2_productinfo.NewProductInfo(*productInfoRenewalInterval, c, productInfoProvider)
+	ec2ProductInfo, err := productinfo.NewProductInfo(*productInfoRenewalInterval, c, productInfoProvider)
 	if err != nil {
 		log.Fatal(err)
 	}

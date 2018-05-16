@@ -11,7 +11,7 @@ import (
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/ec2"
-	pi "github.com/banzaicloud/cluster-recommender/ec2_productinfo"
+	"github.com/banzaicloud/cluster-recommender/productinfo"
 	"github.com/prometheus/client_golang/api"
 	"github.com/prometheus/client_golang/api/prometheus/v1"
 	"github.com/prometheus/common/model"
@@ -20,12 +20,12 @@ import (
 
 type Ec2VmRegistry struct {
 	session     *session.Session
-	productInfo *pi.ProductInfo
+	productInfo *productinfo.ProductInfo
 	prometheus  v1.API
 	promQuery   string
 }
 
-func NewEc2VmRegistry(pi *pi.ProductInfo, prom string, pq string) (VmRegistry, error) {
+func NewEc2VmRegistry(pi *productinfo.ProductInfo, prom string, pq string) (VmRegistry, error) {
 	s, err := session.NewSession()
 	if err != nil {
 		log.WithError(err).Error("Error creating AWS session")
@@ -181,9 +181,9 @@ func (e *Ec2VmRegistry) getAvailableAttributeValues(attr string) ([]float64, err
 func (e *Ec2VmRegistry) toEC2Attribute(attr string) (string, error) {
 	switch attr {
 	case Cpu:
-		return pi.Cpu, nil
+		return productinfo.Cpu, nil
 	case Memory:
-		return pi.Memory, nil
+		return productinfo.Memory, nil
 	}
 	return "", fmt.Errorf("unsupported attribute: %s", attr)
 }
