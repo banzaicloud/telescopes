@@ -48,7 +48,7 @@ func main() {
 	}
 	vmRegistries["ec2"] = ec2VmRegistry
 
-	engine, err := recommender.NewEngine(c, vmRegistries)
+	engine, err := recommender.NewEngine(vmRegistries)
 	if err != nil {
 		log.Fatal(err)
 	}

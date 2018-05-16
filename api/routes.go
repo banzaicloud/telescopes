@@ -3,12 +3,11 @@ package api
 import (
 	"fmt"
 	"net/http"
-	"strings"
 
 	"github.com/banzaicloud/cluster-recommender/recommender"
+	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
 	log "github.com/sirupsen/logrus"
-	"github.com/gin-contrib/cors"
 )
 
 type RouteHandler struct {
@@ -44,32 +43,12 @@ func (r *RouteHandler) ConfigureRoutes(router *gin.Engine) {
 	}
 	v1 := router.Group("/api/v1/")
 	{
-		v1.GET("/recommender/:provider/:region/vm", r.recommendInstanceTypes)
 		v1.POST("/recommender/:provider/:region/cluster", r.recommendClusterSetup)
 	}
 }
 
 func (r *RouteHandler) signalStatus(c *gin.Context) {
 	c.JSON(http.StatusOK, "ok")
-}
-
-func (r *RouteHandler) recommendInstanceTypes(c *gin.Context) {
-	log.Info("recommend spot instance types")
-	region := c.Param("region")
-	baseInstanceType := c.DefaultQuery("baseInstanceType", "m4.xlarge")
-	azsQuery := c.DefaultQuery("availabilityZones", "")
-	var azs []string
-	if azsQuery == "" {
-		azs = nil
-	} else {
-		azs = strings.Split(azsQuery, ",")
-	}
-	if response, err := r.Engine.RetrieveRecommendation(region, azs, baseInstanceType); err != nil {
-		// TODO: handle different error types
-		c.JSON(http.StatusInternalServerError, gin.H{"status": http.StatusInternalServerError, "message": fmt.Sprintf("%s", err)})
-	} else {
-		c.JSON(http.StatusOK, response)
-	}
 }
 
 func (r *RouteHandler) recommendClusterSetup(c *gin.Context) {

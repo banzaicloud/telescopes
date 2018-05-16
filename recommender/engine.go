@@ -5,9 +5,6 @@ import (
 	"fmt"
 	"math"
 	"sort"
-	"time"
-
-	"github.com/patrickmn/go-cache"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -17,48 +14,13 @@ const (
 )
 
 type Engine struct {
-	ReevaluationInterval time.Duration
-	Recommender          *Recommender
-	CachedInstanceTypes  []string
-	RecommendationStore  *cache.Cache
-	VmRegistries         map[string]VmRegistry
+	VmRegistries map[string]VmRegistry
 }
 
-func NewEngine(cache *cache.Cache, vmRegistries map[string]VmRegistry) (*Engine, error) {
-	recommender, err := NewRecommender()
-	if err != nil {
-		return nil, err
-	}
+func NewEngine(vmRegistries map[string]VmRegistry) (*Engine, error) {
 	return &Engine{
-		Recommender:         recommender,
-		RecommendationStore: cache,
-		VmRegistries:        vmRegistries,
+		VmRegistries: vmRegistries,
 	}, nil
-}
-
-func (e *Engine) RetrieveRecommendation(region string, requestedAZs []string, baseInstanceType string) (AZRecommendation, error) {
-	if rec, ok := e.RecommendationStore.Get(fmt.Sprintf("%s/%s", region, baseInstanceType)); ok {
-		log.Info("recommendation found in cache, filtering by az")
-		var recommendations AZRecommendation
-		if requestedAZs != nil {
-			recommendations = make(AZRecommendation)
-			for _, az := range requestedAZs {
-				recs := rec.(AZRecommendation)
-				recommendations[az] = recs[az]
-			}
-		} else {
-			recommendations = rec.(AZRecommendation)
-		}
-		return recommendations, nil
-	} else {
-		log.Info("recommendation not found in cache")
-		recommendation, err := e.Recommender.RecommendSpotInstanceTypes(region, requestedAZs, baseInstanceType)
-		if err != nil {
-			return nil, err
-		}
-		e.RecommendationStore.Set(fmt.Sprintf("%s/%s", region, baseInstanceType), recommendation, 30*time.Minute)
-		return recommendation, nil
-	}
 }
 
 type ClusterRecommendationReq struct {
