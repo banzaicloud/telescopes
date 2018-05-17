@@ -195,14 +195,14 @@ func TestGetAttrKey(t *testing.T) {
 		Attribute   string
 		ProductInfo ProductInfoer
 		Cache       *cache.Cache
-		Assert      func(cache *cache.Cache, values string)
+		Assert      func(values string)
 	}{
 		{
 			name:        "print attribute key",
 			Attribute:   Cpu,
 			ProductInfo: &DummyProductInfoer{},
 			Cache:       cache.New(5*time.Minute, 10*time.Minute),
-			Assert: func(cache *cache.Cache, values string) {
+			Assert: func(values string) {
 				assert.Equal(t, values, "/banzaicloud.com/recommender/ec2/attrValues/vcpu")
 			},
 		},
@@ -212,7 +212,7 @@ func TestGetAttrKey(t *testing.T) {
 		t.Run(test.name, func(t *testing.T) {
 			productInfo, _ := NewProductInfo(10*time.Second, test.Cache, test.ProductInfo)
 			values := productInfo.getAttrKey(test.Attribute)
-			test.Assert(test.Cache, values)
+			test.Assert(values)
 		})
 	}
 }
@@ -225,7 +225,7 @@ func TestGetVmKey(t *testing.T) {
 		attrValue   float64
 		ProductInfo ProductInfoer
 		Cache       *cache.Cache
-		Assert      func(cache *cache.Cache, values string)
+		Assert      func(values string)
 	}{
 		{
 			name:        "print vm key",
@@ -234,7 +234,7 @@ func TestGetVmKey(t *testing.T) {
 			attrValue:   float64(3),
 			ProductInfo: &DummyProductInfoer{},
 			Cache:       cache.New(5*time.Minute, 10*time.Minute),
-			Assert: func(cache *cache.Cache, values string) {
+			Assert: func(values string) {
 				assert.Equal(t, values, "/banzaicloud.com/recommender/ec2/testRegion/vms/vcpu/3.000000")
 			},
 		},
@@ -244,7 +244,7 @@ func TestGetVmKey(t *testing.T) {
 		t.Run(test.name, func(t *testing.T) {
 			productInfo, _ := NewProductInfo(10*time.Second, test.Cache, test.ProductInfo)
 			values := productInfo.getVmKey(test.region, test.attrKey, test.attrValue)
-			test.Assert(test.Cache, values)
+			test.Assert(values)
 		})
 	}
 }
@@ -255,7 +255,7 @@ func TestGetAttrValues(t *testing.T) {
 		ProductInfo ProductInfoer
 		Cache       *cache.Cache
 		Attribute   string
-		Assert      func(cache *cache.Cache, Attr AttrValues, err error)
+		Assert      func(Attr AttrValues, err error)
 	}{
 		{
 			name: "successful",
@@ -264,7 +264,7 @@ func TestGetAttrValues(t *testing.T) {
 			},
 			Cache:     cache.New(5*time.Minute, 10*time.Minute),
 			Attribute: Memory,
-			Assert: func(cache *cache.Cache, Attr AttrValues, err error) {
+			Assert: func(Attr AttrValues, err error) {
 				assert.Nil(t, err)
 				assert.NotNil(t, Attr)
 			},
@@ -276,7 +276,7 @@ func TestGetAttrValues(t *testing.T) {
 			},
 			Cache:     cache.New(5*time.Minute, 10*time.Minute),
 			Attribute: "error",
-			Assert: func(cache *cache.Cache, Attr AttrValues, err error) {
+			Assert: func(Attr AttrValues, err error) {
 				assert.NotNil(t, err)
 				assert.Nil(t, Attr)
 			},
@@ -287,7 +287,7 @@ func TestGetAttrValues(t *testing.T) {
 		t.Run(test.name, func(t *testing.T) {
 			productInfo, _ := NewProductInfo(10*time.Second, test.Cache, test.ProductInfo)
 			values, err := productInfo.getAttrValues(test.Attribute)
-			test.Assert(test.Cache, values, err)
+			test.Assert(values, err)
 		})
 	}
 }
@@ -299,7 +299,7 @@ func TestGetAttrValue(t *testing.T) {
 		AttrValue   float64
 		ProductInfo ProductInfoer
 		Cache       *cache.Cache
-		Assert      func(cache *cache.Cache, Attr *AttrValue, err error)
+		Assert      func(err error)
 	}{
 		{
 			name:      "could not find attribute value",
@@ -309,7 +309,7 @@ func TestGetAttrValue(t *testing.T) {
 			ProductInfo: &DummyProductInfoer{
 				AttrValues: AttrValues{AttrValue{Value: float64(21), StrValue: Cpu}},
 			},
-			Assert: func(cache *cache.Cache, Attr *AttrValue, err error) {
+			Assert: func(err error) {
 				assert.NotNil(t, err)
 			},
 		},
@@ -321,7 +321,7 @@ func TestGetAttrValue(t *testing.T) {
 			ProductInfo: &DummyProductInfoer{
 				AttrValues: AttrValues{AttrValue{Value: float64(21), StrValue: Cpu}},
 			},
-			Assert: func(cache *cache.Cache, Attr *AttrValue, err error) {
+			Assert: func(err error) {
 				assert.Nil(t, err)
 			},
 		},
@@ -333,7 +333,7 @@ func TestGetAttrValue(t *testing.T) {
 			ProductInfo: &DummyProductInfoer{
 				AttrValues: AttrValues{AttrValue{Value: float64(21), StrValue: Cpu}},
 			},
-			Assert: func(cache *cache.Cache, Attr *AttrValue, err error) {
+			Assert: func(err error) {
 				assert.NotNil(t, err)
 			},
 		},
@@ -342,26 +342,26 @@ func TestGetAttrValue(t *testing.T) {
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
 			productInfo, _ := NewProductInfo(10*time.Second, test.Cache, test.ProductInfo)
-			values, err := productInfo.getAttrValue(test.attrKey, test.AttrValue)
-			test.Assert(test.Cache, values, err)
+			_, err := productInfo.getAttrValue(test.attrKey, test.AttrValue)
+			test.Assert(err)
 		})
 	}
 }
 
-func TestGetAttrValues2(t *testing.T) {
+func Test_getAttrValues(t *testing.T) {
 	tests := []struct {
 		name        string
 		ProductInfo ProductInfoer
 		Cache       *cache.Cache
 		Attribute   string
-		Assert      func(cache *cache.Cache, float []float64, err error)
+		Assert      func(float []float64, err error)
 	}{
 		{
 			name:        "successful",
 			ProductInfo: &DummyProductInfoer{},
 			Cache:       cache.New(5*time.Minute, 10*time.Minute),
 			Attribute:   Memory,
-			Assert: func(cache *cache.Cache, float []float64, err error) {
+			Assert: func(float []float64, err error) {
 				assert.Nil(t, err)
 				assert.NotNil(t, float)
 			},
@@ -371,7 +371,7 @@ func TestGetAttrValues2(t *testing.T) {
 			ProductInfo: &DummyProductInfoer{},
 			Cache:       cache.New(5*time.Minute, 10*time.Minute),
 			Attribute:   "error",
-			Assert: func(cache *cache.Cache, float []float64, err error) {
+			Assert: func(float []float64, err error) {
 				assert.NotNil(t, err)
 				assert.Nil(t, float)
 			},
@@ -382,7 +382,7 @@ func TestGetAttrValues2(t *testing.T) {
 		t.Run(test.name, func(t *testing.T) {
 			productInfo, _ := NewProductInfo(10*time.Second, test.Cache, test.ProductInfo)
 			values, err := productInfo.GetAttrValues(test.Attribute)
-			test.Assert(test.Cache, values, err)
+			test.Assert(values, err)
 		})
 	}
 }
@@ -395,7 +395,7 @@ func TestGetVmsWithAttrValue(t *testing.T) {
 		value       float64
 		ProductInfo ProductInfoer
 		Cache       *cache.Cache
-		Assert      func(cache *cache.Cache, vms []Ec2Vm, err error)
+		Assert      func(vms []Ec2Vm, err error)
 	}{
 		{
 			name:     "successful",
@@ -407,7 +407,7 @@ func TestGetVmsWithAttrValue(t *testing.T) {
 				AttrValues: AttrValues{AttrValue{Value: float64(21), StrValue: Cpu}},
 			},
 			Cache: cache.New(5*time.Minute, 10*time.Minute),
-			Assert: func(cache *cache.Cache, vms []Ec2Vm, err error) {
+			Assert: func(vms []Ec2Vm, err error) {
 				assert.Nil(t, err)
 				assert.NotNil(t, vms)
 			},
@@ -422,7 +422,7 @@ func TestGetVmsWithAttrValue(t *testing.T) {
 				AttrValues: AttrValues{AttrValue{Value: float64(21), StrValue: Cpu}},
 			},
 			Cache: cache.New(5*time.Minute, 10*time.Minute),
-			Assert: func(cache *cache.Cache, vms []Ec2Vm, err error) {
+			Assert: func(vms []Ec2Vm, err error) {
 				assert.NotNil(t, err)
 				assert.Nil(t, vms)
 			},
@@ -437,7 +437,7 @@ func TestGetVmsWithAttrValue(t *testing.T) {
 				AttrValues: AttrValues{AttrValue{Value: float64(21), StrValue: Cpu}},
 			},
 			Cache: cache.New(5*time.Minute, 10*time.Minute),
-			Assert: func(cache *cache.Cache, vms []Ec2Vm, err error) {
+			Assert: func(vms []Ec2Vm, err error) {
 				assert.NotNil(t, err)
 				assert.Nil(t, vms)
 			},
@@ -448,7 +448,7 @@ func TestGetVmsWithAttrValue(t *testing.T) {
 		t.Run(test.name, func(t *testing.T) {
 			productInfo, _ := NewProductInfo(10*time.Second, test.Cache, test.ProductInfo)
 			values, err := productInfo.GetVmsWithAttrValue(test.regionId, test.attrKey, test.value)
-			test.Assert(test.Cache, values, err)
+			test.Assert(values, err)
 		})
 	}
 }
