@@ -10,6 +10,7 @@ import (
 )
 
 const (
+	// supported attributes
 	Memory = "memory"
 	Cpu    = "cpu"
 

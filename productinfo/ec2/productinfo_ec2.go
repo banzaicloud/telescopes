@@ -16,8 +16,6 @@ import (
 // Ec2Infoer encapsulates the data and operations needed to access external resources
 type Ec2Infoer struct {
 	session *session.Session
-	// embedded interface to ensure operations are implemented (todo research if this can be avoided)
-	productinfo.ProductInfoer
 }
 
 // NewAwsInfoer encapsulates the creation of a infoerapper instance
