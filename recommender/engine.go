@@ -12,7 +12,26 @@ import (
 const (
 	Memory = "memory"
 	Cpu    = "cpu"
+
+	// vm types
+	regular = "regular"
+	spot    = "spot"
 )
+
+// ClusterRecommender defines operations for cluster recommendations
+type ClusterRecommender interface {
+	// RecommendAttrValues recommends attributes based on the input
+	RecommendAttrValues(vmRegistry VmRegistry, attr string, req ClusterRecommendationReq) ([]float64, error)
+
+	// RecommendVms recommends a set of virtual machines based on the provided parameters
+	RecommendVms(vmRegistry VmRegistry, region string, attr string, values []float64, filters []vmFilter, req ClusterRecommendationReq) ([]VirtualMachine, error)
+
+	// RecommendNodePools recommends a slice of node pools to be part of the caluster being recommended
+	RecommendNodePools(attr string, vms []VirtualMachine, values []float64, req ClusterRecommendationReq) ([]NodePool, error)
+
+	// RecommendCluster recommends a cluster layout on the given cloud provider, region and wanted resources
+	RecommendCluster(provider string, region string, req ClusterRecommendationReq) (*ClusterRecommendationResp, error)
+}
 
 type Engine struct {
 	VmRegistries map[string]VmRegistry
@@ -141,153 +160,69 @@ func (a ByAvgPricePerMemory) Less(i, j int) bool {
 }
 
 func (e *Engine) RecommendCluster(provider string, region string, req ClusterRecommendationReq) (*ClusterRecommendationResp, error) {
+
 	log.Infof("recommending cluster configuration")
+
 	attributes := []string{Cpu, Memory}
 	nodePools := make(map[string][]NodePool, 2)
+
+	vmRegistry := e.VmRegistries[provider]
 	for _, attr := range attributes {
-		var sum float64
-		var vmFilters []vmFilter
-		switch attr {
-		case Memory:
-			sum = req.SumMem
-			vmFilters = []vmFilter{e.minCpuRatioFilter}
-		case Cpu:
-			sum = req.SumCpu
-			vmFilters = []vmFilter{e.minMemRatioFilter}
-		default:
-			return nil, fmt.Errorf("unsupported attribute: %s", attr)
-		}
 
-		maxValuePerVm := sum / float64(req.MinNodes)
-		minValuePerVm := sum / float64(req.MaxNodes)
-
-		vmRegistry := e.VmRegistries[provider]
-
-		allValues, err := vmRegistry.getAvailableAttributeValues(attr)
+		values, err := e.RecommendAttrValues(vmRegistry, attr, req)
 		if err != nil {
-			return nil, err
+			return nil, fmt.Errorf("could not get values for attr: [%s], cause: [%s]", attr, err.Error())
 		}
 
-		values, err := e.findValuesBetween(allValues, minValuePerVm, maxValuePerVm)
+		vmFilters, err := e.filtersForAttr(attr)
 		if err != nil {
-			return nil, err
+			return nil, fmt.Errorf("could not get filters for attr: [%s], cause: [%s]", attr, err.Error())
 		}
 
-		vmsInRange, err := vmRegistry.findVmsWithAttrValues(region, req.Zones, attr, values)
+		filteredVms, err := e.RecommendVms(vmRegistry, region, attr, values, vmFilters, req)
 		if err != nil {
-			return nil, err
+			return nil, fmt.Errorf("could not get virtual machines for attr: [%s], cause: [%s]", attr, err.Error())
 		}
 
-		var filteredVms []VirtualMachine
-
-		for _, vm := range vmsInRange {
-			for _, filter := range vmFilters {
-				if filter(vm, req) {
-					filteredVms = append(filteredVms, vm)
-				}
-			}
+		nps, err := e.RecommendNodePools(attr, filteredVms, values, req)
+		if err != nil {
+			return nil, fmt.Errorf("error while recommending node pools for attr: [%s], cause: [%s]", attr, err.Error())
 		}
 
-		if len(filteredVms) == 0 {
-			return nil, errors.New("couldn't find any VMs to recommend")
-		}
-
-		var nps []NodePool
-
-		// find cheapest onDemand instance from the list - based on pricePer attribute
-		selectedOnDemand := filteredVms[0]
-		for _, vm := range filteredVms {
-			if vm.OnDemandPrice/vm.getAttrValue(attr) < selectedOnDemand.OnDemandPrice/selectedOnDemand.getAttrValue(attr) {
-				selectedOnDemand = vm
-			}
-		}
-
-		var sumOnDemandValue = sum * float64(req.OnDemandPct) / 100
-		var sumSpotValue = sum - sumOnDemandValue
-
-		// create and append on-demand pool
-		onDemandPool := NodePool{
-			SumNodes: int(math.Ceil(sumOnDemandValue / selectedOnDemand.getAttrValue(attr))),
-			VmClass:  "regular",
-			VmType:   selectedOnDemand,
-		}
-
-		nps = append(nps, onDemandPool)
-
-		// sort and cut
-		switch attr {
-		case Memory:
-			sort.Sort(ByAvgPricePerMemory(filteredVms))
-		case Cpu:
-			sort.Sort(ByAvgPricePerCpu(filteredVms))
-		default:
-			return nil, fmt.Errorf("unsupported attribute: %s", attr)
-		}
-
-		N := int(math.Min(float64(findN(values, sum)), float64(len(filteredVms))))
-		M := int(math.Min(math.Ceil(float64(N)*1.5), float64(len(filteredVms))))
-
-		recommendedVms := filteredVms[:M]
-
-		// create spot nodepools
-		for _, vm := range recommendedVms {
-			nps = append(nps, NodePool{
-				SumNodes: 0,
-				VmClass:  "spot",
-				VmType:   vm,
-			})
-		}
-
-		// fill up instances in spot pools
-		i := 0
-		var sumValueInPools float64 = 0
-		for sumValueInPools < sumSpotValue {
-			nodePoolIdx := i%N + 1
-			if nodePoolIdx == 1 {
-				// always add a new instance to the cheapest option and move on
-				nps[nodePoolIdx].SumNodes += 1
-				sumValueInPools += nps[nodePoolIdx].VmType.getAttrValue(attr)
-				i++
-			} else if float64(nps[nodePoolIdx].SumNodes+1)*nps[nodePoolIdx].VmType.getAttrValue(attr) > float64(nps[1].SumNodes)*nps[1].VmType.getAttrValue(attr) {
-				// for other pools, if adding another vm would exceed the current sum of the cheapest option, move on to the next one
-				i++
-			} else {
-				// otherwise add a new one, but do not move on to the next one
-				nps[nodePoolIdx].SumNodes += 1
-				sumValueInPools += nps[nodePoolIdx].VmType.getAttrValue(attr)
-			}
-		}
-		log.Infof("recommeded node pools by %s: %#v", attr, nps)
 		nodePools[attr] = nps
 	}
+
+	cheapestNodePoolSet := e.findCheapestNodePoolSet(nodePools)
 
 	return &ClusterRecommendationResp{
 		Provider:  "aws",
 		Zones:     req.Zones,
-		NodePools: e.findCheapestNodePoolSet(nodePools),
+		NodePools: cheapestNodePoolSet,
 	}, nil
 }
 
+// findCheapestNodePoolSet looks up the "cheapest" nodepoolset
 func (e *Engine) findCheapestNodePoolSet(nodePoolSets map[string][]NodePool) []NodePool {
 	var cheapestNpSet []NodePool
 	var bestPrice float64
 	for attr, nodePools := range nodePoolSets {
+
 		var sumPrice float64
 		var sumCpus float64
 		var sumMem float64
+
 		for _, np := range nodePools {
-			if np.VmClass == "regular" {
-				sumPrice += float64(np.SumNodes) * np.VmType.OnDemandPrice
-			} else {
-				sumPrice += float64(np.SumNodes) * np.VmType.AvgPrice
-			}
-			sumCpus += float64(np.SumNodes) * np.VmType.Cpus
-			sumMem += float64(np.SumNodes) * np.VmType.Mem
+			sumPrice += np.poolPrice()
+			sumCpus += np.getSum(Cpu)
+			sumMem += np.getSum(Memory)
 		}
 		log.Debugf("sum cpus [%s]: %v", attr, sumCpus)
 		log.Debugf("sum mem [%s]: %v", attr, sumMem)
 		log.Debugf("sum price [%s]: %v", attr, sumPrice)
+
 		if bestPrice == 0 || bestPrice > sumPrice {
+			log.Debugf("cheaper nodepoolset is found. price: [%f]", sumPrice)
+			bestPrice = sumPrice
 			cheapestNpSet = nodePools
 		}
 	}
@@ -296,15 +231,19 @@ func (e *Engine) findCheapestNodePoolSet(nodePoolSets map[string][]NodePool) []N
 
 func (e *Engine) findValuesBetween(attrValues []float64, min float64, max float64) ([]float64, error) {
 	log.Debugf("finding values between: [%v, %v]", min, max)
-	sort.Float64s(attrValues)
+
 	if min > max {
 		return nil, errors.New("min value cannot be larger than the max value")
 	}
 
+	sort.Float64s(attrValues)
+
 	if max < attrValues[0] {
 		log.Debug("returning smallest value: %v", attrValues[0])
 		return []float64{attrValues[0]}, nil
-	} else if min > attrValues[len(attrValues)-1] {
+	}
+
+	if min > attrValues[len(attrValues)-1] {
 		log.Debugf("returning largest value: %v", attrValues[len(attrValues)-1])
 		return []float64{attrValues[len(attrValues)-1]}, nil
 	}
@@ -323,15 +262,22 @@ func (e *Engine) findValuesBetween(attrValues []float64, min float64, max float6
 	return values, nil
 }
 
+// avgNodeCount calculates the "average" node count based on the average attribute value and the sum
 func avgNodeCount(values []float64, sum float64) int {
 	var total float64
+
+	// calculate the total value of the attributes
 	for _, v := range values {
 		total += v
 	}
+	// the average attribute value
 	avgValue := total / float64(len(values))
+
+	// the (rounded up) number of nodes with average attribute value that are needed to reach the "sum"
 	return int(math.Ceil(sum / avgValue))
 }
 
+// findN returns the number of nodes required
 func findN(values []float64, sum float64) int {
 	avg := avgNodeCount(values, sum)
 	var N int
@@ -350,4 +296,228 @@ func findN(values []float64, sum float64) int {
 		N = 8
 	}
 	return N
+}
+
+// RecommendVms selects a slice of VirtualMachines for the given attribute and requirements in the request
+func (e *Engine) RecommendVms(vmRegistry VmRegistry, region string, attr string, values []float64, filters []vmFilter, req ClusterRecommendationReq) ([]VirtualMachine, error) {
+	log.Infof("recommending virtual machines for attribute: [%s]", attr)
+
+	vmsInRange, err := vmRegistry.findVmsWithAttrValues(region, req.Zones, attr, values)
+	if err != nil {
+		return nil, err
+	}
+
+	var filteredVms []VirtualMachine
+
+	for _, vm := range vmsInRange {
+		if e.filtersApply(vm, filters, req) {
+			filteredVms = append(filteredVms, vm)
+		}
+	}
+
+	if len(filteredVms) == 0 {
+		return nil, errors.New("couldn't find any VMs to recommend")
+	}
+
+	return filteredVms, nil
+}
+
+// filtersApply returns true if all the filters apply for the given vm
+func (e *Engine) filtersApply(vm VirtualMachine, filters []vmFilter, req ClusterRecommendationReq) bool {
+	var applies = false
+
+	for _, filter := range filters {
+		applies = filter(vm, req)
+	}
+
+	return applies
+}
+
+func (e *Engine) RecommendAttrValues(vmRegistry VmRegistry, attr string, req ClusterRecommendationReq) ([]float64, error) {
+
+	allValues, err := vmRegistry.getAvailableAttributeValues(attr)
+	if err != nil {
+		return nil, err
+	}
+
+	minValuePerVm, err := req.minValuePerVm(attr)
+	if err != nil {
+		return nil, err
+	}
+
+	maxValuePerVm, err := req.maxValuePerVm(attr)
+	if err != nil {
+		return nil, err
+	}
+
+	values, err := e.findValuesBetween(allValues, minValuePerVm, maxValuePerVm)
+	if err != nil {
+		return nil, err
+	}
+
+	return values, nil
+}
+
+// filtersForAttr returns the slice for
+func (e *Engine) filtersForAttr(attr string) ([]vmFilter, error) {
+	switch attr {
+	case Cpu:
+		return []vmFilter{e.minCpuRatioFilter}, nil
+	case Memory:
+		return []vmFilter{e.minMemRatioFilter}, nil
+	default:
+		return nil, fmt.Errorf("unsupported attribute: [%s]", attr)
+	}
+}
+
+// filtersForAttr returns the slice for
+func (e *Engine) sortByAttrValue(attr string, vms []VirtualMachine) error {
+	// sort and cut
+	switch attr {
+	case Memory:
+		sort.Sort(ByAvgPricePerMemory(vms))
+	case Cpu:
+		sort.Sort(ByAvgPricePerCpu(vms))
+	default:
+		return fmt.Errorf("unsupported attribute: [%s]", attr)
+	}
+	return nil
+}
+
+func (e *Engine) RecommendNodePools(attr string, vms []VirtualMachine, values []float64, req ClusterRecommendationReq) ([]NodePool, error) {
+
+	var nps []NodePool
+
+	// find cheapest onDemand instance from the list - based on pricePer attribute
+	selectedOnDemand := vms[0]
+	for _, vm := range vms {
+		if vm.OnDemandPrice/vm.getAttrValue(attr) < selectedOnDemand.OnDemandPrice/selectedOnDemand.getAttrValue(attr) {
+			selectedOnDemand = vm
+		}
+	}
+
+	sum, err := req.sum(attr)
+	if err != nil {
+		return nil, fmt.Errorf("could not get sum for attr: [%s], cause: [%s]", attr, err.Error())
+	}
+
+	var sumOnDemandValue = sum * float64(req.OnDemandPct) / 100
+	var sumSpotValue = sum - sumOnDemandValue
+
+	// create and append on-demand pool
+	onDemandPool := NodePool{
+		SumNodes: int(math.Ceil(sumOnDemandValue / selectedOnDemand.getAttrValue(attr))),
+		VmClass:  regular,
+		VmType:   selectedOnDemand,
+	}
+
+	nps = append(nps, onDemandPool)
+
+	// vms are sorted by attribute value
+	err = e.sortByAttrValue(attr, vms)
+
+	// the "magic" number of machines for diversifying the types
+	N := int(math.Min(float64(findN(values, sum)), float64(len(vms))))
+
+	// the second "magic" number for diversifying the layout
+	M := int(math.Min(math.Ceil(float64(N)*1.5), float64(len(vms))))
+
+	// the first M vm-s
+	recommendedVms := vms[:M]
+
+	// create spot nodepools - one for the first M vm-s
+	for _, vm := range recommendedVms {
+		nps = append(nps, NodePool{
+			SumNodes: 0,
+			VmClass:  spot,
+			VmType:   vm,
+		})
+	}
+
+	// fill up instances in spot pools
+	i := 0
+	var sumValueInPools float64 = 0
+	for sumValueInPools < sumSpotValue {
+		nodePoolIdx := i%N + 1
+		if nodePoolIdx == 1 {
+			// always add a new instance to the cheapest option and move on
+			nps[nodePoolIdx].SumNodes += 1
+			sumValueInPools += nps[nodePoolIdx].VmType.getAttrValue(attr)
+			i++
+		} else if nps[nodePoolIdx].getNextSum(attr) > nps[1].getSum(attr) {
+			// for other pools, if adding another vm would exceed the current sum of the cheapest option, move on to the next one
+			i++
+		} else {
+			// otherwise add a new one, but do not move on to the next one
+			nps[nodePoolIdx].SumNodes += 1
+			sumValueInPools += nps[nodePoolIdx].VmType.getAttrValue(attr)
+		}
+	}
+	log.Infof("recommeded node pools by %s: %#v", attr, nps)
+
+	return nps, nil
+}
+
+// maxValuePerVm calculates the maximum value per node for the given attribute
+func (req *ClusterRecommendationReq) maxValuePerVm(attr string) (float64, error) {
+	switch attr {
+	case Cpu:
+		return req.SumCpu / float64(req.MinNodes), nil
+	case Memory:
+		return req.SumMem / float64(req.MinNodes), nil
+	default:
+		return 0, fmt.Errorf("unsupported attribute: [%s]", attr)
+	}
+}
+
+// minValuePerVm calculates the minimum value per node for the given attribute
+func (req *ClusterRecommendationReq) minValuePerVm(attr string) (float64, error) {
+	switch attr {
+	case Cpu:
+		return req.SumCpu / float64(req.MaxNodes), nil
+	case Memory:
+		return req.SumMem / float64(req.MaxNodes), nil
+	default:
+		return 0, fmt.Errorf("unsupported attribute: [%s]", attr)
+	}
+}
+
+// gets the requested sum for the attribute value
+func (req *ClusterRecommendationReq) sum(attr string) (float64, error) {
+	switch attr {
+	case Cpu:
+		return req.SumCpu, nil
+	case Memory:
+		return req.SumMem, nil
+	default:
+		return 0, fmt.Errorf("unsupported attribute: [%s]", attr)
+	}
+}
+
+// getSum gets the total value for the given attribute per pool
+func (n *NodePool) getSum(attr string) float64 {
+	return float64(n.SumNodes) * n.VmType.getAttrValue(attr)
+}
+
+// getSum gets the total value if the pool was increased by one
+func (n *NodePool) getNextSum(attr string) float64 {
+	return n.getSum(attr) + n.VmType.getAttrValue(attr);
+}
+
+// getSum gets the total value if the pool was increased by one
+func (n *NodePool) addNode(attr string) float64 {
+	n.SumNodes += 1
+	return n.getSum(attr) + n.VmType.getAttrValue(attr);
+}
+
+// poolPrice calculates the price of the pool
+func (n *NodePool) poolPrice() float64 {
+	var sum = float64(0)
+	switch n.VmClass {
+	case regular:
+		sum = float64(n.SumNodes) * n.VmType.OnDemandPrice
+	case spot:
+		sum = float64(n.SumNodes) * n.VmType.AvgPrice
+	}
+	return sum;
 }
