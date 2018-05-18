@@ -23,7 +23,7 @@ type DummyProductInfoer struct {
 // GetAttributeValues mocks the call for attribute values
 func (dpi *DummyProductInfoer) GetAttributeValues(attribute string) (AttrValues, error) {
 	if attribute == "error" {
-		return nil, fmt.Errorf("error")
+		return nil, fmt.Errorf("attribute value error")
 	}
 	return dpi.AttrValues, nil
 }
@@ -115,8 +115,8 @@ func TestRenewAttributeValues(t *testing.T) {
 			Cache:     cache.New(5*time.Minute, 10*time.Minute),
 			Attribute: "error",
 			Assert: func(cache *cache.Cache, values AttrValues, err error) {
-				assert.NotNil(t, err)
-				assert.Nil(t, values)
+				assert.NotNil(t, err, "should receive attribute error")
+				assert.Nil(t, values, "no values expected")
 			},
 		},
 	}
@@ -163,7 +163,7 @@ func TestRenewVmsWithAttr(t *testing.T) {
 			},
 		},
 		{
-			name:      "error",
+			name:      "region id error",
 			regionId:  "errorRegion",
 			attrKey:   Cpu,
 			attrValue: AttrValue{Value: float64(2), StrValue: Cpu},
@@ -173,8 +173,8 @@ func TestRenewVmsWithAttr(t *testing.T) {
 			},
 			Cache: cache.New(5*time.Minute, 10*time.Minute),
 			Assert: func(cache *cache.Cache, vms []Ec2Vm, err error) {
-				assert.NotNil(t, err)
-				assert.Nil(t, vms)
+				assert.NotNil(t, err, "should receive error")
+				assert.Nil(t, vms, "no vms expected")
 
 			},
 		},
@@ -265,8 +265,8 @@ func TestGetAttrValues(t *testing.T) {
 			Cache:     cache.New(5*time.Minute, 10*time.Minute),
 			Attribute: Memory,
 			Assert: func(Attr AttrValues, err error) {
-				assert.Nil(t, err)
-				assert.NotNil(t, Attr)
+				assert.Nil(t, err, "the returned error must be nil")
+				assert.NotNil(t, Attr, "the retrieved AttrValues shouldn't be nil")
 			},
 		},
 		{
@@ -277,8 +277,8 @@ func TestGetAttrValues(t *testing.T) {
 			Cache:     cache.New(5*time.Minute, 10*time.Minute),
 			Attribute: "error",
 			Assert: func(Attr AttrValues, err error) {
-				assert.NotNil(t, err)
-				assert.Nil(t, Attr)
+				assert.NotNil(t, err, "should receive attribute error")
+				assert.Nil(t, Attr, "no attribute values expected")
 			},
 		},
 	}
@@ -310,7 +310,7 @@ func TestGetAttrValue(t *testing.T) {
 				AttrValues: AttrValues{AttrValue{Value: float64(21), StrValue: Cpu}},
 			},
 			Assert: func(err error) {
-				assert.NotNil(t, err)
+				assert.NotNil(t, err, "could not find attribute value")
 			},
 		},
 		{
@@ -322,7 +322,7 @@ func TestGetAttrValue(t *testing.T) {
 				AttrValues: AttrValues{AttrValue{Value: float64(21), StrValue: Cpu}},
 			},
 			Assert: func(err error) {
-				assert.Nil(t, err)
+				assert.Nil(t, err, "the returned error must be nil")
 			},
 		},
 		{
@@ -334,7 +334,7 @@ func TestGetAttrValue(t *testing.T) {
 				AttrValues: AttrValues{AttrValue{Value: float64(21), StrValue: Cpu}},
 			},
 			Assert: func(err error) {
-				assert.NotNil(t, err)
+				assert.NotNil(t, err, "should receive attribute error")
 			},
 		},
 	}
@@ -362,8 +362,8 @@ func Test_getAttrValues(t *testing.T) {
 			Cache:       cache.New(5*time.Minute, 10*time.Minute),
 			Attribute:   Memory,
 			Assert: func(float []float64, err error) {
-				assert.Nil(t, err)
-				assert.NotNil(t, float)
+				assert.Nil(t, err, "the returned error must be nil")
+				assert.NotNil(t, float, "the retrieved values shouldn't be nil")
 			},
 		},
 		{
@@ -372,8 +372,8 @@ func Test_getAttrValues(t *testing.T) {
 			Cache:       cache.New(5*time.Minute, 10*time.Minute),
 			Attribute:   "error",
 			Assert: func(float []float64, err error) {
-				assert.NotNil(t, err)
-				assert.Nil(t, float)
+				assert.NotNil(t, err, "should receive attribute error")
+				assert.Nil(t, float, "the retrieved values should be nil")
 			},
 		},
 	}
@@ -408,8 +408,8 @@ func TestGetVmsWithAttrValue(t *testing.T) {
 			},
 			Cache: cache.New(5*time.Minute, 10*time.Minute),
 			Assert: func(vms []Ec2Vm, err error) {
-				assert.Nil(t, err)
-				assert.NotNil(t, vms)
+				assert.Nil(t, err, "the returned error must be nil")
+				assert.NotNil(t, vms, "the retrieved values should not be nil")
 			},
 		},
 		{
@@ -423,8 +423,8 @@ func TestGetVmsWithAttrValue(t *testing.T) {
 			},
 			Cache: cache.New(5*time.Minute, 10*time.Minute),
 			Assert: func(vms []Ec2Vm, err error) {
-				assert.NotNil(t, err)
-				assert.Nil(t, vms)
+				assert.NotNil(t, err, "should receive error")
+				assert.Nil(t, vms, "the retrieved values should be nil")
 			},
 		},
 		{
@@ -438,8 +438,8 @@ func TestGetVmsWithAttrValue(t *testing.T) {
 			},
 			Cache: cache.New(5*time.Minute, 10*time.Minute),
 			Assert: func(vms []Ec2Vm, err error) {
-				assert.NotNil(t, err)
-				assert.Nil(t, vms)
+				assert.NotNil(t, err, "should receive attribute error")
+				assert.Nil(t, vms, "the retrieved values should be nil")
 			},
 		},
 	}
