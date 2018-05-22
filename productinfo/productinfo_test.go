@@ -299,7 +299,7 @@ func TestGetAttrValue(t *testing.T) {
 		AttrValue   float64
 		ProductInfo ProductInfoer
 		Cache       *cache.Cache
-		Assert      func(err error)
+		Assert      func(Attr *AttrValue, err error)
 	}{
 		{
 			name:      "could not find attribute value",
@@ -309,8 +309,9 @@ func TestGetAttrValue(t *testing.T) {
 			ProductInfo: &DummyProductInfoer{
 				AttrValues: AttrValues{AttrValue{Value: float64(21), StrValue: Cpu}},
 			},
-			Assert: func(err error) {
+			Assert: func(Attr *AttrValue, err error) {
 				assert.NotNil(t, err, "could not find attribute value")
+				assert.Nil(t, Attr, "the retrieved values should be nil")
 			},
 		},
 		{
@@ -321,8 +322,9 @@ func TestGetAttrValue(t *testing.T) {
 			ProductInfo: &DummyProductInfoer{
 				AttrValues: AttrValues{AttrValue{Value: float64(21), StrValue: Cpu}},
 			},
-			Assert: func(err error) {
+			Assert: func(Attr *AttrValue, err error) {
 				assert.Nil(t, err, "the returned error must be nil")
+				assert.Equal(t, Attr, &AttrValue{StrValue:Cpu, Value:float64(21)})
 			},
 		},
 		{
@@ -333,8 +335,9 @@ func TestGetAttrValue(t *testing.T) {
 			ProductInfo: &DummyProductInfoer{
 				AttrValues: AttrValues{AttrValue{Value: float64(21), StrValue: Cpu}},
 			},
-			Assert: func(err error) {
+			Assert: func(Attr *AttrValue, err error) {
 				assert.NotNil(t, err, "should receive attribute error")
+				assert.Nil(t, Attr, "the retrieved values should be nil")
 			},
 		},
 	}
@@ -342,8 +345,8 @@ func TestGetAttrValue(t *testing.T) {
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
 			productInfo, _ := NewProductInfo(10*time.Second, test.Cache, test.ProductInfo)
-			_, err := productInfo.getAttrValue(test.attrKey, test.AttrValue)
-			test.Assert(err)
+			value, err := productInfo.getAttrValue(test.attrKey, test.AttrValue)
+			test.Assert(value, err)
 		})
 	}
 }
