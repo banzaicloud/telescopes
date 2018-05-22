@@ -500,7 +500,7 @@ func (n *NodePool) getSum(attr string) float64 {
 	return float64(n.SumNodes) * n.VmType.getAttrValue(attr)
 }
 
-// getSum gets the total value if the pool was increased by one
+// getNextSum gets the total value if the pool was increased by one
 func (n *NodePool) getNextSum(attr string) float64 {
 	return n.getSum(attr) + n.VmType.getAttrValue(attr);
 }
