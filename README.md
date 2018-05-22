@@ -29,6 +29,8 @@ Usage of ./cluster-recommender:
  
 ## API calls
 
+*For a complete OpenAPI 3.0 documentation, check out this [URL](https://editor.swagger.io/?url=https://raw.githubusercontent.com/banzaicloud/cluster-recommender/master/docs/openapi/recommender.yaml).*
+
 #### `POST: api/v1/recommender/:provider/:region/cluster`
 
 This endpoint returns a recommended cluster layout on a specific provider in a specific region, that contains on-demand and spot priced node pools.
