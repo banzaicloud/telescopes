@@ -231,12 +231,16 @@ func (e *Engine) findCheapestNodePoolSet(nodePoolSets map[string][]NodePool) []N
 }
 
 func (e *Engine) findValuesBetween(attrValues []float64, min float64, max float64) ([]float64, error) {
-	log.Debugf("finding values between: [%v, %v]", min, max)
+	if len(attrValues) == 0 {
+		return nil, errors.New("no attribute values provided")
+	}
 
 	if min > max {
 		return nil, errors.New("min value cannot be larger than the max value")
 	}
 
+	log.Debugf("finding values between: [%v, %v]", min, max)
+	// sort attribute values in ascending order
 	sort.Float64s(attrValues)
 
 	if max < attrValues[0] {
@@ -250,15 +254,12 @@ func (e *Engine) findValuesBetween(attrValues []float64, min float64, max float6
 	}
 
 	var values []float64
-
-	for i := 0; i < len(attrValues); i++ {
-		if attrValues[i] >= min && attrValues[i] <= max {
+	for i, attrVal := range attrValues {
+		if attrVal >= min && attrVal <= max {
 			values = append(values, attrValues[i])
-		} else if attrValues[i] > max && len(values) < 1 {
-			log.Debugf("couldn't find values between min and max, returning nearest values: [%v, %v]", attrValues[i-1], attrValues[i])
-			return []float64{attrValues[i-1], attrValues[i]}, nil
 		}
 	}
+
 	log.Debugf("returning values: %v", values)
 	return values, nil
 }

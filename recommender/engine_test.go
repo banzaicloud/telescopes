@@ -44,34 +44,197 @@ func TestNewEngine(t *testing.T) {
 }
 
 func TestEngine_RecommendCluster(t *testing.T) {
-	//tests := []struct {
-	//	name         string
-	//	vmRegistries map[string]VmRegistry
-	//	request      ClusterRecommendationReq
-	//	provider     string
-	//	region       string
-	//	check        func(response *ClusterRecommendationResp, err error)
-	//}{
-	//	{
-	//		name:         "cluster recommendation success",
-	//		vmRegistries: map[string]VmRegistry{"ec2": dummyVmRegistry{}},
-	//		request:      ClusterRecommendationReq{},
-	//		provider:     "ec2",
-	//		region:       "us",
-	//
-	//		check: func(response *ClusterRecommendationResp, err error) {
-	//			assert.Nil(t, err, "should not get error when recommending")
-	//
-	//		},
-	//	},
-	//}
-	//for _, test := range tests {
-	//	t.Run(test.name, func(t *testing.T) {
-	//		engine, err := NewEngine(test.vmRegistries)
-	//		assert.Nil(t, err, "the engine couldn't be created")
-	//
-	//		test.check(engine.RecommendCluster(test.provider, test.region, test.request))
-	//
-	//	})
-	//}
+	tests := []struct {
+		name         string
+		vmRegistries map[string]VmRegistry
+		request      ClusterRecommendationReq
+		provider     string
+		region       string
+		check        func(response *ClusterRecommendationResp, err error)
+	}{
+		{
+			name:         "cluster recommendation success",
+			vmRegistries: map[string]VmRegistry{"ec2": dummyVmRegistry{}},
+			request:      ClusterRecommendationReq{},
+			provider:     "ec2",
+			region:       "us",
+
+			check: func(response *ClusterRecommendationResp, err error) {
+				assert.Nil(t, err, "should not get error when recommending")
+
+			},
+		},
+	}
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			engine, err := NewEngine(test.vmRegistries)
+			assert.Nil(t, err, "the engine couldn't be created")
+
+			test.check(engine.RecommendCluster(test.provider, test.region, test.request))
+
+		})
+	}
+}
+
+// utility VmRegistry for mocking purposes
+type DummyVmRegistry struct {
+	// test case id to drive the behaviour
+	TcId int
+}
+
+func (dvmr DummyVmRegistry) getAvailableAttributeValues(attr string) ([]float64, error) {
+	switch dvmr.TcId {
+	case 1:
+		// 3 values between 10 - 20
+		return []float64{12, 13, 14}, nil
+	case 2:
+		// 2 values between 10 - 20
+		return []float64{8, 13, 14, 6}, nil
+	case 3:
+		// no values between 10-20, return the closest value
+		return []float64{30, 40, 50, 60}, nil
+	case 4:
+		// no values between 10-20, return the closest value
+		return []float64{1, 2, 3, 5, 9}, nil
+	case 5:
+		// error, min > max
+		return []float64{1}, nil
+
+	}
+
+	return nil, nil
+}
+
+func (dvmr DummyVmRegistry) findVmsWithAttrValues(region string, zones []string, attr string, values []float64) ([]VirtualMachine, error) {
+	return nil, nil
+}
+
+func TestEngine_RecommendAttrValues(t *testing.T) {
+
+	tests := []struct {
+		name         string
+		vmRegistries map[string]VmRegistry
+		request      ClusterRecommendationReq
+		provider     string
+		attribute    string
+		check        func([]float64, error)
+	}{
+		{
+			name:         "all attributes between limits",
+			vmRegistries: map[string]VmRegistry{"ec2": DummyVmRegistry{TcId: 1}},
+			request: ClusterRecommendationReq{
+				MinNodes: 5,
+				MaxNodes: 10,
+				SumMem:   100,
+				SumCpu:   100,
+			},
+			provider:  "ec2",
+			attribute: Cpu,
+
+			check: func(values []float64, err error) {
+				assert.Nil(t, err, "should not get error when recommending attributes")
+				assert.Equal(t, 3, len(values), "recommended number of values is not as expected")
+
+			},
+		},
+		{
+			name:         "attributes out of limits not recommended",
+			vmRegistries: map[string]VmRegistry{"ec2": DummyVmRegistry{TcId: 2}},
+			request: ClusterRecommendationReq{
+				MinNodes: 5,
+				MaxNodes: 10,
+				SumMem:   100,
+				SumCpu:   100,
+			},
+			provider:  "ec2",
+			attribute: Cpu,
+
+			check: func(values []float64, err error) {
+				assert.Nil(t, err, "should not get error when recommending attributes")
+				assert.Equal(t, 2, len(values), "recommended number of values is not as expected")
+
+			},
+		},
+		{
+			name:         "no values between limits found - smallest value returned",
+			vmRegistries: map[string]VmRegistry{"ec2": DummyVmRegistry{TcId: 3}},
+			request: ClusterRecommendationReq{
+				MinNodes: 5,
+				MaxNodes: 10,
+				SumMem:   100,
+				SumCpu:   100,
+			},
+			provider:  "ec2",
+			attribute: Cpu,
+
+			check: func(values []float64, err error) {
+				assert.Nil(t, err, "should not get error when recommending attributes")
+				assert.Equal(t, 1, len(values), "recommended number of values is not as expected")
+				assert.Equal(t, float64(30), values[0], "recommended number of values is not as expected")
+
+			},
+		},
+		{
+			name:         "no values between limits found - largest value returned",
+			vmRegistries: map[string]VmRegistry{"ec2": DummyVmRegistry{TcId: 4}},
+			request: ClusterRecommendationReq{
+				MinNodes: 5,
+				MaxNodes: 10,
+				SumMem:   100,
+				SumCpu:   100,
+			},
+			provider:  "ec2",
+			attribute: Cpu,
+
+			check: func(values []float64, err error) {
+				assert.Nil(t, err, "should not get error when recommending attributes")
+				assert.Equal(t, 1, len(values), "recommended number of values is not as expected")
+				assert.Equal(t, float64(9), values[0], "recommended number of values is not as expected")
+
+			},
+		},
+		{
+			name:         "error - min larger than max",
+			vmRegistries: map[string]VmRegistry{"ec2": DummyVmRegistry{TcId: 5}},
+			request: ClusterRecommendationReq{
+				MinNodes: 10,
+				MaxNodes: 5,
+				SumMem:   100,
+				SumCpu:   100,
+			},
+			provider:  "ec2",
+			attribute: Cpu,
+
+			check: func(values []float64, err error) {
+				assert.Equal(t, err.Error(), "min value cannot be larger than the max value")
+
+			},
+		},
+		{
+			name:         "error - no values provided",
+			vmRegistries: map[string]VmRegistry{"ec2": DummyVmRegistry{TcId: 6}},
+			request: ClusterRecommendationReq{
+				MinNodes: 10,
+				MaxNodes: 10,
+				SumMem:   100,
+				SumCpu:   100,
+			},
+			provider:  "ec2",
+			attribute: Cpu,
+
+			check: func(values []float64, err error) {
+				assert.Equal(t, err.Error(), "no attribute values provided")
+
+			},
+		},
+	}
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			engine, err := NewEngine(test.vmRegistries)
+			assert.Nil(t, err, "the engine couldn't be created")
+
+			test.check(engine.RecommendAttrValues(engine.VmRegistries["ec2"].(VmRegistry), test.attribute, test.request))
+
+		})
+	}
 }
