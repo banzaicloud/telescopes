@@ -266,7 +266,7 @@ func TestGetAttrValues(t *testing.T) {
 			Attribute: Memory,
 			Assert: func(Attr AttrValues, err error) {
 				assert.Nil(t, err, "the returned error must be nil")
-				assert.NotNil(t, Attr, "the retrieved AttrValues shouldn't be nil")
+				assert.Equal(t, Attr, AttrValues{AttrValue{StrValue:"vcpu", Value:21}})
 			},
 		},
 		{
@@ -363,7 +363,7 @@ func Test_getAttrValues(t *testing.T) {
 			Attribute:   Memory,
 			Assert: func(float []float64, err error) {
 				assert.Nil(t, err, "the returned error must be nil")
-				assert.NotNil(t, float, "the retrieved values shouldn't be nil")
+				assert.Equal(t, float, []float64{})
 			},
 		},
 		{
@@ -409,7 +409,7 @@ func TestGetVmsWithAttrValue(t *testing.T) {
 			Cache: cache.New(5*time.Minute, 10*time.Minute),
 			Assert: func(vms []Ec2Vm, err error) {
 				assert.Nil(t, err, "the returned error must be nil")
-				assert.NotNil(t, vms, "the retrieved values should not be nil")
+				assert.Equal(t,vms, []Ec2Vm{Ec2Vm{Type:"", OnDemandPrice:0.32, Cpus:2, Mem:32, Gpus:0}})
 			},
 		},
 		{
