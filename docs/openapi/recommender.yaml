@@ -1,0 +1,161 @@
+openapi: 3.0.0
+info:
+  description: >-
+    This project can be used to recommend instance type groups on different
+    cloud providers consisting of regular and spot/preemptible instances.
+
+    The main goal is to provide and continuously manage a cost-effective but
+    still stable cluster layout that's built up from a diverse set of regular
+    and spot instances.
+  title: Cluster Recommender.
+  contact:
+    name: Banzai Cloud
+    email: info@banzaicloud.com
+  license:
+    name: Apache 2.0
+    url: 'http://www.apache.org/licenses/LICENSE-2.0.html'
+  version: 0.0.1
+paths:
+  '/recommender/:provider/:region/cluster':
+    post:
+      tags:
+        - recommend
+      summary: >-
+        Provides a recommended set of node pools on a given provider in a
+        specific region.
+      operationId: recommendClusterSetup
+      parameters:
+        - x-go-name: SumCpu
+          description: Total CPU requested for the cluster
+          name: sumCpu
+          in: query
+          schema:
+            type: number
+            format: double
+        - x-go-name: SumMem
+          description: Total memory requested for the cluster (GB)
+          name: sumMem
+          in: query
+          schema:
+            type: number
+            format: double
+        - x-go-name: MinNodes
+          description: Minimum number of nodes in the recommended cluster
+          name: minNodes
+          in: query
+          schema:
+            type: integer
+            format: int64
+        - x-go-name: MaxNodes
+          description: Maximum number of nodes in the recommended cluster
+          name: maxNodes
+          in: query
+          schema:
+            type: integer
+            format: int64
+        - x-go-name: SameSize
+          description: 'If true, recommended instance types will have a similar size'
+          name: sameSize
+          in: query
+          schema:
+            type: boolean
+        - x-go-name: OnDemandPct
+          description: Percentage of regular (on-demand) nodes in the recommended cluster
+          name: onDemandPct
+          in: query
+          schema:
+            type: integer
+            format: int64
+        - x-go-name: Zones
+          description: Availability zones that the cluster should expand to
+          name: zones
+          in: query
+          schema:
+            type: array
+            items:
+              type: string
+        - x-go-name: SumGpu
+          description: Total number of GPUs requested for the cluster
+          name: sumGpu
+          in: query
+          schema:
+            type: integer
+            format: int64
+      responses:
+        '200':
+          $ref: '#/components/responses/recommendationResp'
+servers:
+  - url: /api/v1
+components:
+  responses:
+    recommendationResp:
+      description: >-
+        A ValidationError is an error that is used when the required input fails
+        validation.
+      headers:
+        NodePools:
+          description: Recommended node pools
+          schema:
+            type: array
+            items:
+              $ref: '#/components/schemas/NodePool'
+        Provider:
+          description: The cloud provider
+          schema:
+            type: string
+        zones:
+          description: >-
+            Availability zones in the recommendation - a multi-zone
+            recommendation means that all node pools should expand to all zones
+          schema:
+            type: array
+            items:
+              type: string
+  schemas:
+    NodePool:
+      description: Represents a set of instances with a specific vm type
+      type: object
+      properties:
+        SumNodes:
+          description: Recommended number of nodes in the node pool
+          type: integer
+          format: int64
+        VmClass:
+          description: >-
+            Specifies if the recommended node pool consists of regular or
+            spot/preemptible instance types
+          type: string
+        VmType:
+          $ref: '#/components/schemas/VirtualMachine'
+      x-go-package: github.com/banzaicloud/cluster-recommender/recommender
+    VirtualMachine:
+      description: Description of an instance type
+      type: object
+      properties:
+        AvgPrice:
+          description: >-
+            Average price of the instance (differs from on demand price in case
+            of spot or preemptible instances)
+          type: number
+          format: double
+        Cpus:
+          description: Number of CPUs in the instance type
+          type: number
+          format: double
+        Gpus:
+          description: Number of GPUs in the instance type
+          type: number
+          format: double
+        Mem:
+          description: Available memory in the instance type (GB)
+          type: number
+          format: double
+        OnDemandPrice:
+          description: Regular price of the instance type
+          type: number
+          format: double
+        Type:
+          description: Instance type
+          type: string
+      x-go-package: github.com/banzaicloud/cluster-recommender/recommender
+

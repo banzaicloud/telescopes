@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"math"
 	"sort"
+
 	log "github.com/sirupsen/logrus"
 )
 
@@ -23,38 +24,61 @@ func NewEngine(vmRegistries map[string]VmRegistry) (*Engine, error) {
 	}, nil
 }
 
+// swagger:parameters recommendClusterSetup
 type ClusterRecommendationReq struct {
-	SumCpu      float64  `json:"sumCpu"`
-	SumMem      float64  `json:"sumMem"`
-	MinNodes    int      `json:"minNodes,omitempty"`
-	MaxNodes    int      `json:"maxNodes,omitempty"`
-	SameSize    bool     `json:"sameSize,omitempty"`
-	OnDemandPct int      `json:"onDemandPct,omitempty"`
-	Zones       []string `json:"zones,omitempty"`
-	SumGpu      int      `json:"sumGpu,omitempty"`
-	// TODO: i/o, network
+	// Total number of CPUs requested for the cluster
+	SumCpu float64 `json:"sumCpu"`
+	// Total memory requested for the cluster (GB)
+	SumMem float64 `json:"sumMem"`
+	// Minimum number of nodes in the recommended cluster
+	MinNodes int `json:"minNodes,omitempty"`
+	// Maximum number of nodes in the recommended cluster
+	MaxNodes int `json:"maxNodes,omitempty"`
+	// If true, recommended instance types will have a similar size
+	SameSize bool `json:"sameSize,omitempty"`
+	// Percentage of regular (on-demand) nodes in the recommended cluster
+	OnDemandPct int `json:"onDemandPct,omitempty"`
+	// Availability zones that the cluster should expand to
+	Zones []string `json:"zones,omitempty"`
+	// Total number of GPUs requested for the cluster
+	SumGpu int `json:"sumGpu,omitempty"`
 }
 
+// A ValidationError is an error that is used when the required input fails validation.
+// swagger:response recommendationResp
 type ClusterRecommendationResp struct {
-	Provider  string     `json:provider`
-	Zones     []string   `json:"zones,omitempty"`
+	// The cloud provider
+	Provider string `json:provider`
+	// Availability zones in the recommendation - a multi-zone recommendation means that all node pools should expand to all zones
+	Zones []string `json:"zones,omitempty"`
+	// Recommended node pools
 	NodePools []NodePool `json:nodePools`
 }
 
+// Represents a set of instances with a specific vm type
 type NodePool struct {
-	VmType   VirtualMachine `json:vm`
-	SumNodes int            `json:sumNodes`
-	VmClass  string         `json:vmClass`
+	// Recommended virtual machine type
+	VmType VirtualMachine `json:vm`
+	// Recommended number of nodes in the node pool
+	SumNodes int `json:sumNodes`
+	// Specifies if the recommended node pool consists of regular or spot/preemptible instance types
+	VmClass string `json:vmClass`
 }
 
+// Description of an instance type
 type VirtualMachine struct {
-	Type          string  `json:type`
-	AvgPrice      float64 `json:avgPrice`
+	// Instance type
+	Type string `json:type`
+	// Average price of the instance (differs from on demand price in case of spot or preemptible instances)
+	AvgPrice float64 `json:avgPrice`
+	// Regular price of the instance type
 	OnDemandPrice float64 `json:onDemandPrice`
-	Cpus          float64 `json:cpusPerVm`
-	Mem           float64 `json:memPerVm`
-	Gpus          float64 `json:gpusPerVm`
-	// i/o, network
+	// Number of CPUs in the instance type
+	Cpus float64 `json:cpusPerVm`
+	// Available memory in the instance type (GB)
+	Mem float64 `json:memPerVm`
+	// Number of GPUs in the instance type
+	Gpus float64 `json:gpusPerVm`
 }
 
 func (v VirtualMachine) getAttrValue(attr string) float64 {

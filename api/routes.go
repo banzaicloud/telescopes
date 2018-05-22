@@ -51,6 +51,22 @@ func (r *RouteHandler) signalStatus(c *gin.Context) {
 	c.JSON(http.StatusOK, "ok")
 }
 
+// swagger:route POST /recommender/:provider/:region/cluster recommend recommendClusterSetup
+//
+// Provides a recommended set of node pools on a given provider in a specific region.
+//
+//     Consumes:
+//     - application/json
+//
+//     Produces:
+//     - application/json
+//
+//     Schemes: http
+//
+//     Security:
+//
+//     Responses:
+//       200: recommendationResp
 func (r *RouteHandler) recommendClusterSetup(c *gin.Context) {
 	log.Info("recommend cluster setup")
 	provider := c.Param("provider")
