@@ -1,6 +1,7 @@
 package recommender
 
 import (
+	"errors"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -99,6 +100,9 @@ func (dvmr DummyVmRegistry) getAvailableAttributeValues(attr string) ([]float64,
 	case 5:
 		// error, min > max
 		return []float64{1}, nil
+	case 6:
+		// error returned
+		return nil, errors.New("")
 
 	}
 
@@ -212,7 +216,7 @@ func TestEngine_RecommendAttrValues(t *testing.T) {
 		},
 		{
 			name:         "error - no values provided",
-			vmRegistries: map[string]VmRegistry{"ec2": DummyVmRegistry{TcId: 6}},
+			vmRegistries: map[string]VmRegistry{"ec2": DummyVmRegistry{TcId: 100}},
 			request: ClusterRecommendationReq{
 				MinNodes: 10,
 				MaxNodes: 10,
@@ -224,6 +228,24 @@ func TestEngine_RecommendAttrValues(t *testing.T) {
 
 			check: func(values []float64, err error) {
 				assert.Equal(t, err.Error(), "no attribute values provided")
+
+			},
+		},
+		{
+			name:         "error - attribute values could not be retrieved",
+			vmRegistries: map[string]VmRegistry{"ec2": DummyVmRegistry{TcId: 6}},
+			request: ClusterRecommendationReq{
+				MinNodes: 10,
+				MaxNodes: 10,
+				SumMem:   100,
+				SumCpu:   100,
+			},
+			provider:  "ec2",
+			attribute: Cpu,
+
+			check: func(values []float64, err error) {
+				assert.Nil(t, values, "returned attr values should be nils")
+				assert.NotNil(t, err.Error(), "no attribute values provided")
 
 			},
 		},
