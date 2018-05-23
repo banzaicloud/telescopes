@@ -47,7 +47,7 @@ func init() {
 
 func main() {
 
-	productInfoProvider, err := ec2.NewAwsInfoer()
+	infoProvider, err := ec2.NewEc2Infoer(ec2.NewPricing(ec2.NewConfig()))
 	if err != nil {
 		log.Fatalf("could not initialize product info provider: %s", err.Error())
 		return
@@ -55,7 +55,7 @@ func main() {
 
 	c := cache.New(24*time.Hour, 24.*time.Hour)
 
-	ec2ProductInfo, err := productinfo.NewProductInfo(*productInfoRenewalInterval, c, productInfoProvider)
+	ec2ProductInfo, err := productinfo.NewProductInfo(*productInfoRenewalInterval, c, infoProvider)
 	if err != nil {
 		log.Fatal(err)
 	}
