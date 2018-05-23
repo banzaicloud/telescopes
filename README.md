@@ -55,7 +55,7 @@ This endpoint returns a recommended cluster layout on a specific provider in a s
 **`cURL` example**
 
 ```
-curl -sX POST -d '{"provider":"ec2", "sumCpu": 100, "sumMem":200, "sumGpu":0, "minNodes":10, "maxNodes":30, "sameSize":true, "onDemandPct":30, "zones":[]}' "localhost:9092/api/v1/recommender/ec2/eu-west-1/cluster" | jq .
+curl -sX POST -d '{"sumCpu": 100, "sumMem":200, "sumGpu":0, "minNodes":10, "maxNodes":30, "sameSize":true, "onDemandPct":30, "zones":[]}' "localhost:9092/api/v1/recommender/ec2/eu-west-1/cluster" | jq .
 ```
 **Sample response:**
 ```
