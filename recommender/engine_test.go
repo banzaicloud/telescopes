@@ -260,3 +260,46 @@ func TestEngine_RecommendAttrValues(t *testing.T) {
 		})
 	}
 }
+
+func TestEngine_RecommendVms(t *testing.T) {
+	tests := []struct {
+		name         string
+		region       string
+		vmRegistries map[string]VmRegistry
+		values       []float64
+		filters      []vmFilter
+		request      ClusterRecommendationReq
+		provider     string
+		attribute    string
+		check        func([]VirtualMachine, error)
+	}{
+		{
+			name: "success - recommend vms",
+
+			vmRegistries: map[string]VmRegistry{"ec2": DummyVmRegistry{TcId: 1}},
+			request: ClusterRecommendationReq{
+				MinNodes: 5,
+				MaxNodes: 10,
+				SumMem:   100,
+				SumCpu:   100,
+			},
+			provider:  "ec2",
+			attribute: Cpu,
+
+			check: func(vms []VirtualMachine, err error) {
+				assert.Nil(t, err, "should not get error when recommending attributes")
+				assert.Equal(t, 3, len(vms), "recommended number of values is not as expected")
+
+			},
+		},
+	}
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			engine, err := NewEngine(test.vmRegistries)
+			assert.Nil(t, err, "the engine couldn't be created")
+
+			test.check(engine.RecommendVms(engine.VmRegistries["ec2"].(VmRegistry), test.region, test.attribute, test.values, test.filters, test.request))
+
+		})
+	}
+}
