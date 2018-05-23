@@ -45,7 +45,7 @@ func NewPricing(cfg *aws.Config) PricingSource {
 
 func NewConfig() *aws.Config {
 	// getting the reference can be extracted
-	cfg := &aws.Config{}
+	cfg := &aws.Config{Region: aws.String("us-east-1")}
 
 	return cfg
 }
