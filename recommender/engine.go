@@ -72,6 +72,147 @@ type ClusterRecommendationReq struct {
 	SumGpu int `json:"sumGpu,omitempty"`
 }
 
+type ExpandReq struct {
+	Options // possible nodegroups to expand
+	2 x asg-1234
+	1 x asg-2345
+	2 x asg-3456
+	NodeGroupIds // for cluster layout
+}
+
+// compute least "heavy" (vs price??)
+// compute CPU/mem weights for each ASG
+
+// 0. : find if it's a memory or cpu based recommendation and keep to that -> layouts are needed
+
+// compute possible layouts with every option: how on-demand pct changes / how do weights look like (per CPU/per Mem), / how price will look like e.g.:
+// current layout:	weight/cpu	weight/mem
+// c5.xl(od) * 8 	32	(0.4)	64		(0.161)													4/8
+// m1.xl * 4		16	(0.2)	60		(0.151)													4/15
+// m2.2xl * 4		16	(0.2)	136,8	(0.344)													4/34.2
+// m2. 4xl * 2		16	(0.2)	136,8	(0.344)													8/68.4
+
+// possible layouts:
+// c5.xl(od) * 9 	36	(0.428)
+// m1.xl * 4		16	(0.19)			-> 1. if on-demand would fall below pct, increase that -> (what if it never shows up as option???), else:
+// m2.2xl * 4		16	(0.19)			-> 2. compute standard deviation for cpu/mem values of spot groups for each possible layout
+// m2. 4xl * 2		16	(0.19)			-> 3. select the one with the smallest
+//										-> 4. what if it's very expensive compared to the others? (doesn't matter for now)
+// c5.xl(od) * 8 	32	(0.363)
+// m1.xl * 4		16	(0.182)
+// m2.2xl * 4		16	(0.182)
+// m2. 4xl * 3		24	(0.273)
+
+// c5.xl(od) * 8 	32	(0.381)
+// m1.xl * 5		20	(0.238)
+// m2.2xl * 4		16	(0.19)
+// m2. 4xl * 2		24	(0.19)
+
+type Option struct {
+	groupID   string
+	nodeCount int
+}
+
+type GroupLayout struct {
+	onDemand  bool
+	cpuWeight float64
+	memWeight float64
+	price     float64
+}
+
+type ClusterLayout map[string]GroupLayout
+
+type NodeGroup struct {
+	id        string
+	vmType    VirtualMachine
+	nodeCount int
+}
+
+// TODO: how do we know the original onDemand pct??? // from k8s annotation??? // aws tag???
+func (e *Engine) ExpandCluster(options []Option, groups []NodeGroup, onDemandPct float64) Option {
+	currentLayout := make(ClusterLayout, len(groups))
+	var sumCpu float64
+	var sumMem float64
+	for _, g := range groups {
+		var od bool
+		if g.vmType.Type == "regular" {
+			od = true
+		}
+		currentLayout[g.id] = GroupLayout{
+			onDemand:  od,
+			cpuWeight: g.vmType.Cpus * float64(g.nodeCount),
+			memWeight: g.vmType.Mem * float64(g.nodeCount),
+			price:     g.vmType.AvgPrice * float64(g.nodeCount),
+		}
+		sumCpu += g.vmType.Cpus * float64(g.nodeCount)
+		sumMem += g.vmType.Mem * float64(g.nodeCount)
+	}
+
+	cpuBasedRec := false
+
+	for _, l := range currentLayout {
+		if l.onDemand == true {
+			odCpuRatioDiff := math.Abs(l.cpuWeight/sumCpu - onDemandPct)
+			odMemRatioDiff := math.Abs(l.memWeight/sumMem - onDemandPct)
+			if odCpuRatioDiff <= odMemRatioDiff {
+				cpuBasedRec = true
+			}
+		}
+	}
+
+	bestDev := -1.0
+	var bestOption Option
+	for _, option := range options {
+		var optionType VirtualMachine
+		for _, g := range groups {
+			if g.id == option.groupID {
+				optionType = g.vmType
+			}
+		}
+
+
+		// TODO: do not add on demands
+		layout := make(ClusterLayout, len(groups))
+		var weights []float64
+		for id, gl := range currentLayout {
+			if option.groupID != id {
+				layout[id] = gl
+			} else {
+				layout[id] = GroupLayout{
+					onDemand:  gl.onDemand,
+					cpuWeight: gl.cpuWeight + float64(option.nodeCount)*optionType.Cpus,
+					memWeight: gl.memWeight + float64(option.nodeCount)*optionType.Mem,
+					price:     gl.price + float64(option.nodeCount)*optionType.AvgPrice,
+				}
+			}
+			if cpuBasedRec {
+				weights = append(weights, layout[id].cpuWeight)
+			} else {
+				weights = append(weights, layout[id].memWeight)
+			}
+		}
+		dev := stdDeviation(weights)
+		if bestDev == -1 || dev < bestDev {
+			bestDev = dev
+			bestOption = option
+		}
+	}
+	return bestOption
+}
+
+func stdDeviation(elements []float64) float64 {
+	elementCount := float64(len(elements))
+	var sum, mean, sd float64
+	for _, e := range elements {
+		sum += e
+	}
+	mean = sum / elementCount
+	for _, e := range elements {
+		sd += math.Pow(e-mean, 2)
+	}
+	return math.Sqrt(sd / elementCount)
+}
+
 // ClusterRecommendationResp encapsulates recommendation result data
 // swagger:response recommendationResp
 type ClusterRecommendationResp struct {

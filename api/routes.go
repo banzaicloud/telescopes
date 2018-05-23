@@ -47,6 +47,7 @@ func (r *RouteHandler) ConfigureRoutes(router *gin.Engine) {
 	v1 := router.Group("/api/v1/")
 	{
 		v1.POST("/recommender/:provider/:region/cluster", r.recommendClusterSetup)
+		v1.PUT("/recommender/:provider/:region/cluster", r.recommendExpandConfig)
 	}
 }
 
@@ -60,14 +61,10 @@ func (r *RouteHandler) signalStatus(c *gin.Context) {
 //
 //     Consumes:
 //     - application/json
-//
 //     Produces:
 //     - application/json
-//
 //     Schemes: http
-//
 //     Security:
-//
 //     Responses:
 //       200: recommendationResp
 func (r *RouteHandler) recommendClusterSetup(c *gin.Context) {
@@ -81,6 +78,35 @@ func (r *RouteHandler) recommendClusterSetup(c *gin.Context) {
 	}
 	// TODO: validation
 	if response, err := r.Engine.RecommendCluster(provider, region, request); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"status": http.StatusInternalServerError, "message": fmt.Sprintf("%s", err)})
+	} else {
+		c.JSON(http.StatusOK, *response)
+	}
+}
+
+// swagger:route PUT /recommender/:provider/:region/cluster recommend recommendExpandConfig
+//
+// Provides a recommended set of node pools on a given provider in a specific region.
+//
+//     Consumes:
+//     - application/json
+//     Produces:
+//     - application/json
+//     Schemes: http
+//     Security:
+//     Responses:
+//       200: recommendationResp
+func (r *RouteHandler) recommendExpandConfig(c *gin.Context) {
+	log.Info("recommend expand config")
+	provider := c.Param("provider")
+	region := c.Param("region")
+	var request recommender.ExpandReq
+	if err := c.BindJSON(&request); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+	// TODO: validation
+	if response, err := r.Engine.ExpandCluster(provider, region, request); err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"status": http.StatusInternalServerError, "message": fmt.Sprintf("%s", err)})
 	} else {
 		c.JSON(http.StatusOK, *response)
