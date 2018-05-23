@@ -12,20 +12,27 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
+// PricingSource list of operations for retrieving pricing information
+// Decouples the pricing logic from the aws api
+type PricingSource interface {
+	GetAttributeValues(input *pricing.GetAttributeValuesInput) (*pricing.GetAttributeValuesOutput, error)
+	GetProducts(input *pricing.GetProductsInput) (*pricing.GetProductsOutput, error)
+}
+
 // Ec2Infoer encapsulates the data and operations needed to access external resources
 type Ec2Infoer struct {
-	pricing *pricing.Pricing
+	pricing PricingSource
 }
 
 // NewEc2Infoer creates a new instance of the infoer
-func NewEc2Infoer(pricing *pricing.Pricing) (*Ec2Infoer, error) {
+func NewEc2Infoer(pricing PricingSource) (*Ec2Infoer, error) {
 
 	return &Ec2Infoer{
 		pricing: pricing,
 	}, nil
 }
 
-func NewPricing(cfg *aws.Config) *pricing.Pricing {
+func NewPricing(cfg *aws.Config) PricingSource {
 
 	s, err := session.NewSession(cfg)
 	if err != nil {
