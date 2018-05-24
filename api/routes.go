@@ -10,10 +10,12 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
+// RouteHandler struct that wraps the recommender engine
 type RouteHandler struct {
 	Engine *recommender.Engine
 }
 
+// NewRouteHandler creates a new RouteHandler and returns a reference to it
 func NewRouteHandler(engine *recommender.Engine) *RouteHandler {
 	return &RouteHandler{
 		Engine: engine,
@@ -34,6 +36,7 @@ func getCorsConfig() cors.Config {
 	return config
 }
 
+// ConfigureRoutes configures the gin engine, defines the rest API for this application
 func (r *RouteHandler) ConfigureRoutes(router *gin.Engine) {
 	log.Info("configuring routes")
 	base := router.Group("/")

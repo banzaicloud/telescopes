@@ -18,6 +18,7 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
+// Ec2VmRegistry represents a vm registry
 type Ec2VmRegistry struct {
 	session     *session.Session
 	productInfo *productinfo.ProductInfo
@@ -25,6 +26,7 @@ type Ec2VmRegistry struct {
 	promQuery   string
 }
 
+// NewEc2VmRegistry creates a new VmRegistry instance
 func NewEc2VmRegistry(pi *productinfo.ProductInfo, prom string, pq string) (VmRegistry, error) {
 	s, err := session.NewSession()
 	if err != nil {
