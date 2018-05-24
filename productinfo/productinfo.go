@@ -11,9 +11,16 @@ import (
 )
 
 const (
-	Memory          = "memory"
-	Cpu             = "vcpu"
-	VmKeyTemplate   = "/banzaicloud.com/recommender/ec2/%s/vms/%s/%f"
+	// Memory represents the memory attribute for the recommender
+	Memory = "memory"
+
+	// Cpu represents the cpu attribute for the recommender
+	Cpu = "vcpu"
+
+	// VmKeyTemplate format for generating vm cache keys
+	VmKeyTemplate = "/banzaicloud.com/recommender/ec2/%s/vms/%s/%f"
+
+	// AttrKeyTemplateformat for generating attribute cache keys
 	AttrKeyTemplate = "/banzaicloud.com/recommender/ec2/attrValues/%s"
 )
 
@@ -30,17 +37,21 @@ type ProductInfoer interface {
 	GetRegions() map[string]string
 }
 
+// ProductInfo is the module struct, holds configuration and cache
+// It's the entry point for the product info retrieval and management subsystem
 type ProductInfo struct {
 	productInfoer   ProductInfoer `validate:"required"`
 	renewalInterval time.Duration
 	vmAttrStore     *cache.Cache
 }
 
+// AttrValue represents an attribute value
 type AttrValue struct {
 	StrValue string
 	Value    float64
 }
 
+// AttrValues a slice of AttrValues
 type AttrValues []AttrValue
 
 func (v AttrValues) floatValues() []float64 {
@@ -51,6 +62,7 @@ func (v AttrValues) floatValues() []float64 {
 	return floatValues
 }
 
+// Ec2Vm representation of a virtual machine
 type Ec2Vm struct {
 	Type          string  `json:"type"`
 	OnDemandPrice float64 `json:"onDemandPrice"`
@@ -59,6 +71,7 @@ type Ec2Vm struct {
 	Gpus          float64 `json:"gpusPerVm"`
 }
 
+// NewProductInfo creates a new ProductInfo instance
 func NewProductInfo(ri time.Duration, cache *cache.Cache, provider ProductInfoer) (*ProductInfo, error) {
 
 	if provider == nil || cache == nil {
@@ -75,6 +88,7 @@ func NewProductInfo(ri time.Duration, cache *cache.Cache, provider ProductInfoer
 	return &pi, nil
 }
 
+// Start starts the information retrieval in a new goroutine
 func (pi *ProductInfo) Start(ctx context.Context) {
 
 	renew := func() {
@@ -113,6 +127,7 @@ func (pi *ProductInfo) Start(ctx context.Context) {
 	}
 }
 
+// GetAttrValues returns a slice with the values for the given attribute name
 func (pi *ProductInfo) GetAttrValues(attribute string) ([]float64, error) {
 	v, err := pi.getAttrValues(attribute)
 	if err != nil {
@@ -148,6 +163,7 @@ func (pi *ProductInfo) renewAttrValues(attribute string) (AttrValues, error) {
 	return values, nil
 }
 
+// GetVmsWithAttrValue returns a slice with the virtual machines for the given region, attribute and value
 func (pi *ProductInfo) GetVmsWithAttrValue(regionId string, attrKey string, value float64) ([]Ec2Vm, error) {
 
 	log.Debugf("Getting instance types and on demand prices. [regionId=%s, %s=%v]", regionId, attrKey, value)

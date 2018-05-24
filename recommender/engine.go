@@ -10,9 +10,11 @@ import (
 )
 
 const (
-	// supported attributes
+	// Memory represents the memory attribute for the recommender
 	Memory = "memory"
-	Cpu    = "cpu"
+
+	// Cpu represents the cpu attribute for the recommender
+	Cpu = "cpu"
 
 	// vm types
 	regular = "regular"
@@ -34,10 +36,12 @@ type ClusterRecommender interface {
 	RecommendCluster(provider string, region string, req ClusterRecommendationReq) (*ClusterRecommendationResp, error)
 }
 
+// Engine represents the recommendation engine, it operates on a map of provider -> VmRegistry
 type Engine struct {
 	VmRegistries map[string]VmRegistry
 }
 
+// NewEngine creates a new Engine instance
 func NewEngine(vmRegistries map[string]VmRegistry) (*Engine, error) {
 	if vmRegistries == nil {
 		return nil, errors.New("could not create engine")
@@ -47,6 +51,7 @@ func NewEngine(vmRegistries map[string]VmRegistry) (*Engine, error) {
 	}, nil
 }
 
+// ClusterRecommendationReq encapsulates the recommendation input data
 // swagger:parameters recommendClusterSetup
 type ClusterRecommendationReq struct {
 	// Total number of CPUs requested for the cluster
@@ -67,7 +72,7 @@ type ClusterRecommendationReq struct {
 	SumGpu int `json:"sumGpu,omitempty"`
 }
 
-// A ValidationError is an error that is used when the required input fails validation.
+// ClusterRecommendationResp encapsulates recommendation result data
 // swagger:response recommendationResp
 type ClusterRecommendationResp struct {
 	// The cloud provider
@@ -78,7 +83,7 @@ type ClusterRecommendationResp struct {
 	NodePools []NodePool `json:"nodePools"`
 }
 
-// Represents a set of instances with a specific vm type
+// NodePool represents a set of instances with a specific vm type
 type NodePool struct {
 	// Recommended virtual machine type
 	VmType VirtualMachine `json:"vm"`
@@ -88,7 +93,7 @@ type NodePool struct {
 	VmClass string `json:"vmClass"`
 }
 
-// Description of an instance type
+// VirtualMachine describes an instance type
 type VirtualMachine struct {
 	// Instance type
 	Type string `json:"type"`
@@ -135,11 +140,13 @@ func (e *Engine) minCpuRatioFilter(vm VirtualMachine, req ClusterRecommendationR
 
 // TODO: i/o filter, nw filter, gpu filter, etc...
 
+// VmRegistry lists operations performed on a registry of vms
 type VmRegistry interface {
 	getAvailableAttributeValues(attr string) ([]float64, error)
 	findVmsWithAttrValues(region string, zones []string, attr string, values []float64) ([]VirtualMachine, error)
 }
 
+// ByAvgPricePerCpu type for custom sorting of a slice of vms
 type ByAvgPricePerCpu []VirtualMachine
 
 func (a ByAvgPricePerCpu) Len() int      { return len(a) }
@@ -150,6 +157,7 @@ func (a ByAvgPricePerCpu) Less(i, j int) bool {
 	return pricePerCpu1 < pricePerCpu2
 }
 
+// ByAvgPricePerMemory type for custom sorting of a slice of vms
 type ByAvgPricePerMemory []VirtualMachine
 
 func (a ByAvgPricePerMemory) Len() int      { return len(a) }
@@ -160,6 +168,7 @@ func (a ByAvgPricePerMemory) Less(i, j int) bool {
 	return pricePerMem1 < pricePerMem2
 }
 
+// RecommendCluster performs recommandetion based on the provided arguments
 func (e *Engine) RecommendCluster(provider string, region string, req ClusterRecommendationReq) (*ClusterRecommendationResp, error) {
 
 	log.Infof("recommending cluster configuration")
@@ -335,6 +344,7 @@ func (e *Engine) filtersApply(vm VirtualMachine, filters []vmFilter, req Cluster
 	return applies
 }
 
+// RecommendAttrValues selects the attribute values allowed to participate in the recommendation process
 func (e *Engine) RecommendAttrValues(vmRegistry VmRegistry, attr string, req ClusterRecommendationReq) ([]float64, error) {
 
 	allValues, err := vmRegistry.getAvailableAttributeValues(attr)
@@ -386,6 +396,7 @@ func (e *Engine) sortByAttrValue(attr string, vms []VirtualMachine) error {
 	return nil
 }
 
+// RecommendNodePools finds the slice of NodePools that may participate in the recommendation process
 func (e *Engine) RecommendNodePools(attr string, vms []VirtualMachine, values []float64, req ClusterRecommendationReq) ([]NodePool, error) {
 
 	var nps []NodePool
@@ -438,7 +449,7 @@ func (e *Engine) RecommendNodePools(attr string, vms []VirtualMachine, values []
 
 	// fill up instances in spot pools
 	i := 0
-	var sumValueInPools float64 = 0
+	var sumValueInPools float64
 	for sumValueInPools < sumSpotValue {
 		nodePoolIdx := i%N + 1
 		if nodePoolIdx == 1 {

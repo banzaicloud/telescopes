@@ -32,6 +32,7 @@ func NewEc2Infoer(pricing PricingSource) (*Ec2Infoer, error) {
 	}, nil
 }
 
+// NewPricing creates a new PricingSource with the given configuration
 func NewPricing(cfg *aws.Config) PricingSource {
 
 	s, err := session.NewSession(cfg)
@@ -43,6 +44,8 @@ func NewPricing(cfg *aws.Config) PricingSource {
 	return pr
 }
 
+// NewConfig creates a new  Config instance and returns a pointer to it
+// todo the region to be passed as argument
 func NewConfig() *aws.Config {
 	// getting the reference can be extracted
 	cfg := &aws.Config{Region: aws.String("us-east-1")}
@@ -50,6 +53,8 @@ func NewConfig() *aws.Config {
 	return cfg
 }
 
+// GetAttributeValues gets the AttributeValues for the given attribute name
+// Delegates to the underlying PricingSource instance and unifies (transforms) the response
 func (e *Ec2Infoer) GetAttributeValues(attribute string) (productinfo.AttrValues, error) {
 	apiValues, err := e.pricing.GetAttributeValues(e.newAttributeValuesInput(attribute))
 	if err != nil {
@@ -71,6 +76,8 @@ func (e *Ec2Infoer) GetAttributeValues(attribute string) (productinfo.AttrValues
 	return values, nil
 }
 
+// GetProducts retrieves the available virtual machines based on the arguments provided
+// Delegates to the underlying PricingSource instance and performs transformations
 func (e *Ec2Infoer) GetProducts(regionId string, attrKey string, attrValue productinfo.AttrValue) ([]productinfo.Ec2Vm, error) {
 
 	var vms []productinfo.Ec2Vm
@@ -115,6 +122,7 @@ func (e *Ec2Infoer) GetProducts(regionId string, attrKey string, attrValue produ
 	return vms, nil
 }
 
+// GetRegion gets the api specific region representation based on the provided id
 func (e *Ec2Infoer) GetRegion(id string) *endpoints.Region {
 	awsp := endpoints.AwsPartition()
 	for _, r := range awsp.Regions() {
@@ -168,6 +176,8 @@ func (e *Ec2Infoer) newGetProductsInput(regionId string, attrKey string, attrVal
 	}
 }
 
+// GetRegions returns a map with available regions
+// transforms the api representation into a "plain" map
 func (e *Ec2Infoer) GetRegions() map[string]string {
 	regionIdMap := make(map[string]string)
 	for key, region := range endpoints.AwsPartition().Regions() {
