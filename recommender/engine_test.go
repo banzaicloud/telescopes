@@ -59,7 +59,6 @@ func TestNewEngine(t *testing.T) {
 type DummyVmRegistry struct {
 	// test case id to drive the behaviour
 	TcId int
-	VmId int
 }
 
 func (dvmr DummyVmRegistry) getAvailableAttributeValues(attr string) ([]float64, error) {
@@ -89,11 +88,11 @@ func (dvmr DummyVmRegistry) getAvailableAttributeValues(attr string) ([]float64,
 }
 
 func (dvmr DummyVmRegistry) findVmsWithAttrValues(region string, zones []string, attr string, values []float64) ([]VirtualMachine, error) {
-	if region == "errorRegion" {
-		return nil, errors.New("attribute value error")
-	}
-	if dvmr.VmId == 1 {
+	switch dvmr.TcId {
+	case 2:
 		return vme, nil
+	case 7:
+		return nil, errors.New("attribute value error")
 	}
 	return vms, nil
 }
@@ -278,8 +277,8 @@ func TestEngine_RecommendVms(t *testing.T) {
 	}{
 		{
 			name:         "error - findVmsWithAttrValues",
-			region:       "errorRegion",
-			vmRegistries: map[string]VmRegistry{"ec2": DummyVmRegistry{}},
+			region:       "us-west-2",
+			vmRegistries: map[string]VmRegistry{"ec2": DummyVmRegistry{TcId: 7}},
 			check: func(vms []VirtualMachine, err error) {
 				assert.Equal(t, err, errors.New("attribute value error"))
 				assert.Nil(t, vms, "the vms should be nil")
@@ -432,7 +431,7 @@ func TestEngine_RecommendCluster(t *testing.T) {
 		},
 		{
 			name:         "error - RecommendVms, could not find any VMs to recommend",
-			vmRegistries: map[string]VmRegistry{"ec2": DummyVmRegistry{VmId: 1, TcId: 1}},
+			vmRegistries: map[string]VmRegistry{"ec2": DummyVmRegistry{TcId: 2}},
 			request: ClusterRecommendationReq{
 				MinNodes: 5,
 				MaxNodes: 10,
