@@ -20,7 +20,7 @@ const (
 	// VmKeyTemplate format for generating vm cache keys
 	VmKeyTemplate = "/banzaicloud.com/recommender/ec2/%s/vms/%s/%f"
 
-	// AttrKeyTemplateformat for generating attribute cache keys
+	// AttrKeyTemplate format for generating attribute cache keys
 	AttrKeyTemplate = "/banzaicloud.com/recommender/ec2/attrValues/%s"
 )
 
