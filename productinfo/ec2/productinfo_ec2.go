@@ -1,7 +1,6 @@
 package ec2
 
 import (
-	"fmt"
 	"strconv"
 	"strings"
 
@@ -13,26 +12,46 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
-// Ec2Infoer encapsulates the data and operations needed to access external resources
-type Ec2Infoer struct {
-	session *session.Session
+// PricingSource list of operations for retrieving pricing information
+// Decouples the pricing logic from the aws api
+type PricingSource interface {
+	GetAttributeValues(input *pricing.GetAttributeValuesInput) (*pricing.GetAttributeValuesOutput, error)
+	GetProducts(input *pricing.GetProductsInput) (*pricing.GetProductsOutput, error)
 }
 
-// NewAwsInfoer encapsulates the creation of a infoerapper instance
-func NewAwsInfoer() (*Ec2Infoer, error) {
-	newSession, err := session.NewSession(&aws.Config{})
+// Ec2Infoer encapsulates the data and operations needed to access external resources
+type Ec2Infoer struct {
+	pricing PricingSource
+}
 
-	if err != nil {
-		return &Ec2Infoer{}, fmt.Errorf("could not create session: %s ", err.Error())
-	}
+// NewEc2Infoer creates a new instance of the infoer
+func NewEc2Infoer(pricing PricingSource) (*Ec2Infoer, error) {
 
 	return &Ec2Infoer{
-		session: newSession,
+		pricing: pricing,
 	}, nil
 }
 
+func NewPricing(cfg *aws.Config) PricingSource {
+
+	s, err := session.NewSession(cfg)
+	if err != nil {
+		log.Fatalf("could not create session. error: [%s]", err.Error())
+	}
+
+	pr := pricing.New(s, cfg)
+	return pr
+}
+
+func NewConfig() *aws.Config {
+	// getting the reference can be extracted
+	cfg := &aws.Config{Region: aws.String("us-east-1")}
+
+	return cfg
+}
+
 func (e *Ec2Infoer) GetAttributeValues(attribute string) (productinfo.AttrValues, error) {
-	apiValues, err := e.pricingService().GetAttributeValues(e.newAttributeValuesInput(attribute))
+	apiValues, err := e.pricing.GetAttributeValues(e.newAttributeValuesInput(attribute))
 	if err != nil {
 		return nil, err
 	}
@@ -57,7 +76,7 @@ func (e *Ec2Infoer) GetProducts(regionId string, attrKey string, attrValue produ
 	var vms []productinfo.Ec2Vm
 	log.Debugf("Getting available instance types from AWS API. [region=%s, %s=%s]", regionId, attrKey, attrValue.StrValue)
 
-	products, err := e.pricingService().GetProducts(e.newGetProductsInput(regionId, attrKey, attrValue))
+	products, err := e.pricing.GetProducts(e.newGetProductsInput(regionId, attrKey, attrValue))
 
 	if err != nil {
 		return nil, err
@@ -104,10 +123,6 @@ func (e *Ec2Infoer) GetRegion(id string) *endpoints.Region {
 		}
 	}
 	return nil
-}
-
-func (e *Ec2Infoer) pricingService() *pricing.Pricing {
-	return pricing.New(e.session, &aws.Config{Region: aws.String("us-east-1")})
 }
 
 // newAttributeValuesInput assembles a GetAttributeValuesInput instance for querying the provider
