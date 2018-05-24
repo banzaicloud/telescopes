@@ -81,7 +81,7 @@ type ClusterRecommendationResp struct {
 // Represents a set of instances with a specific vm type
 type NodePool struct {
 	// Recommended virtual machine type
-	VmType VirtualMachine `json:"vm""`
+	VmType VirtualMachine `json:"vm"`
 	// Recommended number of nodes in the node pool
 	SumNodes int `json:"sumNodes"`
 	// Specifies if the recommended node pool consists of regular or spot/preemptible instance types
@@ -455,7 +455,7 @@ func (e *Engine) RecommendNodePools(attr string, vms []VirtualMachine, values []
 			sumValueInPools += nps[nodePoolIdx].VmType.getAttrValue(attr)
 		}
 	}
-	log.Infof("recommeded node pools by %s: %#v", attr, nps)
+	log.Infof("recommended node pools by %s: %#v", attr, nps)
 
 	return nps, nil
 }
@@ -503,13 +503,13 @@ func (n *NodePool) getSum(attr string) float64 {
 
 // getNextSum gets the total value if the pool was increased by one
 func (n *NodePool) getNextSum(attr string) float64 {
-	return n.getSum(attr) + n.VmType.getAttrValue(attr);
+	return n.getSum(attr) + n.VmType.getAttrValue(attr)
 }
 
 // getSum gets the total value if the pool was increased by one
 func (n *NodePool) addNode(attr string) float64 {
 	n.SumNodes += 1
-	return n.getSum(attr) + n.VmType.getAttrValue(attr);
+	return n.getSum(attr) + n.VmType.getAttrValue(attr)
 }
 
 // poolPrice calculates the price of the pool
@@ -521,5 +521,5 @@ func (n *NodePool) poolPrice() float64 {
 	case spot:
 		sum = float64(n.SumNodes) * n.VmType.AvgPrice
 	}
-	return sum;
+	return sum
 }

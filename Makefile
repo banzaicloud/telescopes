@@ -3,7 +3,8 @@ IMAGE ?= banzaicloud/$(EXECUTABLE)
 TAG ?= dev-$(shell git log -1 --pretty=format:"%h")
 
 LD_FLAGS = -X "main.version=$(TAG)"
-PACKAGES = $(shell go list ./... | grep -v /vendor/)
+GOFILES_NOVENDOR = $(shell find . -type f -name '*.go' -not -path "./vendor/*")
+PKGS=$(shell go list ./... | grep -v /vendor)
 
 SWAGGER_TMP_FILE = ./docs/openapi/recommender.json
 SWAGGER_FILE = ./docs/openapi/recommender.yaml
@@ -33,10 +34,10 @@ deps: deps-swagger
 	go get ./...
 
 fmt:
-	go fmt $(PACKAGES)
+	@gofmt -w ${GOFILES_NOVENDOR}
 
 vet:
-	go vet $(PACKAGES)
+	@go vet -composites=false ./...
 
 docker:
 	docker build --rm -t $(IMAGE):$(TAG) .
@@ -52,3 +53,33 @@ swagger:
 	swagger generate spec -o $(SWAGGER_TMP_FILE) 
 	swagger2openapi -y $(SWAGGER_TMP_FILE) > $(SWAGGER_FILE)
 	rm $(SWAGGER_TMP_FILE)
+
+build:
+	go build .
+
+check-fmt:
+	PKGS="${GOFILES_NOVENDOR}" GOFMT="gofmt" ./scripts/fmt-check.sh
+
+check-misspell: install-misspell
+	PKGS="${GOFILES_NOVENDOR}" MISSPELL="misspell" ./scripts/misspell-check.sh
+
+misspell: install-misspell
+	misspell -w ${GOFILES_NOVENDOR}
+
+lint: install-golint
+	golint -min_confidence 0.9 -set_exit_status $(PKGS)
+
+test:
+	@go test -v ./...
+
+install-golint:
+	GOLINT_CMD=$(shell command -v golint 2> /dev/null)
+ifndef GOLINT_CMD
+	go get github.com/golang/lint/golint
+endif
+
+install-misspell:
+	MISSPELL_CMD=$(shell command -v misspell 2> /dev/null)
+ifndef MISSPELL_CMD
+	go get -u github.com/client9/misspell/cmd/misspell
+endif

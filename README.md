@@ -1,3 +1,9 @@
+
+[![CircleCI](https://circleci.com/gh/banzaicloud/cluster-recommender/tree/master.svg?style=shield)](https://circleci.com/gh/banzaicloud/cluster-recommender/tree/master)
+[![Go Report Card](https://goreportcard.com/badge/github.com/banzaicloud/cluster-recommender)](https://goreportcard.com/report/github.com/banzaicloud/cluster-recommender)
+![license](http://img.shields.io/badge/license-Apache%20v2-orange.svg)
+[![CII Best Practices](https://bestpractices.coreinfrastructure.org/projects/1651/badge)](https://bestpractices.coreinfrastructure.org/projects/1651)
+
 # Cluster recommender
 
 The Banzai Cloud cluster recommender is a standalone project in the [Pipeline](https://github.com/banzaicloud/pipeline) ecosystem.
