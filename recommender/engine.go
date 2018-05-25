@@ -131,8 +131,6 @@ type NodeGroup struct {
 // TODO: how do we know the original onDemand pct??? // from k8s annotation??? // aws tag???
 func (e *Engine) ExpandCluster(options []Option, groups []NodeGroup, onDemandPct float64) Option {
 	currentLayout := make(ClusterLayout, len(groups))
-	var sumCpu float64
-	var sumMem float64
 	for _, g := range groups {
 		var od bool
 		if g.vmType.Type == "regular" {
@@ -144,26 +142,36 @@ func (e *Engine) ExpandCluster(options []Option, groups []NodeGroup, onDemandPct
 			memWeight: g.vmType.Mem * float64(g.nodeCount),
 			price:     g.vmType.AvgPrice * float64(g.nodeCount),
 		}
-		sumCpu += g.vmType.Cpus * float64(g.nodeCount)
-		sumMem += g.vmType.Mem * float64(g.nodeCount)
 	}
+	// END: get current layout
+
 
 	cpuBasedRec := false
-
+	var sumCpu, sumMem, odCpuWeight, odMemWeight float64
 	for _, l := range currentLayout {
+		sumCpu += l.cpuWeight
+		sumMem += l.memWeight
 		if l.onDemand == true {
-			odCpuRatioDiff := math.Abs(l.cpuWeight/sumCpu - onDemandPct)
-			odMemRatioDiff := math.Abs(l.memWeight/sumMem - onDemandPct)
-			if odCpuRatioDiff <= odMemRatioDiff {
-				cpuBasedRec = true
-			}
+			odCpuWeight = l.cpuWeight
+			odMemWeight = l.cpuWeight
 		}
 	}
+	odCpuRatioDiff := math.Abs(odCpuWeight/sumCpu - onDemandPct)
+	odMemRatioDiff := math.Abs(odMemWeight/sumMem - onDemandPct)
+	if odCpuRatioDiff <= odMemRatioDiff {
+		cpuBasedRec = true
+	}
+
+	// END: get recommendation base
+
+
 
 	bestDev := -1.0
 	var bestOption Option
 	for _, option := range options {
 		var optionType VirtualMachine
+
+		// may not be needed
 		for _, g := range groups {
 			if g.id == option.groupID {
 				optionType = g.vmType
@@ -174,6 +182,13 @@ func (e *Engine) ExpandCluster(options []Option, groups []NodeGroup, onDemandPct
 		// TODO: do not add on demands
 		layout := make(ClusterLayout, len(groups))
 		var weights []float64
+
+		// ondemandfilter
+		//odCpuRatioDiff := math.Abs(l.cpuWeight/sumCpu - onDemandPct)
+
+		// TODO: filter out "too expensive" instance types
+
+
 		for id, gl := range currentLayout {
 			if option.groupID != id {
 				layout[id] = gl
