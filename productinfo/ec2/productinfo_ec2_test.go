@@ -115,7 +115,7 @@ func TestEc2Infoer_GetAttributeValues(t *testing.T) {
 	}
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
-			productInfoer, err := NewEc2Infoer(test.pricingServie)
+			productInfoer, err := NewEc2Infoer(test.pricingServie, "", "")
 			if err != nil {
 				t.Fatalf("failed to create productinfoer; [%s]", err.Error())
 			}
@@ -149,7 +149,7 @@ func TestEc2Infoer_GetRegions(t *testing.T) {
 	}
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
-			productInfoer, err := NewEc2Infoer(test.pricingServie)
+			productInfoer, err := NewEc2Infoer(test.pricingServie, "", "")
 			if err != nil {
 				t.Fatalf("failed to create productinfoer; [%s]", err.Error())
 			}
@@ -166,7 +166,7 @@ func TestEc2Infoer_GetProducts(t *testing.T) {
 		attrKey       string
 		attrValue     productinfo.AttrValue
 		pricingServie PricingSource
-		check         func(vm []productinfo.Ec2Vm, err error)
+		check         func(vm []productinfo.VmInfo, err error)
 	}{
 		{
 			name:          "successful",
@@ -174,7 +174,7 @@ func TestEc2Infoer_GetProducts(t *testing.T) {
 			attrKey:       productinfo.Cpu,
 			attrValue:     productinfo.AttrValue{Value: float64(2), StrValue: productinfo.Cpu},
 			pricingServie: &DummyPricingSource{TcId: 4},
-			check: func(vm []productinfo.Ec2Vm, err error) {
+			check: func(vm []productinfo.VmInfo, err error) {
 				assert.Nil(t, err, "the error should be nil")
 				assert.Nil(t, vm, "the vm should be nil")
 			},
@@ -185,7 +185,7 @@ func TestEc2Infoer_GetProducts(t *testing.T) {
 			attrKey:       productinfo.Cpu,
 			attrValue:     productinfo.AttrValue{Value: float64(2), StrValue: productinfo.Cpu},
 			pricingServie: &DummyPricingSource{TcId: 5},
-			check: func(vm []productinfo.Ec2Vm, err error) {
+			check: func(vm []productinfo.VmInfo, err error) {
 				assert.Equal(t, err, errors.New("failed to retrieve values"))
 				assert.Nil(t, vm, "the vm should be nil")
 			},
@@ -193,7 +193,7 @@ func TestEc2Infoer_GetProducts(t *testing.T) {
 	}
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
-			productInfoer, err := NewEc2Infoer(test.pricingServie)
+			productInfoer, err := NewEc2Infoer(test.pricingServie, "", "")
 			if err != nil {
 				t.Fatalf("failed to create productinfoer; [%s]", err.Error())
 			}
@@ -230,7 +230,7 @@ func TestEc2Infoer_GetRegion(t *testing.T) {
 	}
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
-			productInfoer, err := NewEc2Infoer(test.pricingServie)
+			productInfoer, err := NewEc2Infoer(test.pricingServie, "", "")
 			if err != nil {
 				t.Fatalf("failed to create productinfoer; [%s]", err.Error())
 			}
