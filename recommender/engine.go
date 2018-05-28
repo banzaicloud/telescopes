@@ -6,15 +6,15 @@ import (
 	"math"
 	"sort"
 
+	"github.com/banzaicloud/telescopes/productinfo"
 	log "github.com/sirupsen/logrus"
 )
 
 const (
-	// Memory represents the memory attribute for the recommender
-	Memory = "memory"
-
-	// Cpu represents the cpu attribute for the recommender
-	Cpu = "cpu"
+	// Gce is the identifier of the Google Cloud Engine provider
+	Gce = "gce"
+	// Ec2 is the identifier of the Google Cloud Engine provider
+	Ec2 = "ec2"
 
 	// vm types
 	regular = "regular"
@@ -24,10 +24,10 @@ const (
 // ClusterRecommender defines operations for cluster recommendations
 type ClusterRecommender interface {
 	// RecommendAttrValues recommends attributes based on the input
-	RecommendAttrValues(vmRegistry VmRegistry, attr string, req ClusterRecommendationReq) ([]float64, error)
+	RecommendAttrValues(provider string, attr string, req ClusterRecommendationReq) ([]float64, error)
 
 	// RecommendVms recommends a set of virtual machines based on the provided parameters
-	RecommendVms(vmRegistry VmRegistry, region string, attr string, values []float64, filters []vmFilter, req ClusterRecommendationReq) ([]VirtualMachine, error)
+	RecommendVms(provider string, region string, attr string, values []float64, filters []vmFilter, req ClusterRecommendationReq) ([]VirtualMachine, error)
 
 	// RecommendNodePools recommends a slice of node pools to be part of the caluster being recommended
 	RecommendNodePools(attr string, vms []VirtualMachine, values []float64, req ClusterRecommendationReq) ([]NodePool, error)
@@ -38,16 +38,16 @@ type ClusterRecommender interface {
 
 // Engine represents the recommendation engine, it operates on a map of provider -> VmRegistry
 type Engine struct {
-	VmRegistries map[string]VmRegistry
+	productInfo productinfo.ProductInfo
 }
 
 // NewEngine creates a new Engine instance
-func NewEngine(vmRegistries map[string]VmRegistry) (*Engine, error) {
-	if vmRegistries == nil {
+func NewEngine(pi productinfo.ProductInfo) (*Engine, error) {
+	if pi == nil {
 		return nil, errors.New("could not create engine")
 	}
 	return &Engine{
-		VmRegistries: vmRegistries,
+		productInfo: pi,
 	}, nil
 }
 
@@ -115,9 +115,9 @@ type VirtualMachine struct {
 
 func (v *VirtualMachine) getAttrValue(attr string) float64 {
 	switch attr {
-	case Cpu:
+	case productinfo.Cpu:
 		return v.Cpus
-	case Memory:
+	case productinfo.Memory:
 		return v.Mem
 	default:
 		return 0
@@ -153,14 +153,6 @@ func (e *Engine) minCpuRatioFilter(vm VirtualMachine, req ClusterRecommendationR
 	return true
 }
 
-// TODO: i/o filter, nw filter, gpu filter, etc...
-
-// VmRegistry lists operations performed on a registry of vms
-type VmRegistry interface {
-	getAvailableAttributeValues(attr string) ([]float64, error)
-	findVmsWithAttrValues(region string, zones []string, attr string, values []float64) ([]VirtualMachine, error)
-}
-
 // ByAvgPricePerCpu type for custom sorting of a slice of vms
 type ByAvgPricePerCpu []VirtualMachine
 
@@ -183,18 +175,17 @@ func (a ByAvgPricePerMemory) Less(i, j int) bool {
 	return pricePerMem1 < pricePerMem2
 }
 
-// RecommendCluster performs recommandetion based on the provided arguments
+// RecommendCluster performs recommendation based on the provided arguments
 func (e *Engine) RecommendCluster(provider string, region string, req ClusterRecommendationReq) (*ClusterRecommendationResp, error) {
 
 	log.Infof("recommending cluster configuration")
 
-	attributes := []string{Cpu, Memory}
+	attributes := []string{productinfo.Cpu, productinfo.Memory}
 	nodePools := make(map[string][]NodePool, 2)
 
-	vmRegistry := e.VmRegistries[provider]
 	for _, attr := range attributes {
 
-		values, err := e.RecommendAttrValues(vmRegistry, attr, req)
+		values, err := e.RecommendAttrValues(provider, attr, req)
 		if err != nil {
 			return nil, fmt.Errorf("could not get values for attr: [%s], cause: [%s]", attr, err.Error())
 		}
@@ -204,7 +195,7 @@ func (e *Engine) RecommendCluster(provider string, region string, req ClusterRec
 			return nil, fmt.Errorf("could not get filters for attr: [%s], cause: [%s]", attr, err.Error())
 		}
 
-		filteredVms, err := e.RecommendVms(vmRegistry, region, attr, values, vmFilters, req)
+		filteredVms, err := e.RecommendVms(provider, region, attr, values, vmFilters, req)
 		if err != nil {
 			return nil, fmt.Errorf("could not get virtual machines for attr: [%s], cause: [%s]", attr, err.Error())
 		}
@@ -238,8 +229,8 @@ func (e *Engine) findCheapestNodePoolSet(nodePoolSets map[string][]NodePool) []N
 
 		for _, np := range nodePools {
 			sumPrice += np.poolPrice()
-			sumCpus += np.getSum(Cpu)
-			sumMem += np.getSum(Memory)
+			sumCpus += np.getSum(productinfo.Cpu)
+			sumMem += np.getSum(productinfo.Memory)
 		}
 		log.Debugf("sum cpus [%s]: %v", attr, sumCpus)
 		log.Debugf("sum mem [%s]: %v", attr, sumMem)
@@ -325,16 +316,16 @@ func findN(values []float64, sum float64) int {
 }
 
 // RecommendVms selects a slice of VirtualMachines for the given attribute and requirements in the request
-func (e *Engine) RecommendVms(vmRegistry VmRegistry, region string, attr string, values []float64, filters []vmFilter, req ClusterRecommendationReq) ([]VirtualMachine, error) {
+func (e *Engine) RecommendVms(provider string, region string, attr string, values []float64, filters []vmFilter, req ClusterRecommendationReq) ([]VirtualMachine, error) {
 	log.Infof("recommending virtual machines for attribute: [%s]", attr)
 
-	vmsInRange, err := vmRegistry.findVmsWithAttrValues(region, req.Zones, attr, values)
+	vmsInRange, err := e.findVmsWithAttrValues(provider, region, req.Zones, attr, values)
 	if err != nil {
 		return nil, err
 	}
 
 	var filteredVms []VirtualMachine
-
+	fmt.Println("1", vmsInRange)
 	for _, vm := range vmsInRange {
 		if e.filtersApply(vm, filters, req) {
 			filteredVms = append(filteredVms, vm)
@@ -346,6 +337,48 @@ func (e *Engine) RecommendVms(vmRegistry VmRegistry, region string, attr string,
 	}
 
 	return filteredVms, nil
+}
+
+func (e *Engine) findVmsWithAttrValues(provider string, region string, zones []string, attr string, values []float64) ([]VirtualMachine, error) {
+	log.Infof("Getting instance types and on demand prices with %v %s", values, attr)
+	var vms []VirtualMachine
+
+	if zones == nil || len(zones) == 0 {
+		zones = []string{}
+	}
+
+	if len(zones) == 0 {
+		z, err := e.productInfo.GetZones(provider, region)
+		if err != nil {
+			return nil, err
+		}
+		zones = z
+	}
+
+	for _, v := range values {
+		vmInfos, err := e.productInfo.GetVmsWithAttrValue(provider, region, attr, v)
+		if err != nil {
+			return nil, err
+		}
+		for _, vmInfo := range vmInfos {
+			var sumPrice float64
+			for _, z := range zones {
+				sumPrice += vmInfo.SpotPrice[z]
+			}
+			vm := VirtualMachine{
+				Type:          vmInfo.Type,
+				OnDemandPrice: vmInfo.OnDemandPrice,
+				AvgPrice:      sumPrice / float64(len(zones)),
+				Cpus:          vmInfo.Cpus,
+				Mem:           vmInfo.Mem,
+				Gpus:          vmInfo.Gpus,
+			}
+			vms = append(vms, vm)
+		}
+	}
+
+	log.Debugf("found vms with %s values %v: %v", attr, values, vms)
+	return vms, nil
 }
 
 // filtersApply returns true if all the filters apply for the given vm
@@ -362,9 +395,9 @@ func (e *Engine) filtersApply(vm VirtualMachine, filters []vmFilter, req Cluster
 }
 
 // RecommendAttrValues selects the attribute values allowed to participate in the recommendation process
-func (e *Engine) RecommendAttrValues(vmRegistry VmRegistry, attr string, req ClusterRecommendationReq) ([]float64, error) {
+func (e *Engine) RecommendAttrValues(provider string, attr string, req ClusterRecommendationReq) ([]float64, error) {
 
-	allValues, err := vmRegistry.getAvailableAttributeValues(attr)
+	allValues, err := e.productInfo.GetAttrValues(provider, attr)
 	if err != nil {
 		return nil, err
 	}
@@ -390,9 +423,9 @@ func (e *Engine) RecommendAttrValues(vmRegistry VmRegistry, attr string, req Clu
 // filtersForAttr returns the slice for
 func (e *Engine) filtersForAttr(attr string) ([]vmFilter, error) {
 	switch attr {
-	case Cpu:
+	case productinfo.Cpu:
 		return []vmFilter{e.minCpuRatioFilter, e.burstFilter}, nil
-	case Memory:
+	case productinfo.Memory:
 		return []vmFilter{e.minMemRatioFilter, e.burstFilter}, nil
 	default:
 		return nil, fmt.Errorf("unsupported attribute: [%s]", attr)
@@ -403,9 +436,9 @@ func (e *Engine) filtersForAttr(attr string) ([]vmFilter, error) {
 func (e *Engine) sortByAttrValue(attr string, vms []VirtualMachine) error {
 	// sort and cut
 	switch attr {
-	case Memory:
+	case productinfo.Memory:
 		sort.Sort(ByAvgPricePerMemory(vms))
-	case Cpu:
+	case productinfo.Cpu:
 		sort.Sort(ByAvgPricePerCpu(vms))
 	default:
 		return fmt.Errorf("unsupported attribute: [%s]", attr)
@@ -491,9 +524,9 @@ func (e *Engine) RecommendNodePools(attr string, vms []VirtualMachine, values []
 // maxValuePerVm calculates the maximum value per node for the given attribute
 func (req *ClusterRecommendationReq) maxValuePerVm(attr string) (float64, error) {
 	switch attr {
-	case Cpu:
+	case productinfo.Cpu:
 		return req.SumCpu / float64(req.MinNodes), nil
-	case Memory:
+	case productinfo.Memory:
 		return req.SumMem / float64(req.MinNodes), nil
 	default:
 		return 0, fmt.Errorf("unsupported attribute: [%s]", attr)
@@ -503,9 +536,9 @@ func (req *ClusterRecommendationReq) maxValuePerVm(attr string) (float64, error)
 // minValuePerVm calculates the minimum value per node for the given attribute
 func (req *ClusterRecommendationReq) minValuePerVm(attr string) (float64, error) {
 	switch attr {
-	case Cpu:
+	case productinfo.Cpu:
 		return req.SumCpu / float64(req.MaxNodes), nil
-	case Memory:
+	case productinfo.Memory:
 		return req.SumMem / float64(req.MaxNodes), nil
 	default:
 		return 0, fmt.Errorf("unsupported attribute: [%s]", attr)
@@ -515,9 +548,9 @@ func (req *ClusterRecommendationReq) minValuePerVm(attr string) (float64, error)
 // gets the requested sum for the attribute value
 func (req *ClusterRecommendationReq) sum(attr string) (float64, error) {
 	switch attr {
-	case Cpu:
+	case productinfo.Cpu:
 		return req.SumCpu, nil
-	case Memory:
+	case productinfo.Memory:
 		return req.SumMem, nil
 	default:
 		return 0, fmt.Errorf("unsupported attribute: [%s]", attr)
