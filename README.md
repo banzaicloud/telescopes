@@ -1,6 +1,6 @@
 
-[![CircleCI](https://circleci.com/gh/banzaicloud/cluster-recommender/tree/master.svg?style=shield)](https://circleci.com/gh/banzaicloud/cluster-recommender/tree/master)
-[![Go Report Card](https://goreportcard.com/badge/github.com/banzaicloud/cluster-recommender)](https://goreportcard.com/report/github.com/banzaicloud/cluster-recommender)
+[![CircleCI](https://circleci.com/gh/banzaicloud/telescopes/tree/master.svg?style=shield)](https://circleci.com/gh/banzaicloud/telescopes/tree/master)
+[![Go Report Card](https://goreportcard.com/badge/github.com/banzaicloud/telescopes)](https://goreportcard.com/report/github.com/banzaicloud/telescopes)
 ![license](http://img.shields.io/badge/license-Apache%20v2-orange.svg)
 [![CII Best Practices](https://bestpractices.coreinfrastructure.org/projects/1651/badge)](https://bestpractices.coreinfrastructure.org/projects/1651)
 
@@ -20,8 +20,8 @@ go build .
 The following options can be configured when starting the exporter (with defaults):
 
 ```
-./cluster-recommender --help
-Usage of ./cluster-recommender:
+./telescopes --help
+Usage of ./telescopes:
   -listen-address string
         The address to listen on for HTTP requests. (default ":9090")
   -log-level string
@@ -35,7 +35,7 @@ Usage of ./cluster-recommender:
  
 ## API calls
 
-*For a complete OpenAPI 3.0 documentation, check out this [URL](https://editor.swagger.io/?url=https://raw.githubusercontent.com/banzaicloud/cluster-recommender/master/docs/openapi/recommender.yaml).*
+*For a complete OpenAPI 3.0 documentation, check out this [URL](https://editor.swagger.io/?url=https://raw.githubusercontent.com/banzaicloud/telescopes/master/docs/openapi/recommender.yaml).*
 
 #### `POST: api/v1/recommender/:provider/:region/cluster`
 

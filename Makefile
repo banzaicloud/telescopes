@@ -1,4 +1,4 @@
-EXECUTABLE ?= cluster-recommender
+EXECUTABLE ?= telescopes
 IMAGE ?= banzaicloud/$(EXECUTABLE)
 TAG ?= dev-$(shell git log -1 --pretty=format:"%h")
 
