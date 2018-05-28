@@ -145,7 +145,6 @@ func (e *Engine) ExpandCluster(options []Option, groups []NodeGroup, onDemandPct
 	}
 	// END: get current layout
 
-
 	cpuBasedRec := false
 	var sumCpu, sumMem, odCpuWeight, odMemWeight float64
 	for _, l := range currentLayout {
@@ -164,31 +163,32 @@ func (e *Engine) ExpandCluster(options []Option, groups []NodeGroup, onDemandPct
 
 	// END: get recommendation base
 
-
-
 	bestDev := -1.0
 	var bestOption Option
 	for _, option := range options {
 		var optionType VirtualMachine
 
-		// may not be needed
+		// may not be needed if options contain the vm type
 		for _, g := range groups {
 			if g.id == option.groupID {
 				optionType = g.vmType
 			}
 		}
 
-
-		// TODO: do not add on demands
 		layout := make(ClusterLayout, len(groups))
 		var weights []float64
 
 		// ondemandfilter
 		//odCpuRatioDiff := math.Abs(l.cpuWeight/sumCpu - onDemandPct)
 
+		if optionType.Type == "regular" {
+			// this is an on-demand option,
+
+		}
+
 		// TODO: filter out "too expensive" instance types
 
-
+		// creating a possible new layout from the current one
 		for id, gl := range currentLayout {
 			if option.groupID != id {
 				layout[id] = gl
@@ -200,17 +200,28 @@ func (e *Engine) ExpandCluster(options []Option, groups []NodeGroup, onDemandPct
 					price:     gl.price + float64(option.nodeCount)*optionType.AvgPrice,
 				}
 			}
-			if cpuBasedRec {
-				weights = append(weights, layout[id].cpuWeight)
-			} else {
-				weights = append(weights, layout[id].memWeight)
+			// weights are only appended for spot types, we need stddeviation for them
+			if gl.onDemand != true {
+				if cpuBasedRec {
+					weights = append(weights, layout[id].cpuWeight)
+				} else {
+					weights = append(weights, layout[id].memWeight)
+				}
 			}
 		}
 		dev := stdDeviation(weights)
 		if bestDev == -1 || dev < bestDev {
 			bestDev = dev
-			bestOption = option
+			//bestOption = option
 		}
+
+		checkodpct
+
+		// 1. before computing stddeviation, check if onDemand pct would still hold -> if not, continue		-> filter 1 (onDemandPct filter)
+		// 1.b. check if the price of the option group is not "too high"									-> filter 2 (tooExpensive filter)
+		// 2. once we went through all the options, check if we have any left where dev is a positive number
+		// 3.
+
 	}
 	return bestOption
 }
@@ -324,7 +335,7 @@ func (a ByAvgPricePerMemory) Less(i, j int) bool {
 	return pricePerMem1 < pricePerMem2
 }
 
-// RecommendCluster performs recommandetion based on the provided arguments
+// RecommendCluster performs recommendation based on the provided arguments
 func (e *Engine) RecommendCluster(provider string, region string, req ClusterRecommendationReq) (*ClusterRecommendationResp, error) {
 
 	log.Infof("recommending cluster configuration")
@@ -526,7 +537,7 @@ func (e *Engine) RecommendAttrValues(vmRegistry VmRegistry, attr string, req Clu
 	return values, nil
 }
 
-// filtersForAttr returns the slice for
+// filtersForAttr returns the VM filters to be used for a specific attribute
 func (e *Engine) filtersForAttr(attr string) ([]vmFilter, error) {
 	switch attr {
 	case Cpu:
