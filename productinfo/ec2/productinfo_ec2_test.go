@@ -215,7 +215,8 @@ func TestEc2Infoer_GetRegion(t *testing.T) {
 			id:            "eu-west-3",
 			pricingServie: &DummyPricingSource{},
 			check: func(region *endpoints.Region) {
-				assert.NotNil(t, region, "the region shouldn't be nil")
+				assert.Equal(t, region.Description(), "EU (Paris)")
+				assert.Equal(t, region.ID(), "eu-west-3")
 			},
 		},
 		{
