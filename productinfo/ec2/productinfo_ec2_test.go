@@ -105,7 +105,7 @@ func TestEc2Infoer_GetAttributeValues(t *testing.T) {
 	}
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
-			productInfoer, err := NewEc2Infoer(test.pricingServie)
+			productInfoer, err := NewEc2Infoer(test.pricingServie, "", "")
 			if err != nil {
 				t.Fatalf("failed to create productinfoer; [%s]", err.Error())
 			}

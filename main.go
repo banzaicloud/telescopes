@@ -20,6 +20,7 @@ import (
 	"github.com/banzaicloud/cluster-recommender/api"
 	"github.com/banzaicloud/cluster-recommender/productinfo"
 	"github.com/banzaicloud/cluster-recommender/productinfo/ec2"
+	"github.com/banzaicloud/cluster-recommender/productinfo/gce"
 	"github.com/banzaicloud/cluster-recommender/recommender"
 	"github.com/gin-gonic/gin"
 	"github.com/patrickmn/go-cache"
@@ -47,28 +48,31 @@ func init() {
 
 func main() {
 
-	infoProvider, err := ec2.NewEc2Infoer(ec2.NewPricing(ec2.NewConfig()))
+	infoers := make(map[string]productinfo.ProductInfoer, 2)
+
+	ec2Infoer, err := ec2.NewEc2Infoer(ec2.NewPricing(ec2.NewConfig()), *prometheusAddress, *promQuery)
 	if err != nil {
 		log.Fatalf("could not initialize product info provider: %s", err.Error())
 		return
 	}
+	infoers[recommender.Ec2] = ec2Infoer
+
+	gceInfoer, err := gce.NewGceInfoer()
+	if err != nil {
+		log.Fatalf("could not initialize product info provider: %s", err.Error())
+		return
+	}
+	infoers[recommender.Gce] = gceInfoer
 
 	c := cache.New(24*time.Hour, 24.*time.Hour)
 
-	ec2ProductInfo, err := productinfo.NewProductInfo(*productInfoRenewalInterval, c, infoProvider)
+	productInfo, err := productinfo.NewCachingProductInfo(*productInfoRenewalInterval, c, infoers)
 	if err != nil {
 		log.Fatal(err)
 	}
-	go ec2ProductInfo.Start(context.Background())
+	go productInfo.Start(context.Background())
 
-	vmRegistries := make(map[string]recommender.VmRegistry, 1)
-	ec2VmRegistry, err := recommender.NewEc2VmRegistry(ec2ProductInfo, *prometheusAddress, *promQuery)
-	if err != nil {
-		log.Fatal(err)
-	}
-	vmRegistries["ec2"] = ec2VmRegistry
-
-	engine, err := recommender.NewEngine(vmRegistries)
+	engine, err := recommender.NewEngine(productInfo)
 	if err != nil {
 		log.Fatal(err)
 	}
