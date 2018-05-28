@@ -137,6 +137,13 @@ func TestEc2Infoer_GetRegions(t *testing.T) {
 			pricingServie: &DummyPricingSource{},
 			check: func(regionId map[string]string) {
 				assert.NotNil(t, regionId, "the regionId shouldn't be nil")
+				assert.Equal(t, regionId, map[string]string{"ap-southeast-1": "ap-southeast-1",
+					"ap-south-1": "ap-south-1", "us-west-1": "us-west-1", "us-east-1": "us-east-1", "us-east-2": "us-east-2",
+					"eu-central-1": "eu-central-1", "eu-west-1": "eu-west-1", "ca-central-1": "ca-central-1",
+					"eu-west-3": "eu-west-3", "ap-northeast-2": "ap-northeast-2", "ap-southeast-2": "ap-southeast-2",
+					"sa-east-1": "sa-east-1", "us-west-2": "us-west-2", "ap-northeast-1": "ap-northeast-1",
+					"eu-west-2": "eu-west-2"})
+				assert.Equal(t, len(regionId), 15)
 			},
 		},
 	}
@@ -203,6 +210,14 @@ func TestEc2Infoer_GetRegion(t *testing.T) {
 		pricingServie PricingSource
 		check         func(region *endpoints.Region)
 	}{
+		{
+			name:          "known region",
+			id:            "eu-west-3",
+			pricingServie: &DummyPricingSource{},
+			check: func(region *endpoints.Region) {
+				assert.NotNil(t, region, "the region shouldn't be nil")
+			},
+		},
 		{
 			name:          "unknown region",
 			id:            "testRegion",
