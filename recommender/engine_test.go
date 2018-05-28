@@ -1,9 +1,11 @@
 package recommender
 
 import (
+	"context"
 	"errors"
 	"testing"
 
+	"github.com/banzaicloud/telescopes/productinfo"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -13,12 +15,16 @@ var (
 		{OnDemandPrice: float64(12), AvgPrice: 89, Cpus: float64(10), Mem: float64(10), Gpus: float64(0)},
 		{OnDemandPrice: float64(21), AvgPrice: 92, Cpus: float64(12), Mem: float64(12), Gpus: float64(0)},
 	}
-	vme = []VirtualMachine{
-		{OnDemandPrice: float64(10), AvgPrice: 99, Cpus: float64(4), Mem: float64(10), Gpus: float64(0)},
-		{OnDemandPrice: float64(12), AvgPrice: 89, Cpus: float64(5), Mem: float64(10), Gpus: float64(0)},
-		{OnDemandPrice: float64(21), AvgPrice: 92, Cpus: float64(3), Mem: float64(12), Gpus: float64(0)},
+	dummyVmInfo1 = []productinfo.VmInfo{
+		{OnDemandPrice: float64(10), SpotPrice: map[string]float64{"zonea": 0.021}, Cpus: float64(4), Mem: float64(10), Gpus: float64(0)},
+		{OnDemandPrice: float64(12), SpotPrice: map[string]float64{"zonea": 0.043}, Cpus: float64(5), Mem: float64(10), Gpus: float64(0)},
+		{OnDemandPrice: float64(21), SpotPrice: map[string]float64{"zonea": 0.032}, Cpus: float64(3), Mem: float64(12), Gpus: float64(0)},
 	}
-
+	dummyVmInfo2 = []productinfo.VmInfo{
+		{OnDemandPrice: float64(10), SpotPrice: map[string]float64{"zonea": 0.021, "zoneb": 0.022, "zonec": 0.026}, Cpus: float64(10), Mem: float64(10), Gpus: float64(0)},
+		{OnDemandPrice: float64(12), SpotPrice: map[string]float64{"zonea": 0.043}, Cpus: float64(10), Mem: float64(10), Gpus: float64(0)},
+		{OnDemandPrice: float64(21), SpotPrice: map[string]float64{"zonea": 0.032}, Cpus: float64(12), Mem: float64(12), Gpus: float64(0)},
+	}
 	trueVal  bool = true
 	falseVal bool = false
 )
@@ -26,21 +32,21 @@ var (
 func TestNewEngine(t *testing.T) {
 
 	tests := []struct {
-		name         string
-		vmRegistries map[string]VmRegistry
-		checker      func(engine *Engine, err error)
+		name    string
+		pi      productinfo.ProductInfo
+		checker func(engine *Engine, err error)
 	}{
 		{
-			name:         "engine successfully created",
-			vmRegistries: map[string]VmRegistry{"ec2": dummyVmRegistry{}},
+			name: "engine successfully created",
+			pi:   &dummyProductInfo{},
 			checker: func(engine *Engine, err error) {
 				assert.Nil(t, err, "should not get error ")
 				assert.NotNil(t, engine, "the engine should not be nil")
 			},
 		},
 		{
-			name:         "engine creation fails when registries is nil",
-			vmRegistries: nil,
+			name: "engine creation fails when registries is nil",
+			pi:   nil,
 			checker: func(engine *Engine, err error) {
 				assert.Nil(t, engine, "the engine should be nil")
 				assert.NotNil(t, err, "the error shouldn't be nil")
@@ -49,20 +55,23 @@ func TestNewEngine(t *testing.T) {
 	}
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
-			test.checker(NewEngine(test.vmRegistries))
+			test.checker(NewEngine(test.pi))
 
 		})
 	}
 }
 
 // utility VmRegistry for mocking purposes
-type dummyVmRegistry struct {
+type dummyProductInfo struct {
 	// test case id to drive the behaviour
 	TcId int
 }
 
-func (dvmr dummyVmRegistry) getAvailableAttributeValues(attr string) ([]float64, error) {
-	switch dvmr.TcId {
+func (d *dummyProductInfo) Start(ctx context.Context) {
+
+}
+func (d *dummyProductInfo) GetAttrValues(provider string, attribute string) ([]float64, error) {
+	switch d.TcId {
 	case 1:
 		// 3 values between 10 - 20
 		return []float64{12, 13, 14}, nil
@@ -87,37 +96,40 @@ func (dvmr dummyVmRegistry) getAvailableAttributeValues(attr string) ([]float64,
 	return nil, nil
 }
 
-func (dvmr dummyVmRegistry) findVmsWithAttrValues(region string, zones []string, attr string, values []float64) ([]VirtualMachine, error) {
-	switch dvmr.TcId {
+func (d *dummyProductInfo) GetVmsWithAttrValue(provider string, regionId string, attrKey string, value float64) ([]productinfo.VmInfo, error) {
+	switch d.TcId {
 	case 2:
-		return vme, nil
+		return dummyVmInfo1, nil
 	case 7:
 		return nil, errors.New("attribute value error")
 	}
-	return vms, nil
+	return dummyVmInfo2, nil
+}
+func (d *dummyProductInfo) GetZones(provider string, region string) ([]string, error) {
+	return nil, nil
 }
 
 func TestEngine_RecommendAttrValues(t *testing.T) {
 
 	tests := []struct {
-		name         string
-		vmRegistries map[string]VmRegistry
-		request      ClusterRecommendationReq
-		provider     string
-		attribute    string
-		check        func([]float64, error)
+		name      string
+		pi        productinfo.ProductInfo
+		request   ClusterRecommendationReq
+		provider  string
+		attribute string
+		check     func([]float64, error)
 	}{
 		{
-			name:         "all attributes between limits",
-			vmRegistries: map[string]VmRegistry{"ec2": dummyVmRegistry{TcId: 1}},
+			name: "all attributes between limits",
+			pi:   &dummyProductInfo{TcId: 1},
 			request: ClusterRecommendationReq{
 				MinNodes: 5,
 				MaxNodes: 10,
 				SumMem:   100,
 				SumCpu:   100,
 			},
-			provider:  "ec2",
-			attribute: Cpu,
+			provider:  "dummy",
+			attribute: productinfo.Cpu,
 
 			check: func(values []float64, err error) {
 				assert.Nil(t, err, "should not get error when recommending attributes")
@@ -126,16 +138,16 @@ func TestEngine_RecommendAttrValues(t *testing.T) {
 			},
 		},
 		{
-			name:         "attributes out of limits not recommended",
-			vmRegistries: map[string]VmRegistry{"ec2": dummyVmRegistry{TcId: 2}},
+			name: "attributes out of limits not recommended",
+			pi:   &dummyProductInfo{TcId: 2},
 			request: ClusterRecommendationReq{
 				MinNodes: 5,
 				MaxNodes: 10,
 				SumMem:   100,
 				SumCpu:   100,
 			},
-			provider:  "ec2",
-			attribute: Cpu,
+			provider:  "dummy",
+			attribute: productinfo.Cpu,
 
 			check: func(values []float64, err error) {
 				assert.Nil(t, err, "should not get error when recommending attributes")
@@ -144,16 +156,16 @@ func TestEngine_RecommendAttrValues(t *testing.T) {
 			},
 		},
 		{
-			name:         "no values between limits found - smallest value returned",
-			vmRegistries: map[string]VmRegistry{"ec2": dummyVmRegistry{TcId: 3}},
+			name: "no values between limits found - smallest value returned",
+			pi:   &dummyProductInfo{TcId: 3},
 			request: ClusterRecommendationReq{
 				MinNodes: 5,
 				MaxNodes: 10,
 				SumMem:   100,
 				SumCpu:   100,
 			},
-			provider:  "ec2",
-			attribute: Cpu,
+			provider:  "dummy",
+			attribute: productinfo.Cpu,
 
 			check: func(values []float64, err error) {
 				assert.Nil(t, err, "should not get error when recommending attributes")
@@ -163,16 +175,16 @@ func TestEngine_RecommendAttrValues(t *testing.T) {
 			},
 		},
 		{
-			name:         "no values between limits found - largest value returned",
-			vmRegistries: map[string]VmRegistry{"ec2": dummyVmRegistry{TcId: 4}},
+			name: "no values between limits found - largest value returned",
+			pi:   &dummyProductInfo{TcId: 4},
 			request: ClusterRecommendationReq{
 				MinNodes: 5,
 				MaxNodes: 10,
 				SumMem:   100,
 				SumCpu:   100,
 			},
-			provider:  "ec2",
-			attribute: Cpu,
+			provider:  "dummy",
+			attribute: productinfo.Cpu,
 
 			check: func(values []float64, err error) {
 				assert.Nil(t, err, "should not get error when recommending attributes")
@@ -182,16 +194,16 @@ func TestEngine_RecommendAttrValues(t *testing.T) {
 			},
 		},
 		{
-			name:         "error - min larger than max",
-			vmRegistries: map[string]VmRegistry{"ec2": dummyVmRegistry{TcId: 5}},
+			name: "error - min larger than max",
+			pi:   &dummyProductInfo{TcId: 5},
 			request: ClusterRecommendationReq{
 				MinNodes: 10,
 				MaxNodes: 5,
 				SumMem:   100,
 				SumCpu:   100,
 			},
-			provider:  "ec2",
-			attribute: Cpu,
+			provider:  "dummy",
+			attribute: productinfo.Cpu,
 
 			check: func(values []float64, err error) {
 				assert.Equal(t, err.Error(), "min value cannot be larger than the max value")
@@ -199,16 +211,16 @@ func TestEngine_RecommendAttrValues(t *testing.T) {
 			},
 		},
 		{
-			name:         "error - no values provided",
-			vmRegistries: map[string]VmRegistry{"ec2": dummyVmRegistry{TcId: 100}},
+			name: "error - no values provided",
+			pi:   &dummyProductInfo{TcId: 100},
 			request: ClusterRecommendationReq{
 				MinNodes: 10,
 				MaxNodes: 10,
 				SumMem:   100,
 				SumCpu:   100,
 			},
-			provider:  "ec2",
-			attribute: Cpu,
+			provider:  "dummy",
+			attribute: productinfo.Cpu,
 
 			check: func(values []float64, err error) {
 				assert.Equal(t, err.Error(), "no attribute values provided")
@@ -216,16 +228,16 @@ func TestEngine_RecommendAttrValues(t *testing.T) {
 			},
 		},
 		{
-			name:         "error - attribute values could not be retrieved",
-			vmRegistries: map[string]VmRegistry{"ec2": dummyVmRegistry{TcId: 6}},
+			name: "error - attribute values could not be retrieved",
+			pi:   &dummyProductInfo{TcId: 6},
 			request: ClusterRecommendationReq{
 				MinNodes: 10,
 				MaxNodes: 10,
 				SumMem:   100,
 				SumCpu:   100,
 			},
-			provider:  "ec2",
-			attribute: Cpu,
+			provider:  "dummy",
+			attribute: productinfo.Cpu,
 
 			check: func(values []float64, err error) {
 				assert.Nil(t, values, "returned attr values should be nils")
@@ -234,15 +246,15 @@ func TestEngine_RecommendAttrValues(t *testing.T) {
 			},
 		},
 		{
-			name:         "error - unsupported attribute",
-			vmRegistries: map[string]VmRegistry{"ec2": dummyVmRegistry{TcId: 1}},
+			name: "error - unsupported attribute",
+			pi:   &dummyProductInfo{TcId: 1},
 			request: ClusterRecommendationReq{
 				MinNodes: 5,
 				MaxNodes: 10,
 				SumMem:   100,
 				SumCpu:   100,
 			},
-			provider:  "ec2",
+			provider:  "dummy",
 			attribute: "error",
 
 			check: func(values []float64, err error) {
@@ -254,10 +266,10 @@ func TestEngine_RecommendAttrValues(t *testing.T) {
 	}
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
-			engine, err := NewEngine(test.vmRegistries)
+			engine, err := NewEngine(test.pi)
 			assert.Nil(t, err, "the engine couldn't be created")
 
-			test.check(engine.RecommendAttrValues(engine.VmRegistries["ec2"].(VmRegistry), test.attribute, test.request))
+			test.check(engine.RecommendAttrValues("dummy", test.attribute, test.request))
 
 		})
 	}
@@ -265,20 +277,21 @@ func TestEngine_RecommendAttrValues(t *testing.T) {
 
 func TestEngine_RecommendVms(t *testing.T) {
 	tests := []struct {
-		name         string
-		region       string
-		vmRegistries map[string]VmRegistry
-		values       []float64
-		filters      []vmFilter
-		request      ClusterRecommendationReq
-		provider     string
-		attribute    string
-		check        func([]VirtualMachine, error)
+		name      string
+		region    string
+		pi        productinfo.ProductInfo
+		values    []float64
+		filters   []vmFilter
+		request   ClusterRecommendationReq
+		provider  string
+		attribute string
+		check     func([]VirtualMachine, error)
 	}{
 		{
-			name:         "error - findVmsWithAttrValues",
-			region:       "us-west-2",
-			vmRegistries: map[string]VmRegistry{"ec2": dummyVmRegistry{TcId: 7}},
+			name:   "error - findVmsWithAttrValues",
+			region: "us-west-2",
+			pi:     &dummyProductInfo{TcId: 7},
+			values: []float64{1, 2},
 			check: func(vms []VirtualMachine, err error) {
 				assert.Equal(t, err, errors.New("attribute value error"))
 				assert.Nil(t, vms, "the vms should be nil")
@@ -291,9 +304,10 @@ func TestEngine_RecommendVms(t *testing.T) {
 			filters: []vmFilter{func(vm VirtualMachine, req ClusterRecommendationReq) bool {
 				return true
 			}},
-			vmRegistries: map[string]VmRegistry{"ec2": dummyVmRegistry{}},
-			provider:     "ec2",
-			attribute:    Cpu,
+			pi:        &dummyProductInfo{},
+			values:    []float64{2},
+			provider:  "dummy",
+			attribute: productinfo.Cpu,
 
 			check: func(vms []VirtualMachine, err error) {
 				assert.Nil(t, err, "the error should be nil")
@@ -307,9 +321,10 @@ func TestEngine_RecommendVms(t *testing.T) {
 			filters: []vmFilter{func(vm VirtualMachine, req ClusterRecommendationReq) bool {
 				return false
 			}},
-			vmRegistries: map[string]VmRegistry{"ec2": dummyVmRegistry{}},
-			provider:     "ec2",
-			attribute:    Cpu,
+			pi:        &dummyProductInfo{},
+			values:    []float64{1, 2},
+			provider:  "dummy",
+			attribute: productinfo.Cpu,
 
 			check: func(vms []VirtualMachine, err error) {
 				assert.Equal(t, err, errors.New("couldn't find any VMs to recommend"))
@@ -320,10 +335,10 @@ func TestEngine_RecommendVms(t *testing.T) {
 	}
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
-			engine, err := NewEngine(test.vmRegistries)
+			engine, err := NewEngine(test.pi)
 			assert.Nil(t, err, "the engine couldn't be created")
 
-			test.check(engine.RecommendVms(engine.VmRegistries["ec2"].(VmRegistry), test.region, test.attribute, test.values, test.filters, test.request))
+			test.check(engine.RecommendVms("dummy", test.region, test.attribute, test.values, test.filters, test.request))
 
 		})
 	}
@@ -331,20 +346,20 @@ func TestEngine_RecommendVms(t *testing.T) {
 
 func TestEngine_RecommendNodePools(t *testing.T) {
 	tests := []struct {
-		name         string
-		vmRegistries map[string]VmRegistry
-		attr         string
-		vms          []VirtualMachine
-		values       []float64
-		request      ClusterRecommendationReq
-		check        func([]NodePool, error)
+		name    string
+		pi      productinfo.ProductInfo
+		attr    string
+		vms     []VirtualMachine
+		values  []float64
+		request ClusterRecommendationReq
+		check   func([]NodePool, error)
 	}{
 		{
-			name:         "successful",
-			vmRegistries: map[string]VmRegistry{"ec2": dummyVmRegistry{TcId: 1}},
-			vms:          vms,
-			attr:         Cpu,
-			values:       []float64{4},
+			name:   "successful",
+			pi:     &dummyProductInfo{TcId: 1},
+			vms:    vms,
+			attr:   productinfo.Cpu,
+			values: []float64{4},
 			request: ClusterRecommendationReq{
 				MinNodes: 5,
 				MaxNodes: 10,
@@ -358,11 +373,11 @@ func TestEngine_RecommendNodePools(t *testing.T) {
 			},
 		},
 		{
-			name:         "attribute error",
-			vmRegistries: map[string]VmRegistry{"ec2": dummyVmRegistry{TcId: 1}},
-			vms:          vms,
-			attr:         "error",
-			values:       []float64{4},
+			name:   "attribute error",
+			pi:     &dummyProductInfo{TcId: 1},
+			vms:    vms,
+			attr:   "error",
+			values: []float64{4},
 			request: ClusterRecommendationReq{
 				MinNodes: 5,
 				MaxNodes: 10,
@@ -378,7 +393,7 @@ func TestEngine_RecommendNodePools(t *testing.T) {
 	}
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
-			engine, err := NewEngine(test.vmRegistries)
+			engine, err := NewEngine(test.pi)
 			assert.Nil(t, err, "the engine couldn't be created")
 
 			test.check(engine.RecommendNodePools(test.attr, test.vms, test.values, test.request))
@@ -389,16 +404,16 @@ func TestEngine_RecommendNodePools(t *testing.T) {
 
 func TestEngine_RecommendCluster(t *testing.T) {
 	tests := []struct {
-		name         string
-		vmRegistries map[string]VmRegistry
-		request      ClusterRecommendationReq
-		provider     string
-		region       string
-		check        func(response *ClusterRecommendationResp, err error)
+		name     string
+		pi       productinfo.ProductInfo
+		request  ClusterRecommendationReq
+		provider string
+		region   string
+		check    func(response *ClusterRecommendationResp, err error)
 	}{
 		{
-			name:         "cluster recommendation success",
-			vmRegistries: map[string]VmRegistry{"ec2": dummyVmRegistry{TcId: 1}},
+			name: "cluster recommendation success",
+			pi:   &dummyProductInfo{TcId: 1},
 			request: ClusterRecommendationReq{
 				MinNodes: 5,
 				MaxNodes: 10,
@@ -406,7 +421,7 @@ func TestEngine_RecommendCluster(t *testing.T) {
 				SumCpu:   100,
 				Zones:    []string{"testZone1", "testZone2"},
 			},
-			provider: "ec2",
+			provider: "dummy",
 			region:   "us-west-2",
 			check: func(response *ClusterRecommendationResp, err error) {
 				assert.Nil(t, err, "should not get error when recommending")
@@ -414,15 +429,15 @@ func TestEngine_RecommendCluster(t *testing.T) {
 			},
 		},
 		{
-			name:         "error - RecommendAttrValues, min value cannot be larger than the max value",
-			vmRegistries: map[string]VmRegistry{"ec2": dummyVmRegistry{TcId: 1}},
+			name: "error - RecommendAttrValues, min value cannot be larger than the max value",
+			pi:   &dummyProductInfo{TcId: 1},
 			request: ClusterRecommendationReq{
 				MinNodes: 10,
 				MaxNodes: 5,
 				SumMem:   100,
 				SumCpu:   100,
 			},
-			provider: "ec2",
+			provider: "dummy",
 			region:   "us-west-2",
 			check: func(response *ClusterRecommendationResp, err error) {
 				assert.Equal(t, err, errors.New("could not get values for attr: [cpu], cause: [min value cannot be larger than the max value]"))
@@ -430,15 +445,15 @@ func TestEngine_RecommendCluster(t *testing.T) {
 			},
 		},
 		{
-			name:         "error - RecommendVms, could not find any VMs to recommend",
-			vmRegistries: map[string]VmRegistry{"ec2": dummyVmRegistry{TcId: 2}},
+			name: "error - RecommendVms, could not find any VMs to recommend",
+			pi:   &dummyProductInfo{TcId: 2},
 			request: ClusterRecommendationReq{
 				MinNodes: 5,
 				MaxNodes: 10,
 				SumMem:   100,
 				SumCpu:   100,
 			},
-			provider: "ec2",
+			provider: "dummy",
 			region:   "us-west-2",
 			check: func(response *ClusterRecommendationResp, err error) {
 				assert.Equal(t, err, errors.New("could not get virtual machines for attr: [cpu], cause: [couldn't find any VMs to recommend]"))
@@ -448,7 +463,7 @@ func TestEngine_RecommendCluster(t *testing.T) {
 	}
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
-			engine, err := NewEngine(test.vmRegistries)
+			engine, err := NewEngine(test.pi)
 			assert.Nil(t, err, "the engine couldn't be created")
 
 			test.check(engine.RecommendCluster(test.provider, test.region, test.request))
@@ -459,17 +474,17 @@ func TestEngine_RecommendCluster(t *testing.T) {
 
 func TestEngine_sortByAttrValue(t *testing.T) {
 	tests := []struct {
-		name         string
-		vmRegistries map[string]VmRegistry
-		attr         string
-		vms          []VirtualMachine
-		check        func(err error)
+		name  string
+		pi    productinfo.ProductInfo
+		attr  string
+		vms   []VirtualMachine
+		check func(err error)
 	}{
 		{
-			name:         "error - unsupported attribute",
-			vmRegistries: map[string]VmRegistry{"ec2": dummyVmRegistry{}},
-			attr:         "error",
-			vms:          vms,
+			name: "error - unsupported attribute",
+			pi:   &dummyProductInfo{},
+			attr: "error",
+			vms:  vms,
 			check: func(err error) {
 				assert.EqualError(t, err, "unsupported attribute: [error]")
 			},
@@ -477,7 +492,7 @@ func TestEngine_sortByAttrValue(t *testing.T) {
 	}
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
-			engine, err := NewEngine(test.vmRegistries)
+			engine, err := NewEngine(test.pi)
 			assert.Nil(t, err, "the engine couldn't be created")
 
 			test.check(engine.sortByAttrValue(test.attr, test.vms))
@@ -488,31 +503,31 @@ func TestEngine_sortByAttrValue(t *testing.T) {
 
 func TestEngine_filtersForAttr(t *testing.T) {
 	tests := []struct {
-		name         string
-		vmRegistries map[string]VmRegistry
-		attr         string
-		check        func(vmfs []vmFilter, err error)
+		name  string
+		pi    productinfo.ProductInfo
+		attr  string
+		check func(vms []vmFilter, err error)
 	}{
 		{
-			name:         "error - unsupported attribute",
-			vmRegistries: map[string]VmRegistry{"ec2": dummyVmRegistry{}},
-			attr:         "error",
-			check: func(vmfs []vmFilter, err error) {
+			name: "error - unsupported attribute",
+			pi:   &dummyProductInfo{},
+			attr: "error",
+			check: func(vms []vmFilter, err error) {
 				assert.EqualError(t, err, "unsupported attribute: [error]")
 			},
 		},
 		{
-			name:         "all filters added - cpu",
-			vmRegistries: map[string]VmRegistry{"ec2": dummyVmRegistry{}},
-			attr:         Cpu,
+			name: "all filters added - cpu",
+			pi:   &dummyProductInfo{},
+			attr: productinfo.Cpu,
 			check: func(vmfs []vmFilter, err error) {
 				assert.Equal(t, 2, len(vmfs), "invalid filter count")
 			},
 		},
 		{
-			name:         "all filters added - memory",
-			vmRegistries: map[string]VmRegistry{"ec2": dummyVmRegistry{}},
-			attr:         Memory,
+			name: "all filters added - memory",
+			pi:   &dummyProductInfo{},
+			attr: productinfo.Memory,
 			check: func(vmfs []vmFilter, err error) {
 				assert.Equal(t, 2, len(vmfs), "invalid filter count")
 			},
@@ -520,7 +535,7 @@ func TestEngine_filtersForAttr(t *testing.T) {
 	}
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
-			engine, err := NewEngine(test.vmRegistries)
+			engine, err := NewEngine(test.pi)
 			assert.Nil(t, err, "the engine couldn't be created")
 
 			test.check(engine.filtersForAttr(test.attr))
@@ -545,7 +560,7 @@ func TestEngine_filtersApply(t *testing.T) {
 			req: ClusterRecommendationReq{SumCpu: 4, SumMem: float64(8), AllowBurst: &trueVal},
 			// ratio = Cpus/Mem = 1
 			vm:   VirtualMachine{Cpus: 4, Mem: float64(4), Burst: true},
-			attr: Cpu,
+			attr: productinfo.Cpu,
 			check: func(filtersApply bool) {
 				assert.Equal(t, true, filtersApply, "vm should pass all filters")
 			},
@@ -557,7 +572,7 @@ func TestEngine_filtersApply(t *testing.T) {
 			req: ClusterRecommendationReq{SumCpu: 4, SumMem: float64(8), AllowBurst: &falseVal},
 			// ratio = Cpus/Mem = 1
 			vm:   VirtualMachine{Cpus: 4, Mem: float64(4), Burst: true},
-			attr: Cpu,
+			attr: productinfo.Cpu,
 			check: func(filtersApply bool) {
 				assert.Equal(t, false, filtersApply, "vm should not pass all filters")
 			},
@@ -569,7 +584,7 @@ func TestEngine_filtersApply(t *testing.T) {
 			req: ClusterRecommendationReq{SumMem: float64(8), SumCpu: 4, AllowBurst: &trueVal},
 			// ratio = Mem/Cpus = 1
 			vm:   VirtualMachine{Mem: float64(20), Cpus: 4, Burst: true},
-			attr: Memory,
+			attr: productinfo.Memory,
 			check: func(filtersApply bool) {
 				assert.Equal(t, true, filtersApply, "vm should pass all filters")
 			},
@@ -581,7 +596,7 @@ func TestEngine_filtersApply(t *testing.T) {
 			req: ClusterRecommendationReq{SumMem: float64(8), SumCpu: 4, AllowBurst: &falseVal},
 			// ratio = Mem/Cpus = 1
 			vm:   VirtualMachine{Mem: float64(20), Cpus: 4, Burst: true},
-			attr: Memory,
+			attr: productinfo.Memory,
 			check: func(filtersApply bool) {
 				assert.Equal(t, false, filtersApply, "vm should not pass all filters")
 			},
@@ -612,7 +627,7 @@ func TestEngine_minCpuRatioFilter(t *testing.T) {
 			req: ClusterRecommendationReq{SumCpu: 4, SumMem: float64(8)},
 			// ratio = Cpus/Mem = 1
 			vm:   VirtualMachine{Cpus: 4, Mem: float64(4)},
-			attr: Cpu,
+			attr: productinfo.Cpu,
 			check: func(filterApplies bool) {
 				assert.Equal(t, true, filterApplies, "vm should pass the  minCpuRatioFilter")
 			},
@@ -624,7 +639,7 @@ func TestEngine_minCpuRatioFilter(t *testing.T) {
 			req: ClusterRecommendationReq{SumCpu: 4, SumMem: float64(4)},
 			// ratio = Cpus/Mem = 0.5
 			vm:   VirtualMachine{Cpus: 4, Mem: float64(8)},
-			attr: Cpu,
+			attr: productinfo.Cpu,
 			check: func(filterApplies bool) {
 				assert.Equal(t, false, filterApplies, "vm should not pass the  minCpuRatioFilter")
 			},
@@ -655,7 +670,7 @@ func TestEngine_minMemRatioFilter(t *testing.T) {
 			req: ClusterRecommendationReq{SumMem: float64(8), SumCpu: 4},
 			// ratio = Mem/Cpus = 4
 			vm:   VirtualMachine{Mem: float64(16), Cpus: 4},
-			attr: Cpu,
+			attr: productinfo.Cpu,
 			check: func(filterApplies bool) {
 				assert.Equal(t, true, filterApplies, "vm should pass the  minMemRatioFilter")
 			},
@@ -667,7 +682,7 @@ func TestEngine_minMemRatioFilter(t *testing.T) {
 			req: ClusterRecommendationReq{SumMem: float64(8), SumCpu: 4},
 			// ratio = Mem/Cpus = 0.5
 			vm:   VirtualMachine{Cpus: 4, Mem: float64(4)},
-			attr: Cpu,
+			attr: productinfo.Cpu,
 			check: func(filterApplies bool) {
 				assert.Equal(t, false, filterApplies, "vm should not pass the  minMemRatioFilter")
 			},
