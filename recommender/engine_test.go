@@ -691,7 +691,7 @@ func TestEngine_burstFilter(t *testing.T) {
 		check  func(filterApplies bool)
 	}{
 		{
-			name:   "burst filter applies - burst vm, burst allowed",
+			name:   "burst filter applies - burst vm, burst allowed in req",
 			engine: Engine{},
 			req:    ClusterRecommendationReq{AllowBurst: &trueVal},
 			vm:     VirtualMachine{Burst: true},
@@ -702,23 +702,15 @@ func TestEngine_burstFilter(t *testing.T) {
 		{
 			name:   "burst filter applies - burst vm, burst not set in req",
 			engine: Engine{},
-			req:    ClusterRecommendationReq{},
-			vm:     VirtualMachine{Burst: true},
+			// BurstAllowed not specified
+			req: ClusterRecommendationReq{},
+			vm:  VirtualMachine{Burst: true},
 			check: func(filterApplies bool) {
 				assert.Equal(t, true, filterApplies, "vm should pass the  burst filter")
 			},
 		},
 		{
 			name:   "burst filter doesn't apply - burst vm, burst not allowed",
-			engine: Engine{},
-			req:    ClusterRecommendationReq{AllowBurst: &falseVal},
-			vm:     VirtualMachine{Burst: true},
-			check: func(filterApplies bool) {
-				assert.Equal(t, false, filterApplies, "vm should not pass the  burst filter")
-			},
-		},
-		{
-			name:   "burst filter doesn't apply - not burst vm, burst allowed",
 			engine: Engine{},
 			req:    ClusterRecommendationReq{AllowBurst: &falseVal},
 			vm:     VirtualMachine{Burst: true},
