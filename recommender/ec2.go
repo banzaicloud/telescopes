@@ -78,6 +78,7 @@ func (e *Ec2VmRegistry) findVmsWithAttrValues(region string, zones []string, att
 				Cpus:          ec2vm.Cpus,
 				Mem:           ec2vm.Mem,
 				Gpus:          ec2vm.Gpus,
+				Burst:         ec2vm.IsBurst(),
 			}
 			vms = append(vms, vm)
 		}

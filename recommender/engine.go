@@ -70,6 +70,8 @@ type ClusterRecommendationReq struct {
 	Zones []string `json:"zones,omitempty"`
 	// Total number of GPUs requested for the cluster
 	SumGpu int `json:"sumGpu,omitempty"`
+	// Are burst instances allowed in recommendation
+	AllowBurst *bool `json:"allowBurst,omitempty"`
 }
 
 // ClusterRecommendationResp encapsulates recommendation result data
@@ -107,6 +109,8 @@ type VirtualMachine struct {
 	Mem float64 `json:"memPerVm"`
 	// Number of GPUs in the instance type
 	Gpus float64 `json:"gpusPerVm"`
+	// Burst signals a burst type instance
+	Burst bool `json:"burst"`
 }
 
 func (v *VirtualMachine) getAttrValue(attr string) float64 {
@@ -128,6 +132,17 @@ func (e *Engine) minMemRatioFilter(vm VirtualMachine, req ClusterRecommendationR
 		return false
 	}
 	return true
+}
+
+func (e *Engine) burstFilter(vm VirtualMachine, req ClusterRecommendationReq) bool {
+
+	// if not specified in req or it's allowed the filter passes
+	if (req.AllowBurst == nil) || *(req.AllowBurst) {
+		return true
+	}
+
+	// burst is not allowed
+	return !vm.Burst
 }
 
 func (e *Engine) minCpuRatioFilter(vm VirtualMachine, req ClusterRecommendationReq) bool {
@@ -335,13 +350,15 @@ func (e *Engine) RecommendVms(vmRegistry VmRegistry, region string, attr string,
 
 // filtersApply returns true if all the filters apply for the given vm
 func (e *Engine) filtersApply(vm VirtualMachine, filters []vmFilter, req ClusterRecommendationReq) bool {
-	var applies = false
 
 	for _, filter := range filters {
-		applies = filter(vm, req)
+		if !filter(vm, req) {
+			// one of the filters doesn't apply - quit the iteration
+			return false
+		}
 	}
-
-	return applies
+	// no filters or applies
+	return true
 }
 
 // RecommendAttrValues selects the attribute values allowed to participate in the recommendation process
@@ -374,9 +391,9 @@ func (e *Engine) RecommendAttrValues(vmRegistry VmRegistry, attr string, req Clu
 func (e *Engine) filtersForAttr(attr string) ([]vmFilter, error) {
 	switch attr {
 	case Cpu:
-		return []vmFilter{e.minCpuRatioFilter}, nil
+		return []vmFilter{e.minCpuRatioFilter, e.burstFilter}, nil
 	case Memory:
-		return []vmFilter{e.minMemRatioFilter}, nil
+		return []vmFilter{e.minMemRatioFilter, e.burstFilter}, nil
 	default:
 		return nil, fmt.Errorf("unsupported attribute: [%s]", attr)
 	}
