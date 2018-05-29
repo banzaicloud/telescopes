@@ -127,7 +127,7 @@ components:
           type: string
         VmType:
           $ref: '#/components/schemas/VirtualMachine'
-      x-go-package: github.com/banzaicloud/cluster-recommender/recommender
+      x-go-package: github.com/banzaicloud/telescopes/recommender
     VirtualMachine:
       description: Description of an instance type
       type: object
@@ -157,5 +157,5 @@ components:
         Type:
           description: Instance type
           type: string
-      x-go-package: github.com/banzaicloud/cluster-recommender/recommender
+      x-go-package: github.com/banzaicloud/telescopes/recommender
 
