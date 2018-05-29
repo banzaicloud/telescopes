@@ -7,16 +7,21 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-var vms = []VirtualMachine{
-	{OnDemandPrice: float64(10), AvgPrice: 99, Cpus: float64(10), Mem: float64(10), Gpus: float64(0)},
-	{OnDemandPrice: float64(12), AvgPrice: 89, Cpus: float64(10), Mem: float64(10), Gpus: float64(0)},
-	{OnDemandPrice: float64(21), AvgPrice: 92, Cpus: float64(12), Mem: float64(12), Gpus: float64(0)},
-}
-var vme = []VirtualMachine{
-	{OnDemandPrice: float64(10), AvgPrice: 99, Cpus: float64(4), Mem: float64(10), Gpus: float64(0)},
-	{OnDemandPrice: float64(12), AvgPrice: 89, Cpus: float64(5), Mem: float64(10), Gpus: float64(0)},
-	{OnDemandPrice: float64(21), AvgPrice: 92, Cpus: float64(3), Mem: float64(12), Gpus: float64(0)},
-}
+var (
+	vms = []VirtualMachine{
+		{OnDemandPrice: float64(10), AvgPrice: 99, Cpus: float64(10), Mem: float64(10), Gpus: float64(0)},
+		{OnDemandPrice: float64(12), AvgPrice: 89, Cpus: float64(10), Mem: float64(10), Gpus: float64(0)},
+		{OnDemandPrice: float64(21), AvgPrice: 92, Cpus: float64(12), Mem: float64(12), Gpus: float64(0)},
+	}
+	vme = []VirtualMachine{
+		{OnDemandPrice: float64(10), AvgPrice: 99, Cpus: float64(4), Mem: float64(10), Gpus: float64(0)},
+		{OnDemandPrice: float64(12), AvgPrice: 89, Cpus: float64(5), Mem: float64(10), Gpus: float64(0)},
+		{OnDemandPrice: float64(21), AvgPrice: 92, Cpus: float64(3), Mem: float64(12), Gpus: float64(0)},
+	}
+
+	trueVal  bool = true
+	falseVal bool = false
+)
 
 func TestNewEngine(t *testing.T) {
 
@@ -486,14 +491,30 @@ func TestEngine_filtersForAttr(t *testing.T) {
 		name         string
 		vmRegistries map[string]VmRegistry
 		attr         string
-		check        func(vms []vmFilter, err error)
+		check        func(vmfs []vmFilter, err error)
 	}{
 		{
 			name:         "error - unsupported attribute",
 			vmRegistries: map[string]VmRegistry{"ec2": dummyVmRegistry{}},
 			attr:         "error",
-			check: func(vms []vmFilter, err error) {
+			check: func(vmfs []vmFilter, err error) {
 				assert.EqualError(t, err, "unsupported attribute: [error]")
+			},
+		},
+		{
+			name:         "all filters added - cpu",
+			vmRegistries: map[string]VmRegistry{"ec2": dummyVmRegistry{}},
+			attr:         Cpu,
+			check: func(vmfs []vmFilter, err error) {
+				assert.Equal(t, 2, len(vmfs), "invalid filter count")
+			},
+		},
+		{
+			name:         "all filters added - memory",
+			vmRegistries: map[string]VmRegistry{"ec2": dummyVmRegistry{}},
+			attr:         Memory,
+			check: func(vmfs []vmFilter, err error) {
+				assert.Equal(t, 2, len(vmfs), "invalid filter count")
 			},
 		},
 	}
@@ -504,6 +525,220 @@ func TestEngine_filtersForAttr(t *testing.T) {
 
 			test.check(engine.filtersForAttr(test.attr))
 
+		})
+	}
+}
+
+func TestEngine_filtersApply(t *testing.T) {
+	tests := []struct {
+		name   string
+		engine Engine
+		vm     VirtualMachine
+		req    ClusterRecommendationReq
+		attr   string
+		check  func(filtersApply bool)
+	}{
+		{
+			name:   "filter applies for cpu/mem and burst allowed",
+			engine: Engine{},
+			// minRatio = SumCpu/SumMem = 0.5
+			req: ClusterRecommendationReq{SumCpu: 4, SumMem: float64(8), AllowBurst: &trueVal},
+			// ratio = Cpus/Mem = 1
+			vm:   VirtualMachine{Cpus: 4, Mem: float64(4), Burst: true},
+			attr: Cpu,
+			check: func(filtersApply bool) {
+				assert.Equal(t, true, filtersApply, "vm should pass all filters")
+			},
+		},
+		{
+			name:   "filter doesn't apply for cpu/mem and burst not allowed ",
+			engine: Engine{},
+			// minRatio = SumCpu/SumMem = 0.5
+			req: ClusterRecommendationReq{SumCpu: 4, SumMem: float64(8), AllowBurst: &falseVal},
+			// ratio = Cpus/Mem = 1
+			vm:   VirtualMachine{Cpus: 4, Mem: float64(4), Burst: true},
+			attr: Cpu,
+			check: func(filtersApply bool) {
+				assert.Equal(t, false, filtersApply, "vm should not pass all filters")
+			},
+		},
+		{
+			name:   "filter applies for mem/cpu and burst allowed",
+			engine: Engine{},
+			// minRatio = AumMem/SumCpu = 2
+			req: ClusterRecommendationReq{SumMem: float64(8), SumCpu: 4, AllowBurst: &trueVal},
+			// ratio = Mem/Cpus = 1
+			vm:   VirtualMachine{Mem: float64(20), Cpus: 4, Burst: true},
+			attr: Memory,
+			check: func(filtersApply bool) {
+				assert.Equal(t, true, filtersApply, "vm should pass all filters")
+			},
+		},
+		{
+			name:   "filter doesn't apply for mem/cpu and burst not allowed ",
+			engine: Engine{},
+			// minRatio = AumMem/SumCpu = 2
+			req: ClusterRecommendationReq{SumMem: float64(8), SumCpu: 4, AllowBurst: &falseVal},
+			// ratio = Mem/Cpus = 1
+			vm:   VirtualMachine{Mem: float64(20), Cpus: 4, Burst: true},
+			attr: Memory,
+			check: func(filtersApply bool) {
+				assert.Equal(t, false, filtersApply, "vm should not pass all filters")
+			},
+		},
+	}
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			filters, err := test.engine.filtersForAttr(test.attr)
+			assert.Nil(t, err, "should get filters for attribute")
+			test.check(test.engine.filtersApply(test.vm, filters, test.req))
+		})
+	}
+}
+
+func TestEngine_minCpuRatioFilter(t *testing.T) {
+	tests := []struct {
+		name   string
+		engine Engine
+		vm     VirtualMachine
+		attr   string
+		req    ClusterRecommendationReq
+		check  func(filterApplies bool)
+	}{
+		{
+			name:   "minCpuRatioFilter applies",
+			engine: Engine{},
+			// minRatio = SumCpu/SumMem = 0.5
+			req: ClusterRecommendationReq{SumCpu: 4, SumMem: float64(8)},
+			// ratio = Cpus/Mem = 1
+			vm:   VirtualMachine{Cpus: 4, Mem: float64(4)},
+			attr: Cpu,
+			check: func(filterApplies bool) {
+				assert.Equal(t, true, filterApplies, "vm should pass the  minCpuRatioFilter")
+			},
+		},
+		{
+			name:   "minCpuRatioFilter doesn't apply",
+			engine: Engine{},
+			// minRatio = SumCpu/SumMem = 1
+			req: ClusterRecommendationReq{SumCpu: 4, SumMem: float64(4)},
+			// ratio = Cpus/Mem = 0.5
+			vm:   VirtualMachine{Cpus: 4, Mem: float64(8)},
+			attr: Cpu,
+			check: func(filterApplies bool) {
+				assert.Equal(t, false, filterApplies, "vm should not pass the  minCpuRatioFilter")
+			},
+		},
+	}
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+
+			test.check(test.engine.minCpuRatioFilter(test.vm, test.req))
+
+		})
+	}
+}
+
+func TestEngine_minMemRatioFilter(t *testing.T) {
+	tests := []struct {
+		name   string
+		engine Engine
+		req    ClusterRecommendationReq
+		vm     VirtualMachine
+		attr   string
+		check  func(filterApplies bool)
+	}{
+		{
+			name:   "minMemRatioFilter applies",
+			engine: Engine{},
+			// minRatio = SumMem/SumCpu = 2
+			req: ClusterRecommendationReq{SumMem: float64(8), SumCpu: 4,},
+			// ratio = Mem/Cpus = 4
+			vm:   VirtualMachine{Mem: float64(16), Cpus: 4,},
+			attr: Cpu,
+			check: func(filterApplies bool) {
+				assert.Equal(t, true, filterApplies, "vm should pass the  minMemRatioFilter")
+			},
+		},
+		{
+			name:   "minMemRatioFilter doesn't apply",
+			engine: Engine{},
+			// minRatio = SumMem/SumCpu = 2
+			req: ClusterRecommendationReq{SumMem: float64(8), SumCpu: 4,},
+			// ratio = Mem/Cpus = 0.5
+			vm:   VirtualMachine{Cpus: 4, Mem: float64(4)},
+			attr: Cpu,
+			check: func(filterApplies bool) {
+				assert.Equal(t, false, filterApplies, "vm should not pass the  minMemRatioFilter")
+			},
+		},
+	}
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+
+			test.check(test.engine.minMemRatioFilter(test.vm, test.req))
+
+		})
+	}
+}
+
+func TestEngine_burstFilter(t *testing.T) {
+	tests := []struct {
+		name   string
+		engine Engine
+		req    ClusterRecommendationReq
+		vm     VirtualMachine
+		check  func(filterApplies bool)
+	}{
+		{
+			name:   "burst filter applies - burst vm, burst allowed",
+			engine: Engine{},
+			req:    ClusterRecommendationReq{AllowBurst: &trueVal},
+			vm:     VirtualMachine{Burst: true},
+			check: func(filterApplies bool) {
+				assert.Equal(t, true, filterApplies, "vm should pass the  burst filter")
+			},
+		},
+		{
+			name:   "burst filter applies - burst vm, burst not set in req",
+			engine: Engine{},
+			req:    ClusterRecommendationReq{},
+			vm:     VirtualMachine{Burst: true},
+			check: func(filterApplies bool) {
+				assert.Equal(t, true, filterApplies, "vm should pass the  burst filter")
+			},
+		},
+		{
+			name:   "burst filter doesn't apply - burst vm, burst not allowed",
+			engine: Engine{},
+			req:    ClusterRecommendationReq{AllowBurst: &falseVal},
+			vm:     VirtualMachine{Burst: true},
+			check: func(filterApplies bool) {
+				assert.Equal(t, false, filterApplies, "vm should not pass the  burst filter")
+			},
+		},
+		{
+			name:   "burst filter doesn't apply - not burst vm, burst allowed",
+			engine: Engine{},
+			req:    ClusterRecommendationReq{AllowBurst: &falseVal},
+			vm:     VirtualMachine{Burst: true},
+			check: func(filterApplies bool) {
+				assert.Equal(t, false, filterApplies, "vm should not pass the  burst filter")
+			},
+		},
+		{
+			name:   "burst filter doesn't apply - not burst vm, burst not allowed",
+			engine: Engine{},
+			req:    ClusterRecommendationReq{AllowBurst: &falseVal},
+			vm:     VirtualMachine{Burst: false},
+			check: func(filterApplies bool) {
+				assert.Equal(t, true, filterApplies, "vm should pass the  burst filter")
+			},
+		},
+	}
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			test.check(test.engine.burstFilter(test.vm, test.req))
 		})
 	}
 }

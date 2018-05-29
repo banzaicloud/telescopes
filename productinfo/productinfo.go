@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"strings"
 	"time"
 
 	"github.com/patrickmn/go-cache"
@@ -69,6 +70,12 @@ type Ec2Vm struct {
 	Cpus          float64 `json:"cpusPerVm"`
 	Mem           float64 `json:"memPerVm"`
 	Gpus          float64 `json:"gpusPerVm"`
+}
+
+// IsBurst returns true if the EC2 instance vCPU is burst type
+// the decision is made based on the instance type
+func (vm Ec2Vm) IsBurst() bool {
+	return strings.HasPrefix("T", strings.ToUpper(vm.Type))
 }
 
 // NewProductInfo creates a new ProductInfo instance
