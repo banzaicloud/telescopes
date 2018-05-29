@@ -652,9 +652,9 @@ func TestEngine_minMemRatioFilter(t *testing.T) {
 			name:   "minMemRatioFilter applies",
 			engine: Engine{},
 			// minRatio = SumMem/SumCpu = 2
-			req: ClusterRecommendationReq{SumMem: float64(8), SumCpu: 4,},
+			req: ClusterRecommendationReq{SumMem: float64(8), SumCpu: 4},
 			// ratio = Mem/Cpus = 4
-			vm:   VirtualMachine{Mem: float64(16), Cpus: 4,},
+			vm:   VirtualMachine{Mem: float64(16), Cpus: 4},
 			attr: Cpu,
 			check: func(filterApplies bool) {
 				assert.Equal(t, true, filterApplies, "vm should pass the  minMemRatioFilter")
@@ -664,7 +664,7 @@ func TestEngine_minMemRatioFilter(t *testing.T) {
 			name:   "minMemRatioFilter doesn't apply",
 			engine: Engine{},
 			// minRatio = SumMem/SumCpu = 2
-			req: ClusterRecommendationReq{SumMem: float64(8), SumCpu: 4,},
+			req: ClusterRecommendationReq{SumMem: float64(8), SumCpu: 4},
 			// ratio = Mem/Cpus = 0.5
 			vm:   VirtualMachine{Cpus: 4, Mem: float64(4)},
 			attr: Cpu,
