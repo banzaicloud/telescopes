@@ -3,6 +3,7 @@ package ec2
 import (
 	"context"
 	"fmt"
+	"errors"
 	"strconv"
 	"strings"
 	"time"
@@ -157,6 +158,52 @@ func (e *Ec2Infoer) GetProducts(regionId string, attrKey string, attrValue produ
 	}
 	log.Debugf("found vms [%s=%s]: %#v", attrKey, attrValue.StrValue, vms)
 	return vms, nil
+}
+
+type priceData struct {
+	awsData aws.JSONValue
+}
+
+func (pd *priceData) GetInstanceType() (string, error) {
+	productMap, err := getMapForKey("product", pd.awsData)
+	if err != nil {
+		return "", err
+	}
+
+	attrMap, err := getMapForKey("attributes", productMap)
+	if err != nil {
+		return "", err
+	}
+
+	instanceType, ok := attrMap["instanceType"]
+
+	if !ok {
+		return "", errors.New("could not get instance type")
+	}
+
+	instanceTypeStr, ok := instanceType.(string)
+	if !ok {
+		return "", errors.New("could not cast instance type to string")
+	}
+
+	return instanceTypeStr, nil
+}
+
+func getMapForKey(key string, srcMap map[string]interface{}) (map[string]interface{}, error) {
+
+	rawMap, ok := srcMap[key]
+
+	if !ok {
+		return nil, fmt.Errorf("could not get map for key: [ %s ]", key)
+	}
+
+	remap, ok := rawMap.(map[string]interface{})
+
+	if !ok {
+		return nil, fmt.Errorf("the value for key: [ %s ] could not be cast to map[string]interface{}", key)
+	}
+
+	return remap, nil
 }
 
 // GetRegion gets the api specific region representation based on the provided id
