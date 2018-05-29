@@ -4,10 +4,10 @@ import (
 	"fmt"
 	"net/http"
 
-	"github.com/banzaicloud/cluster-recommender/recommender"
 	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
 	log "github.com/sirupsen/logrus"
+	"github.com/banzaicloud/telescopes/recommender"
 )
 
 // RouteHandler struct that wraps the recommender engine
