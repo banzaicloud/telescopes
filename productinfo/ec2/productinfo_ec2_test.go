@@ -7,8 +7,8 @@ import (
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/endpoints"
 	"github.com/aws/aws-sdk-go/service/pricing"
-	"github.com/stretchr/testify/assert"
 	"github.com/banzaicloud/telescopes/productinfo"
+	"github.com/stretchr/testify/assert"
 )
 
 type DummyPricingSource struct {
