@@ -8,7 +8,7 @@ import (
 	"github.com/aws/aws-sdk-go/aws/endpoints"
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/pricing"
-	"github.com/banzaicloud/cluster-recommender/productinfo"
+	"github.com/banzaicloud/telescopes/productinfo"
 	log "github.com/sirupsen/logrus"
 )
 
