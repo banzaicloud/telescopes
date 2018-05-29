@@ -1,16 +1,11 @@
 package recommender
 
 import (
+	"errors"
 	"testing"
 
-	"errors"
 	"github.com/stretchr/testify/assert"
 )
-
-type dummyVmRegistry struct {
-	// implement the interface
-	VmRegistry
-}
 
 var vms = []VirtualMachine{
 	{OnDemandPrice: float64(10), AvgPrice: 99, Cpus: float64(10), Mem: float64(10), Gpus: float64(0)},
@@ -56,12 +51,12 @@ func TestNewEngine(t *testing.T) {
 }
 
 // utility VmRegistry for mocking purposes
-type DummyVmRegistry struct {
+type dummyVmRegistry struct {
 	// test case id to drive the behaviour
 	TcId int
 }
 
-func (dvmr DummyVmRegistry) getAvailableAttributeValues(attr string) ([]float64, error) {
+func (dvmr dummyVmRegistry) getAvailableAttributeValues(attr string) ([]float64, error) {
 	switch dvmr.TcId {
 	case 1:
 		// 3 values between 10 - 20
@@ -87,7 +82,7 @@ func (dvmr DummyVmRegistry) getAvailableAttributeValues(attr string) ([]float64,
 	return nil, nil
 }
 
-func (dvmr DummyVmRegistry) findVmsWithAttrValues(region string, zones []string, attr string, values []float64) ([]VirtualMachine, error) {
+func (dvmr dummyVmRegistry) findVmsWithAttrValues(region string, zones []string, attr string, values []float64) ([]VirtualMachine, error) {
 	switch dvmr.TcId {
 	case 2:
 		return vme, nil
@@ -109,7 +104,7 @@ func TestEngine_RecommendAttrValues(t *testing.T) {
 	}{
 		{
 			name:         "all attributes between limits",
-			vmRegistries: map[string]VmRegistry{"ec2": DummyVmRegistry{TcId: 1}},
+			vmRegistries: map[string]VmRegistry{"ec2": dummyVmRegistry{TcId: 1}},
 			request: ClusterRecommendationReq{
 				MinNodes: 5,
 				MaxNodes: 10,
@@ -127,7 +122,7 @@ func TestEngine_RecommendAttrValues(t *testing.T) {
 		},
 		{
 			name:         "attributes out of limits not recommended",
-			vmRegistries: map[string]VmRegistry{"ec2": DummyVmRegistry{TcId: 2}},
+			vmRegistries: map[string]VmRegistry{"ec2": dummyVmRegistry{TcId: 2}},
 			request: ClusterRecommendationReq{
 				MinNodes: 5,
 				MaxNodes: 10,
@@ -145,7 +140,7 @@ func TestEngine_RecommendAttrValues(t *testing.T) {
 		},
 		{
 			name:         "no values between limits found - smallest value returned",
-			vmRegistries: map[string]VmRegistry{"ec2": DummyVmRegistry{TcId: 3}},
+			vmRegistries: map[string]VmRegistry{"ec2": dummyVmRegistry{TcId: 3}},
 			request: ClusterRecommendationReq{
 				MinNodes: 5,
 				MaxNodes: 10,
@@ -164,7 +159,7 @@ func TestEngine_RecommendAttrValues(t *testing.T) {
 		},
 		{
 			name:         "no values between limits found - largest value returned",
-			vmRegistries: map[string]VmRegistry{"ec2": DummyVmRegistry{TcId: 4}},
+			vmRegistries: map[string]VmRegistry{"ec2": dummyVmRegistry{TcId: 4}},
 			request: ClusterRecommendationReq{
 				MinNodes: 5,
 				MaxNodes: 10,
@@ -183,7 +178,7 @@ func TestEngine_RecommendAttrValues(t *testing.T) {
 		},
 		{
 			name:         "error - min larger than max",
-			vmRegistries: map[string]VmRegistry{"ec2": DummyVmRegistry{TcId: 5}},
+			vmRegistries: map[string]VmRegistry{"ec2": dummyVmRegistry{TcId: 5}},
 			request: ClusterRecommendationReq{
 				MinNodes: 10,
 				MaxNodes: 5,
@@ -200,7 +195,7 @@ func TestEngine_RecommendAttrValues(t *testing.T) {
 		},
 		{
 			name:         "error - no values provided",
-			vmRegistries: map[string]VmRegistry{"ec2": DummyVmRegistry{TcId: 100}},
+			vmRegistries: map[string]VmRegistry{"ec2": dummyVmRegistry{TcId: 100}},
 			request: ClusterRecommendationReq{
 				MinNodes: 10,
 				MaxNodes: 10,
@@ -217,7 +212,7 @@ func TestEngine_RecommendAttrValues(t *testing.T) {
 		},
 		{
 			name:         "error - attribute values could not be retrieved",
-			vmRegistries: map[string]VmRegistry{"ec2": DummyVmRegistry{TcId: 6}},
+			vmRegistries: map[string]VmRegistry{"ec2": dummyVmRegistry{TcId: 6}},
 			request: ClusterRecommendationReq{
 				MinNodes: 10,
 				MaxNodes: 10,
@@ -235,7 +230,7 @@ func TestEngine_RecommendAttrValues(t *testing.T) {
 		},
 		{
 			name:         "error - unsupported attribute",
-			vmRegistries: map[string]VmRegistry{"ec2": DummyVmRegistry{TcId: 1}},
+			vmRegistries: map[string]VmRegistry{"ec2": dummyVmRegistry{TcId: 1}},
 			request: ClusterRecommendationReq{
 				MinNodes: 5,
 				MaxNodes: 10,
@@ -278,7 +273,7 @@ func TestEngine_RecommendVms(t *testing.T) {
 		{
 			name:         "error - findVmsWithAttrValues",
 			region:       "us-west-2",
-			vmRegistries: map[string]VmRegistry{"ec2": DummyVmRegistry{TcId: 7}},
+			vmRegistries: map[string]VmRegistry{"ec2": dummyVmRegistry{TcId: 7}},
 			check: func(vms []VirtualMachine, err error) {
 				assert.Equal(t, err, errors.New("attribute value error"))
 				assert.Nil(t, vms, "the vms should be nil")
@@ -291,7 +286,7 @@ func TestEngine_RecommendVms(t *testing.T) {
 			filters: []vmFilter{func(vm VirtualMachine, req ClusterRecommendationReq) bool {
 				return true
 			}},
-			vmRegistries: map[string]VmRegistry{"ec2": DummyVmRegistry{}},
+			vmRegistries: map[string]VmRegistry{"ec2": dummyVmRegistry{}},
 			provider:     "ec2",
 			attribute:    Cpu,
 
@@ -307,7 +302,7 @@ func TestEngine_RecommendVms(t *testing.T) {
 			filters: []vmFilter{func(vm VirtualMachine, req ClusterRecommendationReq) bool {
 				return false
 			}},
-			vmRegistries: map[string]VmRegistry{"ec2": DummyVmRegistry{}},
+			vmRegistries: map[string]VmRegistry{"ec2": dummyVmRegistry{}},
 			provider:     "ec2",
 			attribute:    Cpu,
 
@@ -341,7 +336,7 @@ func TestEngine_RecommendNodePools(t *testing.T) {
 	}{
 		{
 			name:         "successful",
-			vmRegistries: map[string]VmRegistry{"ec2": DummyVmRegistry{TcId: 1}},
+			vmRegistries: map[string]VmRegistry{"ec2": dummyVmRegistry{TcId: 1}},
 			vms:          vms,
 			attr:         Cpu,
 			values:       []float64{4},
@@ -359,7 +354,7 @@ func TestEngine_RecommendNodePools(t *testing.T) {
 		},
 		{
 			name:         "attribute error",
-			vmRegistries: map[string]VmRegistry{"ec2": DummyVmRegistry{TcId: 1}},
+			vmRegistries: map[string]VmRegistry{"ec2": dummyVmRegistry{TcId: 1}},
 			vms:          vms,
 			attr:         "error",
 			values:       []float64{4},
@@ -398,7 +393,7 @@ func TestEngine_RecommendCluster(t *testing.T) {
 	}{
 		{
 			name:         "cluster recommendation success",
-			vmRegistries: map[string]VmRegistry{"ec2": DummyVmRegistry{TcId: 1}},
+			vmRegistries: map[string]VmRegistry{"ec2": dummyVmRegistry{TcId: 1}},
 			request: ClusterRecommendationReq{
 				MinNodes: 5,
 				MaxNodes: 10,
@@ -415,7 +410,7 @@ func TestEngine_RecommendCluster(t *testing.T) {
 		},
 		{
 			name:         "error - RecommendAttrValues, min value cannot be larger than the max value",
-			vmRegistries: map[string]VmRegistry{"ec2": DummyVmRegistry{TcId: 1}},
+			vmRegistries: map[string]VmRegistry{"ec2": dummyVmRegistry{TcId: 1}},
 			request: ClusterRecommendationReq{
 				MinNodes: 10,
 				MaxNodes: 5,
@@ -431,7 +426,7 @@ func TestEngine_RecommendCluster(t *testing.T) {
 		},
 		{
 			name:         "error - RecommendVms, could not find any VMs to recommend",
-			vmRegistries: map[string]VmRegistry{"ec2": DummyVmRegistry{TcId: 2}},
+			vmRegistries: map[string]VmRegistry{"ec2": dummyVmRegistry{TcId: 2}},
 			request: ClusterRecommendationReq{
 				MinNodes: 5,
 				MaxNodes: 10,
@@ -467,7 +462,7 @@ func TestEngine_sortByAttrValue(t *testing.T) {
 	}{
 		{
 			name:         "error - unsupported attribute",
-			vmRegistries: map[string]VmRegistry{"ec2": DummyVmRegistry{}},
+			vmRegistries: map[string]VmRegistry{"ec2": dummyVmRegistry{}},
 			attr:         "error",
 			vms:          vms,
 			check: func(err error) {
@@ -495,7 +490,7 @@ func TestEngine_filtersForAttr(t *testing.T) {
 	}{
 		{
 			name:         "error - unsupported attribute",
-			vmRegistries: map[string]VmRegistry{"ec2": DummyVmRegistry{}},
+			vmRegistries: map[string]VmRegistry{"ec2": dummyVmRegistry{}},
 			attr:         "error",
 			check: func(vms []vmFilter, err error) {
 				assert.EqualError(t, err, "unsupported attribute: [error]")
