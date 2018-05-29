@@ -4,7 +4,11 @@
 ![license](http://img.shields.io/badge/license-Apache%20v2-orange.svg)
 [![CII Best Practices](https://bestpractices.coreinfrastructure.org/projects/1651/badge)](https://bestpractices.coreinfrastructure.org/projects/1651)
 
-# Cluster recommender
+*Telescopes is a world-class left that offers lots of surfing flexibility and allows entry to a flawless, steady tube section. It's predictable and rarely pinches, is deeper than other reefs and handles the constant traffic of intermediates and experts alike.*
+
+*Telescopes is a cluster instance types and full cluster layout recommender consisting of on-demand and EC2 spot or Google Cloud preemptible instances. Based on predefined resource requirements as CPU, memory, GPU, network, etc it recommends a diverse set of cost optimized node pools*
+
+# Telescopes
 
 The Banzai Cloud cluster recommender is a standalone project in the [Pipeline](https://github.com/banzaicloud/pipeline) ecosystem.
 It's main purpose is to recommend cluster instance types and full cluster layouts consisting EC2 spot or Google Cloud preemptible instances.
