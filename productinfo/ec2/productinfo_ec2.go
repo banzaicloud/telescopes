@@ -127,26 +127,21 @@ func (e *Ec2Infoer) GetProducts(regionId string, attrKey string, attrValue produ
 		return nil, err
 	}
 	for _, price := range products.PriceList {
+		pd := priceData{awsData: price}
 		var onDemandPrice float64
-		// TODO: this is unsafe, check for nil values if needed
-		instanceType := price["product"].(map[string]interface{})["attributes"].(map[string]interface{})["instanceType"].(string)
-		cpusStr := price["product"].(map[string]interface{})["attributes"].(map[string]interface{})[Cpu].(string)
-		memStr := price["product"].(map[string]interface{})["attributes"].(map[string]interface{})[Memory].(string)
+
+		instanceType, _ := pd.GetInstanceType()
+		cpusStr, _ := pd.GetVcpu()
+		memStr, _ := pd.GetMem()
 		var gpus float64
-		if price["product"].(map[string]interface{})["attributes"].(map[string]interface{})["gpu"] != nil {
-			gpuStr := price["product"].(map[string]interface{})["attributes"].(map[string]interface{})["gpu"].(string)
-			gpus, _ = strconv.ParseFloat(gpuStr, 32)
-		}
-		onDemandTerm := price["terms"].(map[string]interface{})["OnDemand"].(map[string]interface{})
-		for _, term := range onDemandTerm {
-			priceDimensions := term.(map[string]interface{})["priceDimensions"].(map[string]interface{})
-			for _, dimension := range priceDimensions {
-				odPriceStr := dimension.(map[string]interface{})["pricePerUnit"].(map[string]interface{})["USD"].(string)
-				onDemandPrice, _ = strconv.ParseFloat(odPriceStr, 32)
-			}
-		}
+		gpu, _ := pd.GetGpu()
+		odPriceStr, _ := pd.GetOnDemandPrice()
+
+		onDemandPrice, _ = strconv.ParseFloat(odPriceStr, 32)
 		cpus, _ := strconv.ParseFloat(cpusStr, 32)
 		mem, _ := strconv.ParseFloat(strings.Split(memStr, " ")[0], 32)
+		gpus, _ = strconv.ParseFloat(gpu, 32)
+		vm := productinfo.Ec2Vm{
 		vm := productinfo.VmInfo{
 			Type:          instanceType,
 			OnDemandPrice: onDemandPrice,
@@ -187,6 +182,126 @@ func (pd *priceData) GetInstanceType() (string, error) {
 	}
 
 	return instanceTypeStr, nil
+}
+
+func (pd *priceData) GetVcpu() (string, error) {
+	productMap, err := getMapForKey("product", pd.awsData)
+	if err != nil {
+		return "", err
+	}
+
+	attrMap, err := getMapForKey("attributes", productMap)
+	if err != nil {
+		return "", err
+	}
+
+	vcpu, ok := attrMap[productinfo.Cpu]
+
+	if !ok {
+		return "", errors.New("could not get vcpu")
+	}
+
+	vcpuStr, ok := vcpu.(string)
+	if !ok {
+		return "", errors.New("could not cast vcpu to string")
+	}
+
+	return vcpuStr, nil
+}
+
+func (pd *priceData) GetMem() (string, error) {
+	productMap, err := getMapForKey("product", pd.awsData)
+	if err != nil {
+		return "", err
+	}
+
+	attrMap, err := getMapForKey("attributes", productMap)
+	if err != nil {
+		return "", err
+	}
+
+	mem, ok := attrMap[productinfo.Memory]
+
+	if !ok {
+		return "", errors.New("could not get memory")
+	}
+
+	memStr, ok := mem.(string)
+	if !ok {
+		return "", errors.New("could not cast memory to string")
+	}
+
+	return memStr, nil
+}
+
+func (pd *priceData) GetGpu() (string, error) {
+	productMap, err := getMapForKey("product", pd.awsData)
+	if err != nil {
+		return "", err
+	}
+
+	attrMap, err := getMapForKey("attributes", productMap)
+	if err != nil {
+		return "", err
+	}
+
+	gpu, ok := attrMap["gpu"]
+
+	if !ok {
+		return "", errors.New("could not get gpu")
+	}
+
+	gpuStr, ok := gpu.(string)
+	if !ok {
+		return "", errors.New("could not cast gpu to string")
+	}
+
+	return gpuStr, nil
+}
+
+func (pd *priceData) GetOnDemandPrice() (string, error) {
+	termsMap, err := getMapForKey("terms", pd.awsData)
+	if err != nil {
+		return "", err
+	}
+
+	onDemandMap, err := getMapForKey("OnDemand", termsMap)
+	if err != nil {
+		return "", err
+	}
+
+	priceDimensionsKeyMap, err := getMapForKey("2ZP4J8GPBP6QFK3Y.JRTCKXETXF", onDemandMap)
+	if err != nil {
+		return "", err
+	}
+
+	priceDimensionsMap, err := getMapForKey("priceDimensions", priceDimensionsKeyMap)
+	if err != nil {
+		return "", err
+	}
+
+	pricePerUnitKeyMap, err := getMapForKey("2ZP4J8GPBP6QFK3Y.JRTCKXETXF.6YS6EN2CT7", priceDimensionsMap)
+	if err != nil {
+		return "", err
+	}
+
+	pricePerUnitMap, err := getMapForKey("pricePerUnit", pricePerUnitKeyMap)
+	if err != nil {
+		return "", err
+	}
+
+	odPrice, ok := pricePerUnitMap["USD"]
+
+	if !ok {
+		return "", errors.New("could not get on demand price")
+	}
+
+	odPriceStr, ok := odPrice.(string)
+	if !ok {
+		return "", errors.New("could not cast on demand price to string")
+	}
+
+	return odPriceStr, nil
 }
 
 func getMapForKey(key string, srcMap map[string]interface{}) (map[string]interface{}, error) {
