@@ -162,7 +162,6 @@ func (e *Ec2Infoer) GetProducts(regionId string, attrKey string, attrValue produ
 		cpus, _ := strconv.ParseFloat(cpusStr, 32)
 		mem, _ := strconv.ParseFloat(strings.Split(memStr, " ")[0], 32)
 		gpus, _ := strconv.ParseFloat(gpu, 32)
-		vm := productinfo.Ec2Vm{
 		vm := productinfo.VmInfo{
 			Type:          instanceType,
 			OnDemandPrice: onDemandPrice,

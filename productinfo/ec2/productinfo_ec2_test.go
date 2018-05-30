@@ -298,7 +298,7 @@ func TestEc2Infoer_GetProducts(t *testing.T) {
 			attrKey:       productinfo.Cpu,
 			attrValue:     productinfo.AttrValue{Value: float64(2), StrValue: productinfo.Cpu},
 			pricingServie: &DummyPricingSource{TcId: 6},
-			check: func(vm []productinfo.Ec2Vm, err error) {
+			check: func(vm []productinfo.VmInfo, err error) {
 				assert.Equal(t, err, errors.New("could not get on demand price"))
 				assert.Nil(t, vm, "the vm should be nil")
 			},
@@ -309,7 +309,7 @@ func TestEc2Infoer_GetProducts(t *testing.T) {
 			attrKey:       productinfo.Cpu,
 			attrValue:     productinfo.AttrValue{Value: float64(2), StrValue: productinfo.Cpu},
 			pricingServie: &DummyPricingSource{TcId: 7},
-			check: func(vm []productinfo.Ec2Vm, err error) {
+			check: func(vm []productinfo.VmInfo, err error) {
 				assert.Equal(t, err, errors.New("could not get memory"))
 				assert.Nil(t, vm, "the vm should be nil")
 			},
@@ -320,7 +320,7 @@ func TestEc2Infoer_GetProducts(t *testing.T) {
 			attrKey:       productinfo.Cpu,
 			attrValue:     productinfo.AttrValue{Value: float64(2), StrValue: productinfo.Cpu},
 			pricingServie: &DummyPricingSource{TcId: 8},
-			check: func(vm []productinfo.Ec2Vm, err error) {
+			check: func(vm []productinfo.VmInfo, err error) {
 				assert.Equal(t, err, errors.New("could not get vcpu"))
 				assert.Nil(t, vm, "the vm should be nil")
 			},
@@ -331,7 +331,7 @@ func TestEc2Infoer_GetProducts(t *testing.T) {
 			attrKey:       productinfo.Cpu,
 			attrValue:     productinfo.AttrValue{Value: float64(2), StrValue: productinfo.Cpu},
 			pricingServie: &DummyPricingSource{TcId: 9},
-			check: func(vm []productinfo.Ec2Vm, err error) {
+			check: func(vm []productinfo.VmInfo, err error) {
 				assert.Equal(t, err, errors.New("could not get instance type"))
 				assert.Nil(t, vm, "the vm should be nil")
 			},
@@ -554,7 +554,7 @@ func TestPriceData_GetGpu(t *testing.T) {
 			price: data,
 			check: func(s string, err error) {
 				assert.Nil(t, err, "the error should be nil")
-				assert.Equal(t, s, "3")
+				assert.Equal(t, s, "5")
 			},
 		},
 		{
