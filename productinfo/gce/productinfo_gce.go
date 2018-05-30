@@ -10,8 +10,7 @@ type GceInfoer struct {
 
 // NewGceInfoer creates a new instance of the infoer
 func NewGceInfoer() (*GceInfoer, error) {
-	return &GceInfoer{
-	}, nil
+	return &GceInfoer{}, nil
 }
 
 // GetAttributeValues gets the AttributeValues for the given attribute name
@@ -40,15 +39,18 @@ func (g *GceInfoer) GetZones(region string) ([]string, error) {
 	return []string{}, nil
 }
 
+// GetCurrentSpotPrices retrieves all the spot prices in a region
 func (g *GceInfoer) GetCurrentSpotPrices(region string) (map[string]productinfo.PriceInfo, error) {
 	priceInfo := make(map[string]productinfo.PriceInfo)
 	return priceInfo, nil
 }
 
-func (e *GceInfoer) GetMemoryAttrName() string {
+// GetMemoryAttrName returns the provider representation of the memory attribute
+func (g *GceInfoer) GetMemoryAttrName() string {
 	return "memory"
 }
 
-func (e *GceInfoer) GetCpuAttrName() string {
+// GetCpuAttrName returns the provider representation of the cpu attribute
+func (g *GceInfoer) GetCpuAttrName() string {
 	return "cpu"
 }

@@ -25,8 +25,8 @@ var (
 		{OnDemandPrice: float64(12), SpotPrice: map[string]float64{"zonea": 0.043}, Cpus: float64(10), Mem: float64(10), Gpus: float64(0)},
 		{OnDemandPrice: float64(21), SpotPrice: map[string]float64{"zonea": 0.032}, Cpus: float64(12), Mem: float64(12), Gpus: float64(0)},
 	}
-	trueVal  bool = true
-	falseVal bool = false
+	trueVal  = true
+	falseVal = false
 )
 
 func TestNewEngine(t *testing.T) {
@@ -107,6 +107,10 @@ func (d *dummyProductInfo) GetVmsWithAttrValue(provider string, regionId string,
 }
 func (d *dummyProductInfo) GetZones(provider string, region string) ([]string, error) {
 	return nil, nil
+}
+
+func (d *dummyProductInfo) GetSpotPrice(provider string, region string, instanceType string, zones []string) (float64, error) {
+	return 0, nil
 }
 
 func TestEngine_RecommendAttrValues(t *testing.T) {

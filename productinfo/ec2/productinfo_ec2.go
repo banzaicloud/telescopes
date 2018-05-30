@@ -86,7 +86,6 @@ func NewPricing(cfg *aws.Config) PricingSource {
 }
 
 // NewConfig creates a new  Config instance and returns a pointer to it
-// todo the region to be passed as argument
 func NewConfig() *aws.Config {
 	return &aws.Config{Region: aws.String("us-east-1")}
 }
@@ -312,10 +311,12 @@ func (e *Ec2Infoer) GetCurrentSpotPrices(region string) (map[string]productinfo.
 	return spotPrices, nil
 }
 
+// GetMemoryAttrName returns the provider representation of the memory attribute
 func (e *Ec2Infoer) GetMemoryAttrName() string {
 	return Memory
 }
 
+// GetCpuAttrName returns the provider representation of the cpu attribute
 func (e *Ec2Infoer) GetCpuAttrName() string {
 	return Cpu
 }

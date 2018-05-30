@@ -24,6 +24,9 @@ const (
 
 	// AttrKeyTemplate format for generating attribute cache keys
 	AttrKeyTemplate = "/banzaicloud.com/recommender/%s/attrValues/%s"
+
+	// PriceKeyTemplate format for generating price cache keys
+	PriceKeyTemplate = "/banzaicloud.com/recommender/%s/%s/prices/%s"
 )
 
 // ProductInfoer gathers operations for retrieving cloud provider information for recommendations
@@ -41,25 +44,32 @@ type ProductInfoer interface {
 	// GetRegions retrieves the available regions form the external system
 	GetRegions() map[string]string
 
-	// TODO: rename
+	// GetCurrentSpotPrices retrieves all the spot prices in a region
 	GetCurrentSpotPrices(region string) (map[string]PriceInfo, error)
 
-	// TODO
+	// GetMemoryAttrName returns the provider representation of the memory attribute
 	GetMemoryAttrName() string
 
-	// TODO
+	// GetCpuAttrName returns the provider representation of the cpu attribute
 	GetCpuAttrName() string
 }
 
+// ProductInfo is the main entry point for retrieving vm type characteristics and pricing information on different cloud providers
 type ProductInfo interface {
-	// TODO
+	// Start starts the product information retrieval in a new goroutine
 	Start(ctx context.Context)
-	// TODO
+
+	// GetAttrValues returns a slice with the possible values for a given attribute on a specific provider
 	GetAttrValues(provider string, attribute string) ([]float64, error)
-	// TODO
+
+	// GetVmsWithAttrValue returns a slice with all those virtual machines in a region that have the required value for a given attribute
 	GetVmsWithAttrValue(provider string, regionId string, attrKey string, value float64) ([]VmInfo, error)
-	// TODO
+
+	// GetZones returns all the availability zones for a region
 	GetZones(provider string, region string) ([]string, error)
+
+	// GetSpotPrice returns the zone averaged computed spot price for a given instance type in a given region
+	GetSpotPrice(provider string, region string, instanceType string, zones []string) (float64, error)
 }
 
 // CachingProductInfo is the module struct, holds configuration and cache
@@ -86,6 +96,9 @@ func (v AttrValues) floatValues() []float64 {
 	}
 	return floatValues
 }
+
+// PriceInfo represents different prices per availability zones
+type PriceInfo map[string]float64
 
 // VmInfo representation of a virtual machine
 type VmInfo struct {
@@ -122,93 +135,76 @@ func NewCachingProductInfo(ri time.Duration, cache *cache.Cache, infoers map[str
 // Start starts the information retrieval in a new goroutine
 func (pi *CachingProductInfo) Start(ctx context.Context) {
 
-	//renew := func() {
-	//	// TODO: make it parallel
-	//	for provider, infoer := range pi.productInfoers {
-	//		log.Info("renewing product info")
-	//		attributes := []string{Cpu, Memory}
-	//		for _, attr := range attributes {
-	//			attrValues, err := pi.renewAttrValues(provider, attr)
-	//			if err != nil {
-	//				log.Errorf("couldn't renew ec2 attribute values in cache", err.Error())
-	//				return
-	//			}
-	//			for _, regionId := range infoer.GetRegions() {
-	//				for _, v := range attrValues {
-	//					_, err := pi.renewVmsWithAttr(provider, regionId, attr, v)
-	//					if err != nil {
-	//						log.Errorf("couldn't renew ec2 attribute values in cache", err.Error())
-	//					}
-	//				}
-	//			}
-	//		}
-	//	}
-	//	log.Info("finished renewing product info")
-	//}
+	renew := func() {
+		// TODO: make it parallel
+		for provider, infoer := range pi.productInfoers {
+			log.Infof("renewing %s product info", provider)
+			attributes := []string{Cpu, Memory}
+			for _, attr := range attributes {
+				attrValues, err := pi.renewAttrValues(provider, attr)
+				if err != nil {
+					log.Errorf("couldn't renew attribute values in cache", err.Error())
+					return
+				}
+				for _, regionId := range infoer.GetRegions() {
+					for _, v := range attrValues {
+						_, err := pi.renewVmsWithAttr(provider, regionId, attr, v)
+						if err != nil {
+							log.Errorf("couldn't renew attribute values in cache", err.Error())
+						}
+					}
+				}
+			}
+		}
+		log.Info("finished renewing product info")
+	}
 
 	renewShortLived := func() {
 		// TODO: make it parallel
 		for provider, infoer := range pi.productInfoers {
-			attributes := []string{Memory, Cpu}
-			for _, attr := range attributes {
-				attrValues, err := pi.getAttrValues(provider, attr)
-				if err != nil {
-					log.Errorf("couldn't renew short lived attribute values in cache", err.Error())
-					return
-				}
-				fmt.Println("1", attrValues)
-
-				// TODO: log entries
-				var wg sync.WaitGroup
-				for _, regionId := range infoer.GetRegions() {
-					wg.Add(1)
-					go func(r string) {
-						defer wg.Done()
-						priceInfo, err := infoer.GetCurrentSpotPrices(r)
-						if err != nil {
-							log.Errorf("couldn't renew short lived attribute values in cache", err.Error())
-							return
-						}
-						fmt.Println(priceInfo)
-						//for _, v := range attrValues {
-						//	_, err = pi.renewVmsWithShortLivedInfo(provider, regionId, attr, v, priceInfo)
-						//	if err != nil {
-						//		log.Errorf("couldn't renew ec2 attribute values in cache", err.Error())
-						//	}
-						//}
-					}(regionId)
-				}
-				wg.Wait()
+			log.Infof("renewing short lived %s product info", provider)
+			var wg sync.WaitGroup
+			for _, regionId := range infoer.GetRegions() {
+				wg.Add(1)
+				go func(p string, r string) {
+					defer wg.Done()
+					_, err := pi.renewShortLivedInfo(p, r)
+					if err != nil {
+						log.Errorf("couldn't renew short lived info in cache", err.Error())
+						return
+					}
+				}(provider, regionId)
 			}
+			wg.Wait()
 		}
 	}
 
-	//go renew()
-	//ticker := time.NewTicker(pi.renewalInterval)
-	//go func() {
-	//	for {
-	//		select {
-	//		case <-ticker.C:
-	//			renew()
-	//		case <-ctx.Done():
-	//			log.Debugf("closing ticker")
-	//			ticker.Stop()
-	//			return
-	//		}
-	//	}
-	//}()
-	renewShortLived()
-	//shortTicker := time.NewTicker(1 * time.Minute)
-	//for {
-	//	select {
-	//	case <-shortTicker.C:
-	//		renewShortLived()
-	//	case <-ctx.Done():
-	//		log.Debugf("closing ticker")
-	//		shortTicker.Stop()
-	//		return
-	//	}
-	//}
+	go renew()
+	ticker := time.NewTicker(pi.renewalInterval)
+	go func() {
+		for {
+			select {
+			case <-ticker.C:
+				renew()
+			case <-ctx.Done():
+				log.Debugf("closing ticker")
+				ticker.Stop()
+				return
+			}
+		}
+	}()
+	go renewShortLived()
+	shortTicker := time.NewTicker(1 * time.Minute)
+	for {
+		select {
+		case <-shortTicker.C:
+			renewShortLived()
+		case <-ctx.Done():
+			log.Debugf("closing ticker")
+			shortTicker.Stop()
+			return
+		}
+	}
 }
 
 // GetAttrValues returns a slice with the values for the given attribute name
@@ -251,6 +247,46 @@ func (pi *CachingProductInfo) renewAttrValues(provider string, attribute string)
 	}
 	pi.vmAttrStore.Set(pi.getAttrKey(provider, attribute), values, pi.renewalInterval)
 	return values, nil
+}
+
+// GetSpotPrice returns the zone averaged computed spot price for a given instance type in a given region
+func (pi *CachingProductInfo) GetSpotPrice(provider string, region string, instanceType string, zones []string) (float64, error) {
+	var p PriceInfo
+	if cachedVal, ok := pi.vmAttrStore.Get(pi.getPriceKey(provider, region, instanceType)); ok {
+		log.Debugf("Getting spot price info from cache [provider=%s, region=%s, type=%s].", provider, region, instanceType)
+		p = cachedVal.(PriceInfo)
+	} else {
+		allPriceInfo, err := pi.renewShortLivedInfo(provider, region)
+		if err != nil {
+			return 0, err
+		}
+		p = allPriceInfo[instanceType]
+	}
+	var sumPrice float64
+	for _, z := range zones {
+		for zone, price := range p {
+			if zone == z {
+				sumPrice += price
+			}
+		}
+	}
+	return sumPrice / float64(len(zones)), nil
+}
+
+func (pi *CachingProductInfo) getPriceKey(provider string, region string, instanceType string) string {
+	return fmt.Sprintf(PriceKeyTemplate, provider, region, instanceType)
+}
+
+// renewAttrValues retrieves attribute values from the cloud provider and refreshes the attribute store with them
+func (pi *CachingProductInfo) renewShortLivedInfo(provider string, region string) (map[string]PriceInfo, error) {
+	prices, err := pi.productInfoers[provider].GetCurrentSpotPrices(region)
+	if err != nil {
+		return nil, err
+	}
+	for instType, p := range prices {
+		pi.vmAttrStore.Set(pi.getPriceKey(provider, region, instType), p, pi.renewalInterval)
+	}
+	return prices, nil
 }
 
 func (pi *CachingProductInfo) toProviderAttribute(provider string, attr string) (string, error) {
@@ -300,22 +336,6 @@ func (pi *CachingProductInfo) renewVmsWithAttr(provider string, regionId string,
 	return values, nil
 }
 
-type PriceInfo map[string]float64
-
-func (pi *CachingProductInfo) renewVmsWithShortLivedInfo(provider string, regionId string, attrKey string, attrValue AttrValue, priceInfo map[string]PriceInfo) ([]VmInfo, error) {
-	vms, err := pi.GetVmsWithAttrValue(provider, regionId, attrKey, attrValue.Value)
-	if err != nil {
-		return nil, err
-	}
-
-	for i := range vms {
-		vms[i].SpotPrice = priceInfo[vms[i].Type]
-	}
-
-	pi.vmAttrStore.Set(pi.getVmKey(provider, regionId, attrKey, attrValue.Value), vms, pi.renewalInterval)
-	return vms, nil
-}
-
 func (pi *CachingProductInfo) getAttrValue(provider string, attrKey string, attrValue float64) (*AttrValue, error) {
 	attrValues, err := pi.getAttrValues(provider, attrKey)
 	if err != nil {
@@ -329,6 +349,7 @@ func (pi *CachingProductInfo) getAttrValue(provider string, attrKey string, attr
 	return nil, errors.New("couldn't find attribute Value")
 }
 
+// GetZones returns the availability zones in a region
 func (pi *CachingProductInfo) GetZones(provider string, region string) ([]string, error) {
 	return pi.productInfoers[provider].GetZones(region)
 }
