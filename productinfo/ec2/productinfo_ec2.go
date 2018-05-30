@@ -2,8 +2,8 @@ package ec2
 
 import (
 	"context"
-	"fmt"
 	"errors"
+	"fmt"
 	"strconv"
 	"strings"
 	"time"
@@ -139,21 +139,21 @@ func (e *Ec2Infoer) GetProducts(regionId string, attrKey string, attrValue produ
 			return nil, err
 		}
 		cpusStr, err := pd.GetVcpu()
-		if err != nil{
+		if err != nil {
 			log.Warn("could not get cpu")
 			return nil, err
 		}
 		memStr, err := pd.GetMem()
-		if err != nil{
+		if err != nil {
 			log.Warn("could not get memory")
 			return nil, err
 		}
 		gpu, err := pd.GetGpu()
-		if err != nil{
+		if err != nil {
 			log.Warn("could not get gpu")
 		}
 		odPriceStr, err := pd.GetOnDemandPrice()
-		if err != nil{
+		if err != nil {
 			log.Warn("could not get on demand price")
 			return nil, err
 		}
