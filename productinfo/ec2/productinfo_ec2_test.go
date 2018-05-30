@@ -438,6 +438,22 @@ func TestPriceData_GetVcpu(t *testing.T) {
 				assert.EqualError(t, err, "could not get vcpu")
 			},
 		},
+		{
+			name:  "missing attributes key",
+			price: missingAttributes,
+			check: func(s string, err error) {
+				assert.Equal(t, s, "")
+				assert.EqualError(t, err, "could not get map for key: [ attributes ]")
+			},
+		},
+		{
+			name:  "could not be cast to map[string]interface{}",
+			price: wrongMapCast,
+			check: func(s string, err error) {
+				assert.Equal(t, s, "")
+				assert.EqualError(t, err, "the value for key: [ product ] could not be cast to map[string]interface{}")
+			},
+		},
 	}
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
@@ -476,6 +492,22 @@ func TestPriceData_GetMem(t *testing.T) {
 				assert.EqualError(t, err, "could not get memory")
 			},
 		},
+		{
+			name:  "missing attributes key",
+			price: missingAttributes,
+			check: func(s string, err error) {
+				assert.Equal(t, s, "")
+				assert.EqualError(t, err, "could not get map for key: [ attributes ]")
+			},
+		},
+		{
+			name:  "could not be cast to map[string]interface{}",
+			price: wrongMapCast,
+			check: func(s string, err error) {
+				assert.Equal(t, s, "")
+				assert.EqualError(t, err, "the value for key: [ product ] could not be cast to map[string]interface{}")
+			},
+		},
 	}
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
@@ -512,6 +544,22 @@ func TestPriceData_GetGpu(t *testing.T) {
 			check: func(s string, err error) {
 				assert.Equal(t, s, "")
 				assert.EqualError(t, err, "could not get gpu")
+			},
+		},
+		{
+			name:  "missing attributes key",
+			price: missingAttributes,
+			check: func(s string, err error) {
+				assert.Equal(t, s, "")
+				assert.EqualError(t, err, "could not get map for key: [ attributes ]")
+			},
+		},
+		{
+			name:  "could not be cast to map[string]interface{}",
+			price: wrongMapCast,
+			check: func(s string, err error) {
+				assert.Equal(t, s, "")
+				assert.EqualError(t, err, "the value for key: [ product ] could not be cast to map[string]interface{}")
 			},
 		},
 	}
@@ -566,6 +614,75 @@ func TestPriceData_GetOnDemandPrice(t *testing.T) {
 			check: func(s string, err error) {
 				assert.Equal(t, s, "")
 				assert.EqualError(t, err, "could not get on demand price")
+			},
+		},
+		{
+			name:  "could not get pricePerUnit",
+			price: priceData{
+				awsData: aws.JSONValue{
+					"terms": map[string]interface{}{
+						"OnDemand": map[string]interface{}{
+							"2ZP4J8GPBP6QFK3Y.JRTCKXETXF": map[string]interface{}{
+								"priceDimensions": map[string]interface{}{
+									"2ZP4J8GPBP6QFK3Y.JRTCKXETXF.6YS6EN2CT7": map[string]interface{}{}}}}}}},
+			check: func(s string, err error) {
+				assert.Equal(t, s, "")
+				assert.EqualError(t, err, "could not get map for key: [ pricePerUnit ]")
+			},
+		},
+		{
+			name:  "could not get 2ZP4J8GPBP6QFK3Y.JRTCKXETXF.6YS6EN2CT7",
+			price: priceData{
+				awsData: aws.JSONValue{
+					"terms": map[string]interface{}{
+						"OnDemand": map[string]interface{}{
+							"2ZP4J8GPBP6QFK3Y.JRTCKXETXF": map[string]interface{}{
+								"priceDimensions": map[string]interface{}{}}}}}},
+			check: func(s string, err error) {
+				assert.Equal(t, s, "")
+				assert.EqualError(t, err, "could not get map for key: [ 2ZP4J8GPBP6QFK3Y.JRTCKXETXF.6YS6EN2CT7 ]")
+			},
+		},
+		{
+			name:  "could not get priceDimensions",
+			price: priceData{
+				awsData: aws.JSONValue{
+					"terms": map[string]interface{}{
+						"OnDemand": map[string]interface{}{
+							"2ZP4J8GPBP6QFK3Y.JRTCKXETXF": map[string]interface{}{}}}}},
+			check: func(s string, err error) {
+				assert.Equal(t, s, "")
+				assert.EqualError(t, err, "could not get map for key: [ priceDimensions ]")
+			},
+		},
+		{
+			name:  "could not get 2ZP4J8GPBP6QFK3Y.JRTCKXETXF",
+			price: priceData{
+				awsData: aws.JSONValue{
+					"terms": map[string]interface{}{
+						"OnDemand": map[string]interface{}{}}}},
+			check: func(s string, err error) {
+				assert.Equal(t, s, "")
+				assert.EqualError(t, err, "could not get map for key: [ 2ZP4J8GPBP6QFK3Y.JRTCKXETXF ]")
+			},
+		},
+		{
+			name:  "could not get OnDemand",
+			price: priceData{
+				awsData: aws.JSONValue{
+					"terms": map[string]interface{}{}}},
+			check: func(s string, err error) {
+				assert.Equal(t, s, "")
+				assert.EqualError(t, err, "could not get map for key: [ OnDemand ]")
+			},
+		},
+		{
+			name:  "could not get terms",
+			price: priceData{
+				awsData: aws.JSONValue{}},
+			check: func(s string, err error) {
+				assert.Equal(t, s, "")
+				assert.EqualError(t, err, "could not get map for key: [ terms ]")
 			},
 		},
 	}
