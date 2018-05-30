@@ -57,6 +57,8 @@ This endpoint returns a recommended cluster layout on a specific provider in a s
 
 `onDemandPct`: percentage of on-demand (regular) nodes in the cluster
 
+`allowBurst`: signals whether burst type instances are be allowed or not in the recommendation (defaults to true)
+
 `zones`: availability zones in the cluster - specifying multiple zones will recommend a multi-zone cluster
 
 `sameSize`: signals if the resulting instance types should be similarly sized, or can be completely diverse
