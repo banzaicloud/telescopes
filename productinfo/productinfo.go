@@ -122,29 +122,29 @@ func NewCachingProductInfo(ri time.Duration, cache *cache.Cache, infoers map[str
 // Start starts the information retrieval in a new goroutine
 func (pi *CachingProductInfo) Start(ctx context.Context) {
 
-	renew := func() {
-		// TODO: make it parallel
-		for provider, infoer := range pi.productInfoers {
-			log.Info("renewing product info")
-			attributes := []string{Cpu, Memory}
-			for _, attr := range attributes {
-				attrValues, err := pi.renewAttrValues(provider, attr)
-				if err != nil {
-					log.Errorf("couldn't renew ec2 attribute values in cache", err.Error())
-					return
-				}
-				for _, regionId := range infoer.GetRegions() {
-					for _, v := range attrValues {
-						_, err := pi.renewVmsWithAttr(provider, regionId, attr, v)
-						if err != nil {
-							log.Errorf("couldn't renew ec2 attribute values in cache", err.Error())
-						}
-					}
-				}
-			}
-		}
-		log.Info("finished renewing product info")
-	}
+	//renew := func() {
+	//	// TODO: make it parallel
+	//	for provider, infoer := range pi.productInfoers {
+	//		log.Info("renewing product info")
+	//		attributes := []string{Cpu, Memory}
+	//		for _, attr := range attributes {
+	//			attrValues, err := pi.renewAttrValues(provider, attr)
+	//			if err != nil {
+	//				log.Errorf("couldn't renew ec2 attribute values in cache", err.Error())
+	//				return
+	//			}
+	//			for _, regionId := range infoer.GetRegions() {
+	//				for _, v := range attrValues {
+	//					_, err := pi.renewVmsWithAttr(provider, regionId, attr, v)
+	//					if err != nil {
+	//						log.Errorf("couldn't renew ec2 attribute values in cache", err.Error())
+	//					}
+	//				}
+	//			}
+	//		}
+	//	}
+	//	log.Info("finished renewing product info")
+	//}
 
 	renewShortLived := func() {
 		// TODO: make it parallel
@@ -156,6 +156,7 @@ func (pi *CachingProductInfo) Start(ctx context.Context) {
 					log.Errorf("couldn't renew short lived attribute values in cache", err.Error())
 					return
 				}
+				fmt.Println("1", attrValues)
 
 				// TODO: log entries
 				var wg sync.WaitGroup
@@ -163,17 +164,18 @@ func (pi *CachingProductInfo) Start(ctx context.Context) {
 					wg.Add(1)
 					go func(r string) {
 						defer wg.Done()
-						priceInfo, err := infoer.GetCurrentSpotPrices(regionId)
+						priceInfo, err := infoer.GetCurrentSpotPrices(r)
 						if err != nil {
 							log.Errorf("couldn't renew short lived attribute values in cache", err.Error())
 							return
 						}
-						for _, v := range attrValues {
-							_, err = pi.renewVmsWithShortLivedInfo(provider, regionId, attr, v, priceInfo)
-							if err != nil {
-								log.Errorf("couldn't renew ec2 attribute values in cache", err.Error())
-							}
-						}
+						fmt.Println(priceInfo)
+						//for _, v := range attrValues {
+						//	_, err = pi.renewVmsWithShortLivedInfo(provider, regionId, attr, v, priceInfo)
+						//	if err != nil {
+						//		log.Errorf("couldn't renew ec2 attribute values in cache", err.Error())
+						//	}
+						//}
 					}(regionId)
 				}
 				wg.Wait()
@@ -181,31 +183,32 @@ func (pi *CachingProductInfo) Start(ctx context.Context) {
 		}
 	}
 
-	go renew()
-	ticker := time.NewTicker(pi.renewalInterval)
-	go func() {
-		for {
-			select {
-			case <-ticker.C:
-				renew()
-			case <-ctx.Done():
-				log.Debugf("closing ticker")
-				ticker.Stop()
-				return
-			}
-		}
-	}()
-	shortTicker := time.NewTicker(1 * time.Minute)
-	for {
-		select {
-		case <-shortTicker.C:
-			renewShortLived()
-		case <-ctx.Done():
-			log.Debugf("closing ticker")
-			shortTicker.Stop()
-			return
-		}
-	}
+	//go renew()
+	//ticker := time.NewTicker(pi.renewalInterval)
+	//go func() {
+	//	for {
+	//		select {
+	//		case <-ticker.C:
+	//			renew()
+	//		case <-ctx.Done():
+	//			log.Debugf("closing ticker")
+	//			ticker.Stop()
+	//			return
+	//		}
+	//	}
+	//}()
+	renewShortLived()
+	//shortTicker := time.NewTicker(1 * time.Minute)
+	//for {
+	//	select {
+	//	case <-shortTicker.C:
+	//		renewShortLived()
+	//	case <-ctx.Done():
+	//		log.Debugf("closing ticker")
+	//		shortTicker.Stop()
+	//		return
+	//	}
+	//}
 }
 
 // GetAttrValues returns a slice with the values for the given attribute name

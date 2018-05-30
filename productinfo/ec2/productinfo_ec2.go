@@ -2,7 +2,6 @@ package ec2
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"strconv"
 	"strings"
@@ -89,10 +88,7 @@ func NewPricing(cfg *aws.Config) PricingSource {
 // NewConfig creates a new  Config instance and returns a pointer to it
 // todo the region to be passed as argument
 func NewConfig() *aws.Config {
-	// getting the reference can be extracted
-	cfg := &aws.Config{Region: aws.String("us-east-1")}
-
-	return cfg
+	return &aws.Config{Region: aws.String("us-east-1")}
 }
 
 // GetAttributeValues gets the AttributeValues for the given attribute name
@@ -244,65 +240,37 @@ func (e *Ec2Infoer) GetZones(region string) ([]string, error) {
 	return zones, nil
 }
 
-func (e *Ec2Infoer) GetSpotPriceAvgsFromPrometheus(region string, zones []string, instanceTypes []string) (map[string]float64, error) {
+func (e *Ec2Infoer) getSpotPricesFromPrometheus(region string) (map[string]productinfo.PriceInfo, error) {
 	log.Debug("getting spot price averages from Prometheus API")
-	avgSpotPrices := make(map[string]float64, len(instanceTypes))
-	for _, it := range instanceTypes {
-		query := fmt.Sprintf(e.promQuery, region, it, strings.Join(zones, "|"))
-		log.Debugf("sending prometheus query: %s", query)
-		result, err := e.prometheus.Query(context.Background(), query, time.Now())
-		if err != nil {
-			return nil, err
-		} else if result.String() == "" {
-			log.Warnf("Prometheus metric is empty, instance type won't be recommended [type=%s]", it)
-		} else {
-			r := result.(model.Vector)
-			log.Debugf("query result: %s", result.String())
-			if len(r) > 0 {
-				avgPrice, err := strconv.ParseFloat(r[0].Value.String(), 64)
-				if err != nil {
-					return nil, err
-				}
-				avgSpotPrices[it] = avgPrice
-			} else {
-				log.Warnf("Prometheus metric is empty, instance type won't be recommended [type=%s]", it)
+	priceInfo := make(map[string]productinfo.PriceInfo)
+	query := fmt.Sprintf(e.promQuery, region)
+	log.Debugf("sending prometheus query: %s", query)
+	result, err := e.prometheus.Query(context.Background(), query, time.Now())
+	if err != nil {
+		return nil, err
+	} else if result.String() == "" {
+		log.Warnf("Prometheus metric is empty")
+	} else {
+		r := result.(model.Vector)
+		for _, value := range r {
+			instanceType := string(value.Metric["instance_type"])
+			az := string(value.Metric["availability_zone"])
+			price, err := strconv.ParseFloat(value.Value.String(), 64)
+			if err != nil {
+				return nil, err
 			}
+			if priceInfo[instanceType] == nil {
+				priceInfo[instanceType] = make(productinfo.PriceInfo)
+			}
+			priceInfo[instanceType][az] = price
 		}
 	}
-	// query returned empty response for every instance type
-	if len(avgSpotPrices) == 0 {
-		return nil, errors.New("query returned empty response for every instance type")
-	}
-	return avgSpotPrices, nil
+	return priceInfo, nil
 }
 
-func (e *Ec2Infoer) GetCurrentSpotPrices(region string) (map[string]productinfo.PriceInfo, error) {
-
-	//pricesParsed := false
-	//if e.prometheus != nil {
-	//	zoneAvgSpotPrices, err := e.getSpotPriceAvgsFromPrometheus(region, zones, instanceTypes)
-	//	if err != nil {
-	//		log.WithError(err).Warn("Couldn't get spot price info from Prometheus API, fallback to direct AWS API access.")
-	//	} else {
-	//		pricesParsed = true
-	//		avgSpotPrices = zoneAvgSpotPrices
-	//	}
-	//}
-	//
-	//if e.prometheus == nil || !pricesParsed {
-	//	log.Debug("getting current spot prices directly from the AWS API")
-	//	currentZoneAvgSpotPrices, err := e.getCurrentSpotPrices(region, zones, instanceTypes)
-	//	if err != nil {
-	//		return nil, err
-	//	}
-	//	avgSpotPrices = currentZoneAvgSpotPrices
-	//}
-
-
+func (e *Ec2Infoer) getCurrentSpotPrices(region string) (map[string]productinfo.PriceInfo, error) {
 	priceInfo := make(map[string]productinfo.PriceInfo)
-
 	ec2Svc := ec2.New(e.session, &aws.Config{Region: aws.String(region)})
-	log.Info("AWS API request here!!!!!!")
 	err := ec2Svc.DescribeSpotPriceHistoryPages(&ec2.DescribeSpotPriceHistoryInput{
 		StartTime:           aws.Time(time.Now()),
 		ProductDescriptions: []*string{aws.String("Linux/UNIX")},
@@ -310,8 +278,8 @@ func (e *Ec2Infoer) GetCurrentSpotPrices(region string) (map[string]productinfo.
 		for _, pe := range history.SpotPriceHistory {
 			price, err := strconv.ParseFloat(*pe.SpotPrice, 64)
 			if err != nil {
-				// TODO: it doesn't look good, at least log something
-				return false
+				log.WithError(err).Errorf("couldn't parse spot price from history")
+				continue
 			}
 			if priceInfo[*pe.InstanceType] == nil {
 				priceInfo[*pe.InstanceType] = make(productinfo.PriceInfo)
@@ -323,8 +291,25 @@ func (e *Ec2Infoer) GetCurrentSpotPrices(region string) (map[string]productinfo.
 	if err != nil {
 		return nil, err
 	}
-
 	return priceInfo, nil
+}
+
+// GetCurrentSpotPrices returns the current spot prices of every instance type in every availability zone in a given region
+func (e *Ec2Infoer) GetCurrentSpotPrices(region string) (map[string]productinfo.PriceInfo, error) {
+	if e.prometheus != nil {
+		spotPrices, err := e.getSpotPricesFromPrometheus(region)
+		if err != nil {
+			log.WithError(err).Warn("Couldn't get spot price info from Prometheus API, fallback to direct AWS API access.")
+		} else {
+			return spotPrices, nil
+		}
+	}
+	log.Debug("getting current spot prices directly from the AWS API")
+	spotPrices, err := e.getCurrentSpotPrices(region)
+	if err != nil {
+		return nil, err
+	}
+	return spotPrices, nil
 }
 
 func (e *Ec2Infoer) GetMemoryAttrName() string {

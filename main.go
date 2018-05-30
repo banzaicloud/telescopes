@@ -32,7 +32,7 @@ var (
 	addr                       = flag.String("listen-address", ":9090", "The address to listen on for HTTP requests.")
 	productInfoRenewalInterval = flag.Duration("product-info-renewal-interval", 24*time.Hour, "Duration (in go syntax) between renewing the ec2 product info. Example: 2h30m")
 	prometheusAddress          = flag.String("prometheus-address", "", "http address of a Prometheus instance that has AWS spot price metrics via banzaicloud/spot-price-exporter. If empty, the recommender will use current spot prices queried directly from the AWS API.")
-	promQuery                  = flag.String("prometheus-query", "avg(avg_over_time(aws_spot_current_price{region=\"%s\", instance_type=\"%s\", availability_zone=~\"%s\", product_description=\"Linux/UNIX\"}[1w]))", "advanced configuration: change the query used to query spot price info from Prometheus.")
+	promQuery                  = flag.String("prometheus-query", "avg_over_time(aws_spot_current_price{region=\"%s\", product_description=\"Linux/UNIX\"}[1w])", "advanced configuration: change the query used to query spot price info from Prometheus.")
 )
 
 func init() {
