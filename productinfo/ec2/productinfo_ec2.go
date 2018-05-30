@@ -126,8 +126,12 @@ func (e *Ec2Infoer) GetProducts(regionId string, attrKey string, attrValue produ
 	if err != nil {
 		return nil, err
 	}
-	for _, price := range products.PriceList {
-		pd := priceData{awsData: price}
+	for i, price := range products.PriceList {
+		pd, err := newPriceData(price)
+		if err != nil {
+			log.Warn("could not extract pricing info for the item with index: [ %d ]", i)
+			continue
+		}
 		var onDemandPrice float64
 
 		instanceType, _ := pd.GetInstanceType()
@@ -157,21 +161,31 @@ func (e *Ec2Infoer) GetProducts(regionId string, attrKey string, attrValue produ
 
 type priceData struct {
 	awsData aws.JSONValue
+	attrMap map[string]interface{}
 }
 
-func (pd *priceData) GetInstanceType() (string, error) {
+func newPriceData(prData aws.JSONValue) (*priceData, error) {
+	pd := priceData{awsData: prData}
+
+	// get the attributes map
 	productMap, err := getMapForKey("product", pd.awsData)
 	if err != nil {
-		return "", err
+		return nil, err
 	}
 
 	attrMap, err := getMapForKey("attributes", productMap)
 	if err != nil {
-		return "", err
+		return nil, err
 	}
 
-	instanceType, ok := attrMap["instanceType"]
+	pd.attrMap = attrMap
 
+	return &pd, nil
+}
+
+func (pd *priceData) GetInstanceType() (string, error) {
+
+	instanceType, ok := pd.attrMap["instanceType"]
 	if !ok {
 		return "", errors.New("could not get instance type")
 	}
@@ -185,17 +199,8 @@ func (pd *priceData) GetInstanceType() (string, error) {
 }
 
 func (pd *priceData) GetVcpu() (string, error) {
-	productMap, err := getMapForKey("product", pd.awsData)
-	if err != nil {
-		return "", err
-	}
 
-	attrMap, err := getMapForKey("attributes", productMap)
-	if err != nil {
-		return "", err
-	}
-
-	vcpu, ok := attrMap[productinfo.Cpu]
+	vcpu, ok := pd.attrMap[productinfo.Cpu]
 
 	if !ok {
 		return "", errors.New("could not get vcpu")
@@ -210,17 +215,8 @@ func (pd *priceData) GetVcpu() (string, error) {
 }
 
 func (pd *priceData) GetMem() (string, error) {
-	productMap, err := getMapForKey("product", pd.awsData)
-	if err != nil {
-		return "", err
-	}
 
-	attrMap, err := getMapForKey("attributes", productMap)
-	if err != nil {
-		return "", err
-	}
-
-	mem, ok := attrMap[productinfo.Memory]
+	mem, ok := pd.attrMap[productinfo.Memory]
 
 	if !ok {
 		return "", errors.New("could not get memory")
@@ -235,17 +231,8 @@ func (pd *priceData) GetMem() (string, error) {
 }
 
 func (pd *priceData) GetGpu() (string, error) {
-	productMap, err := getMapForKey("product", pd.awsData)
-	if err != nil {
-		return "", err
-	}
 
-	attrMap, err := getMapForKey("attributes", productMap)
-	if err != nil {
-		return "", err
-	}
-
-	gpu, ok := attrMap["gpu"]
+	gpu, ok := pd.attrMap["gpu"]
 
 	if !ok {
 		return "", errors.New("could not get gpu")
@@ -270,6 +257,7 @@ func (pd *priceData) GetOnDemandPrice() (string, error) {
 		return "", err
 	}
 
+	// TODO .....
 	priceDimensionsKeyMap, err := getMapForKey("2ZP4J8GPBP6QFK3Y.JRTCKXETXF", onDemandMap)
 	if err != nil {
 		return "", err
