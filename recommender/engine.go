@@ -325,7 +325,6 @@ func (e *Engine) RecommendVms(provider string, region string, attr string, value
 	}
 
 	var filteredVms []VirtualMachine
-	fmt.Println("1", vmsInRange)
 	for _, vm := range vmsInRange {
 		if e.filtersApply(vm, filters, req) {
 			filteredVms = append(filteredVms, vm)
@@ -361,18 +360,18 @@ func (e *Engine) findVmsWithAttrValues(provider string, region string, zones []s
 			return nil, err
 		}
 		for _, vmInfo := range vmInfos {
-			var sumPrice float64
-			for _, z := range zones {
-				sumPrice += vmInfo.SpotPrice[z]
-			}
 			vm := VirtualMachine{
 				Type:          vmInfo.Type,
 				OnDemandPrice: vmInfo.OnDemandPrice,
-				AvgPrice:      sumPrice / float64(len(zones)),
 				Cpus:          vmInfo.Cpus,
 				Mem:           vmInfo.Mem,
 				Gpus:          vmInfo.Gpus,
 			}
+			spotPrice, err := e.productInfo.GetSpotPrice(provider, region, vmInfo.Type, zones)
+			if err != nil {
+				return nil, err
+			}
+			vm.AvgPrice = spotPrice
 			vms = append(vms, vm)
 		}
 	}

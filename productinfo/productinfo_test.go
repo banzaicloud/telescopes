@@ -305,8 +305,8 @@ func TestGetAttrValues(t *testing.T) {
 			},
 		},
 		{
-			name: "attribute values error",
-			provider:  "dummy",
+			name:     "attribute values error",
+			provider: "dummy",
 			ProductInfoer: map[string]ProductInfoer{
 				"dummy": &DummyProductInfoer{
 					AttrValues: AttrValues{AttrValue{Value: float64(21), StrValue: "21"}},
