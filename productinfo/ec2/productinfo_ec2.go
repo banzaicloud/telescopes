@@ -133,22 +133,22 @@ func (e *Ec2Infoer) GetProducts(regionId string, attrKey string, attrValue produ
 			continue
 		}
 
-		instanceType, err := pd.GetInstanceType()
+		instanceType, err := pd.GetSomeData("instanceType")
 		if err != nil {
 			log.Warn("could not retrieve instance type")
 			continue
 		}
-		cpusStr, err := pd.GetVcpu()
+		cpusStr, err := pd.GetSomeData(Cpu)
 		if err != nil {
 			log.Warn("could not retrieve vcpu")
 			continue
 		}
-		memStr, err := pd.GetMem()
+		memStr, err := pd.GetSomeData(Memory)
 		if err != nil {
 			log.Warn("could not retrieve memory")
 			continue
 		}
-		gpu, err := pd.GetGpu()
+		gpu, err := pd.GetSomeData("gpu")
 		if err != nil {
 			log.Warn("could not retrieve gpu")
 		}
@@ -198,37 +198,34 @@ func newPriceData(prData aws.JSONValue) (*priceData, error) {
 
 	return &pd, nil
 }
-
-func (pd *priceData) GetInstanceType() (string, error) {
-	instanceType, ok := pd.attrMap["instanceType"].(string)
-	if !ok {
-		return "", errors.New("could not get instance type or could not cast instance type to string")
+func (pd *priceData) GetSomeData(attr string) (string, error) {
+	switch attr {
+	case "instanceType":
+		instanceType, ok := pd.attrMap["instanceType"].(string)
+		if !ok {
+			return "", errors.New("could not get instance type or could not cast instance type to string")
+		}
+		return instanceType, nil
+	case Cpu:
+		vcpu, ok := pd.attrMap[Cpu].(string)
+		if !ok {
+			return "", errors.New("could not get vcpu or could not cast vcpu to string")
+		}
+		return vcpu, nil
+	case Memory:
+		mem, ok := pd.attrMap[Memory].(string)
+		if !ok {
+			return "", errors.New("could not get memory or could not cast memory to string")
+		}
+		return mem, nil
+	case "gpu":
+		gpu, ok := pd.attrMap["gpu"].(string)
+		if !ok {
+			return "", errors.New("could not get gpu or could not cast gpu to string")
+		}
+		return gpu, nil
 	}
-	return instanceType, nil
-}
-
-func (pd *priceData) GetVcpu() (string, error) {
-	vcpu, ok := pd.attrMap[Cpu].(string)
-	if !ok {
-		return "", errors.New("could not get vcpu or could not cast vcpu to string")
-	}
-	return vcpu, nil
-}
-
-func (pd *priceData) GetMem() (string, error) {
-	mem, ok := pd.attrMap[Memory].(string)
-	if !ok {
-		return "", errors.New("could not get memory or could not cast memory to string")
-	}
-	return mem, nil
-}
-
-func (pd *priceData) GetGpu() (string, error) {
-	gpu, ok := pd.attrMap["gpu"].(string)
-	if !ok {
-		return "", errors.New("could not get gpu or could not cast gpu to string")
-	}
-	return gpu, nil
+	return "", errors.New("invalid attribute")
 }
 
 func (pd *priceData) GetOnDemandPrice() (string, error) {

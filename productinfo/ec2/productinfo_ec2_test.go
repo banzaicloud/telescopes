@@ -426,14 +426,16 @@ func TestNewPricing(t *testing.T) {
 	}
 }
 
-func TestPriceData_GetInstanceType(t *testing.T) {
+func TestPriceData_GetSomeData(t *testing.T) {
 	tests := []struct {
 		name  string
+		attr  string
 		price priceData
 		check func(s string, err error)
 	}{
 		{
-			name:  "successful",
+			name:  "successful - get instance type",
+			attr:  "instanceType",
 			price: data,
 			check: func(s string, err error) {
 				assert.Nil(t, err, "the error should be nil")
@@ -441,7 +443,8 @@ func TestPriceData_GetInstanceType(t *testing.T) {
 			},
 		},
 		{
-			name:  "cast problem",
+			name:  "cast problem - get instance type",
+			attr:  "instanceType",
 			price: wrongCast,
 			check: func(s string, err error) {
 				assert.Equal(t, s, "")
@@ -449,30 +452,17 @@ func TestPriceData_GetInstanceType(t *testing.T) {
 			},
 		},
 		{
-			name:  "missing data",
+			name:  "missing data - get instance type",
+			attr:  "instanceType",
 			price: missingData,
 			check: func(s string, err error) {
 				assert.Equal(t, s, "")
 				assert.EqualError(t, err, "could not get instance type or could not cast instance type to string")
 			},
 		},
-	}
-	for _, test := range tests {
-		t.Run(test.name, func(t *testing.T) {
-			pricedata, _ := newPriceData(test.price.awsData)
-			test.check(pricedata.GetInstanceType())
-		})
-	}
-}
-
-func TestPriceData_GetVcpu(t *testing.T) {
-	tests := []struct {
-		name  string
-		price priceData
-		check func(s string, err error)
-	}{
 		{
-			name:  "successful",
+			name:  "successful - get cpu",
+			attr:  Cpu,
 			price: data,
 			check: func(s string, err error) {
 				assert.Nil(t, err, "the error should be nil")
@@ -480,7 +470,8 @@ func TestPriceData_GetVcpu(t *testing.T) {
 			},
 		},
 		{
-			name:  "cast problem",
+			name:  "cast problem - get cpu",
+			attr:  Cpu,
 			price: wrongCast,
 			check: func(s string, err error) {
 				assert.Equal(t, s, "")
@@ -488,30 +479,17 @@ func TestPriceData_GetVcpu(t *testing.T) {
 			},
 		},
 		{
-			name:  "missing data",
+			name:  "missing data - get cpu",
+			attr:  Cpu,
 			price: missingData,
 			check: func(s string, err error) {
 				assert.Equal(t, s, "")
 				assert.EqualError(t, err, "could not get vcpu or could not cast vcpu to string")
 			},
 		},
-	}
-	for _, test := range tests {
-		t.Run(test.name, func(t *testing.T) {
-			pricedata, _ := newPriceData(test.price.awsData)
-			test.check(pricedata.GetVcpu())
-		})
-	}
-}
-
-func TestPriceData_GetMem(t *testing.T) {
-	tests := []struct {
-		name  string
-		price priceData
-		check func(s string, err error)
-	}{
 		{
-			name:  "successful",
+			name:  "successful - get memory",
+			attr:  Memory,
 			price: data,
 			check: func(s string, err error) {
 				assert.Nil(t, err, "the error should be nil")
@@ -519,7 +497,8 @@ func TestPriceData_GetMem(t *testing.T) {
 			},
 		},
 		{
-			name:  "cast problem",
+			name:  "cast problem - get memory",
+			attr:  Memory,
 			price: wrongCast,
 			check: func(s string, err error) {
 				assert.Equal(t, s, "")
@@ -527,30 +506,17 @@ func TestPriceData_GetMem(t *testing.T) {
 			},
 		},
 		{
-			name:  "missing data",
+			name:  "missing data - get memory",
+			attr:  Memory,
 			price: missingData,
 			check: func(s string, err error) {
 				assert.Equal(t, s, "")
 				assert.EqualError(t, err, "could not get memory or could not cast memory to string")
 			},
 		},
-	}
-	for _, test := range tests {
-		t.Run(test.name, func(t *testing.T) {
-			pricedata, _ := newPriceData(test.price.awsData)
-			test.check(pricedata.GetMem())
-		})
-	}
-}
-
-func TestPriceData_GetGpu(t *testing.T) {
-	tests := []struct {
-		name  string
-		price priceData
-		check func(s string, err error)
-	}{
 		{
-			name:  "successful",
+			name:  "successful - get gpu",
+			attr:  "gpu",
 			price: data,
 			check: func(s string, err error) {
 				assert.Nil(t, err, "the error should be nil")
@@ -558,7 +524,8 @@ func TestPriceData_GetGpu(t *testing.T) {
 			},
 		},
 		{
-			name:  "cast problem",
+			name:  "cast problem - get gpu",
+			attr:  "gpu",
 			price: wrongCast,
 			check: func(s string, err error) {
 				assert.Equal(t, s, "")
@@ -566,18 +533,28 @@ func TestPriceData_GetGpu(t *testing.T) {
 			},
 		},
 		{
-			name:  "missing data",
+			name:  "missing data - get gpu",
+			attr:  "gpu",
 			price: missingData,
 			check: func(s string, err error) {
 				assert.Equal(t, s, "")
 				assert.EqualError(t, err, "could not get gpu or could not cast gpu to string")
 			},
 		},
+		{
+			name:  "invalid attribute",
+			attr:  "invalid",
+			price: data,
+			check: func(s string, err error) {
+				assert.Equal(t, s, "")
+				assert.EqualError(t, err, "invalid attribute")
+			},
+		},
 	}
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
 			pricedata, _ := newPriceData(test.price.awsData)
-			test.check(pricedata.GetGpu())
+			test.check(pricedata.GetSomeData(test.attr))
 		})
 	}
 }
