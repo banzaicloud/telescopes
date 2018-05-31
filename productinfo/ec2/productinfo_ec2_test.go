@@ -19,10 +19,10 @@ var data = priceData{
 	awsData: aws.JSONValue{
 		"product": map[string]interface{}{
 			"attributes": map[string]interface{}{
-				"instanceType":     "db.t2.small",
-				productinfo.Cpu:    "1",
-				productinfo.Memory: "2",
-				"gpu":              "5",
+				"instanceType": "db.t2.small",
+				Cpu:            "1",
+				Memory:         "2",
+				"gpu":          "5",
 			}},
 		"terms": map[string]interface{}{
 			"OnDemand": map[string]interface{}{
@@ -39,10 +39,10 @@ var wrongCast = priceData{
 	awsData: aws.JSONValue{
 		"product": map[string]interface{}{
 			"attributes": map[string]interface{}{
-				"instanceType":     0,
-				productinfo.Cpu:    1,
-				productinfo.Memory: 2,
-				"gpu":              3,
+				"instanceType": 0,
+				Cpu:            1,
+				Memory:         2,
+				"gpu":          3,
 			}},
 	},
 }
@@ -108,9 +108,9 @@ func (dps *DummyPricingSource) GetProducts(input *pricing.GetProductsInput) (*pr
 				{
 					"product": map[string]interface{}{
 						"attributes": map[string]interface{}{
-							"instanceType":     "db.t2.small",
-							productinfo.Cpu:    "1",
-							productinfo.Memory: "2",
+							"instanceType": "db.t2.small",
+							Cpu:            "1",
+							Memory:         "2",
 						}},
 					"terms": map[string]interface{}{
 						"OnDemand": map[string]interface{}{
@@ -130,9 +130,9 @@ func (dps *DummyPricingSource) GetProducts(input *pricing.GetProductsInput) (*pr
 				{
 					"product": map[string]interface{}{
 						"attributes": map[string]interface{}{
-							"instanceType":     "db.t2.small",
-							productinfo.Cpu:    "1",
-							productinfo.Memory: "2",
+							"instanceType": "db.t2.small",
+							Cpu:            "1",
+							Memory:         "2",
 						}},
 					"terms": map[string]interface{}{
 						"OnDemand": map[string]interface{}{
@@ -149,8 +149,8 @@ func (dps *DummyPricingSource) GetProducts(input *pricing.GetProductsInput) (*pr
 				{
 					"product": map[string]interface{}{
 						"attributes": map[string]interface{}{
-							"instanceType":  "db.t2.small",
-							productinfo.Cpu: "1",
+							"instanceType": "db.t2.small",
+							Cpu:            "1",
 						}}},
 			},
 		}, nil
@@ -273,7 +273,7 @@ func TestEc2Infoer_GetProducts(t *testing.T) {
 		{
 			name:          "successful",
 			regionId:      "eu-central-1",
-			attrKey:       productinfo.Cpu,
+			attrKey:       Cpu,
 			attrValue:     productinfo.AttrValue{Value: float64(2), StrValue: productinfo.Cpu},
 			pricingServie: &DummyPricingSource{TcId: 4},
 			check: func(vm []productinfo.VmInfo, err error) {
@@ -284,7 +284,7 @@ func TestEc2Infoer_GetProducts(t *testing.T) {
 		{
 			name:          "error - GetProducts",
 			regionId:      "eu-central-1",
-			attrKey:       productinfo.Cpu,
+			attrKey:       Cpu,
 			attrValue:     productinfo.AttrValue{Value: float64(2), StrValue: productinfo.Cpu},
 			pricingServie: &DummyPricingSource{TcId: 5},
 			check: func(vm []productinfo.VmInfo, err error) {
@@ -295,45 +295,45 @@ func TestEc2Infoer_GetProducts(t *testing.T) {
 		{
 			name:          "error - on demand price",
 			regionId:      "eu-central-1",
-			attrKey:       productinfo.Cpu,
+			attrKey:       Cpu,
 			attrValue:     productinfo.AttrValue{Value: float64(2), StrValue: productinfo.Cpu},
 			pricingServie: &DummyPricingSource{TcId: 6},
 			check: func(vm []productinfo.VmInfo, err error) {
-				assert.Equal(t, err, errors.New("could not get on demand price"))
-				assert.Nil(t, vm, "the vm should be nil")
+				assert.Nil(t, err, "the error should be nil")
+				assert.Nil(t, vm, "the vm should not be nil")
 			},
 		},
 		{
 			name:          "error - memory",
 			regionId:      "eu-central-1",
-			attrKey:       productinfo.Cpu,
+			attrKey:       Cpu,
 			attrValue:     productinfo.AttrValue{Value: float64(2), StrValue: productinfo.Cpu},
 			pricingServie: &DummyPricingSource{TcId: 7},
 			check: func(vm []productinfo.VmInfo, err error) {
-				assert.Equal(t, err, errors.New("could not get memory"))
-				assert.Nil(t, vm, "the vm should be nil")
+				assert.Nil(t, err, "the error should be nil")
+				assert.Nil(t, vm, "the vm should not be nil")
 			},
 		},
 		{
 			name:          "error - cpu",
 			regionId:      "eu-central-1",
-			attrKey:       productinfo.Cpu,
+			attrKey:       Cpu,
 			attrValue:     productinfo.AttrValue{Value: float64(2), StrValue: productinfo.Cpu},
 			pricingServie: &DummyPricingSource{TcId: 8},
 			check: func(vm []productinfo.VmInfo, err error) {
-				assert.Equal(t, err, errors.New("could not get vcpu"))
-				assert.Nil(t, vm, "the vm should be nil")
+				assert.Nil(t, err, "the error should be nil")
+				assert.Nil(t, vm, "the vm should not be nil")
 			},
 		},
 		{
 			name:          "error - instance type",
 			regionId:      "eu-central-1",
-			attrKey:       productinfo.Cpu,
+			attrKey:       Cpu,
 			attrValue:     productinfo.AttrValue{Value: float64(2), StrValue: productinfo.Cpu},
 			pricingServie: &DummyPricingSource{TcId: 9},
 			check: func(vm []productinfo.VmInfo, err error) {
-				assert.Equal(t, err, errors.New("could not get instance type"))
-				assert.Nil(t, vm, "the vm should be nil")
+				assert.Nil(t, err, "the error should be nil")
+				assert.Nil(t, vm, "the vm should not be nil")
 			},
 		},
 	}

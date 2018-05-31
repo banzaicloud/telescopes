@@ -135,28 +135,28 @@ func (e *Ec2Infoer) GetProducts(regionId string, attrKey string, attrValue produ
 
 		instanceType, err := pd.GetInstanceType()
 		if err != nil {
-			log.Warn("could not get instance type")
+			log.Warn("could not retrieve instance type")
 			continue
 		}
 		cpusStr, err := pd.GetVcpu()
 		if err != nil {
-			log.Warn("could not get cpu")
+			log.Warn("could not retrieve vcpu")
 			continue
 		}
 		memStr, err := pd.GetMem()
 		if err != nil {
-			log.Warn("could not get memory")
+			log.Warn("could not retrieve memory")
 			continue
 		}
 		gpu, err := pd.GetGpu()
 		if err != nil {
-			log.Warn("could not get gpu")
+			log.Warn("could not retrieve gpu")
+			continue
 		}
 		odPriceStr, err := pd.GetOnDemandPrice()
 		if err != nil {
-			log.Warn("could not get on demand price")
+			log.Warn("could not retrieve on demand price")
 			continue
-
 		}
 
 		onDemandPrice, _ := strconv.ParseFloat(odPriceStr, 32)
@@ -217,7 +217,7 @@ func (pd *priceData) GetInstanceType() (string, error) {
 
 func (pd *priceData) GetVcpu() (string, error) {
 
-	vcpu, ok := pd.attrMap["vcpu"]
+	vcpu, ok := pd.attrMap[Cpu]
 
 	if !ok {
 		return "", errors.New("could not get vcpu")
@@ -233,7 +233,7 @@ func (pd *priceData) GetVcpu() (string, error) {
 
 func (pd *priceData) GetMem() (string, error) {
 
-	mem, ok := pd.attrMap[productinfo.Memory]
+	mem, ok := pd.attrMap[Memory]
 
 	if !ok {
 		return "", errors.New("could not get memory")
