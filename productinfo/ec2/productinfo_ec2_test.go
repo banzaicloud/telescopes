@@ -278,7 +278,7 @@ func TestEc2Infoer_GetProducts(t *testing.T) {
 			pricingServie: &DummyPricingSource{TcId: 4},
 			check: func(vm []productinfo.VmInfo, err error) {
 				assert.Nil(t, err, "the error should be nil")
-				assert.NotNil(t, vm, "the vm should not be nil")
+				assert.Equal(t, vm, []productinfo.VmInfo{productinfo.VmInfo{Type:"db.t2.small", OnDemandPrice:5, SpotPrice:productinfo.PriceInfo(nil), Cpus:1, Mem:2, Gpus:0}})
 			},
 		},
 		{
@@ -426,7 +426,7 @@ func TestNewPricing(t *testing.T) {
 	}
 }
 
-func TestPriceData_GetSomeData(t *testing.T) {
+func TestPriceData_GetDataForKey(t *testing.T) {
 	tests := []struct {
 		name  string
 		attr  string
@@ -554,7 +554,7 @@ func TestPriceData_GetSomeData(t *testing.T) {
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
 			pricedata, _ := newPriceData(test.price.awsData)
-			test.check(pricedata.GetSomeData(test.attr))
+			test.check(pricedata.GetDataForKey(test.attr))
 		})
 	}
 }

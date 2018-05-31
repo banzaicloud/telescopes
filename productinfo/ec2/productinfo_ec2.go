@@ -133,22 +133,22 @@ func (e *Ec2Infoer) GetProducts(regionId string, attrKey string, attrValue produ
 			continue
 		}
 
-		instanceType, err := pd.GetSomeData("instanceType")
+		instanceType, err := pd.GetDataForKey("instanceType")
 		if err != nil {
 			log.Warn("could not retrieve instance type")
 			continue
 		}
-		cpusStr, err := pd.GetSomeData(Cpu)
+		cpusStr, err := pd.GetDataForKey(Cpu)
 		if err != nil {
 			log.Warn("could not retrieve vcpu")
 			continue
 		}
-		memStr, err := pd.GetSomeData(Memory)
+		memStr, err := pd.GetDataForKey(Memory)
 		if err != nil {
 			log.Warn("could not retrieve memory")
 			continue
 		}
-		gpu, err := pd.GetSomeData("gpu")
+		gpu, err := pd.GetDataForKey("gpu")
 		if err != nil {
 			log.Warn("could not retrieve gpu")
 		}
@@ -198,7 +198,7 @@ func newPriceData(prData aws.JSONValue) (*priceData, error) {
 
 	return &pd, nil
 }
-func (pd *priceData) GetSomeData(attr string) (string, error) {
+func (pd *priceData) GetDataForKey(attr string) (string, error) {
 	switch attr {
 	case "instanceType":
 		instanceType, ok := pd.attrMap["instanceType"].(string)
