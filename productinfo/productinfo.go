@@ -113,7 +113,7 @@ type VmInfo struct {
 // IsBurst returns true if the EC2 instance vCPU is burst type
 // the decision is made based on the instance type
 func (vm VmInfo) IsBurst() bool {
-	return strings.HasPrefix("T", strings.ToUpper(vm.Type))
+	return strings.HasPrefix(strings.ToUpper(vm.Type), "T")
 }
 
 // NewCachingProductInfo creates a new CachingProductInfo instance

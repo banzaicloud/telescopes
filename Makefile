@@ -72,7 +72,7 @@ lint: install-golint
 	golint -min_confidence 0.9 -set_exit_status $(PKGS)
 
 test:
-	@go test -v ./...
+	@go test -v -cover ./...
 
 install-golint:
 	GOLINT_CMD=$(shell command -v golint 2> /dev/null)

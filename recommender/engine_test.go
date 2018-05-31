@@ -5,6 +5,7 @@ import (
 	"errors"
 	"testing"
 
+	"fmt"
 	"github.com/banzaicloud/telescopes/productinfo"
 	"github.com/stretchr/testify/assert"
 )
@@ -460,7 +461,7 @@ func TestEngine_RecommendCluster(t *testing.T) {
 			provider: "dummy",
 			region:   "us-west-2",
 			check: func(response *ClusterRecommendationResp, err error) {
-				assert.Equal(t, err, errors.New("could not get virtual machines for attr: [cpu], cause: [couldn't find any VMs to recommend]"))
+				assert.Equal(t, fmt.Errorf("could not get virtual machines for attr: [%s], cause: [couldn't find any VMs to recommend]", productinfo.Memory).Error(), err.Error())
 				assert.Nil(t, response, "the response should be nil")
 			},
 		},
@@ -564,7 +565,7 @@ func TestEngine_filtersApply(t *testing.T) {
 			req: ClusterRecommendationReq{SumCpu: 4, SumMem: float64(8), AllowBurst: &trueVal},
 			// ratio = Cpus/Mem = 1
 			vm:   VirtualMachine{Cpus: 4, Mem: float64(4), Burst: true},
-			attr: productinfo.Cpu,
+			attr: productinfo.Memory,
 			check: func(filtersApply bool) {
 				assert.Equal(t, true, filtersApply, "vm should pass all filters")
 			},
@@ -588,7 +589,7 @@ func TestEngine_filtersApply(t *testing.T) {
 			req: ClusterRecommendationReq{SumMem: float64(8), SumCpu: 4, AllowBurst: &trueVal},
 			// ratio = Mem/Cpus = 1
 			vm:   VirtualMachine{Mem: float64(20), Cpus: 4, Burst: true},
-			attr: productinfo.Memory,
+			attr: productinfo.Cpu,
 			check: func(filtersApply bool) {
 				assert.Equal(t, true, filtersApply, "vm should pass all filters")
 			},
@@ -751,6 +752,172 @@ func TestEngine_burstFilter(t *testing.T) {
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
 			test.check(test.engine.burstFilter(test.vm, test.req))
+		})
+	}
+}
+
+func TestEngine_findValuesBetween(t *testing.T) {
+	tests := []struct {
+		name   string
+		engine Engine
+		check  func([]float64, error)
+		min    float64
+		max    float64
+		values []float64
+	}{
+		{
+			name:   "failure - no attribute values to filer",
+			engine: Engine{},
+			values: nil,
+			min:    0,
+			max:    100,
+			check: func(res []float64, err error) {
+				assert.Equal(t, "no attribute values provided", err.Error())
+				assert.Nil(t, res, "the result should be nil")
+			},
+		},
+		{
+			name:   "failure - min > max",
+			engine: Engine{},
+			values: []float64{0},
+			min:    100,
+			max:    0,
+			check: func(res []float64, err error) {
+				assert.Equal(t, "min value cannot be larger than the max value", err.Error())
+				assert.Nil(t, res, "the result should be nil")
+			},
+		},
+		{
+			name:   "success - max is lower than the smallest value, return smallest value",
+			engine: Engine{},
+			values: []float64{200, 100, 500, 66},
+			min:    0,
+			max:    50,
+			check: func(res []float64, err error) {
+				assert.Nil(t, err, "should not get error")
+				assert.Equal(t, 1, len(res), "returned invalid number of results")
+				assert.Equal(t, float64(66), res[0], "invalid value returned")
+			},
+		},
+		{
+			name:   "success - min is greater than the largest value, return the largest value",
+			engine: Engine{},
+			values: []float64{200, 100, 500, 66},
+			min:    1000,
+			max:    2000,
+			check: func(res []float64, err error) {
+				assert.Nil(t, err, "should not get error")
+				assert.Equal(t, 1, len(res), "returned invalid number of results")
+				assert.Equal(t, float64(500), res[0], "invalid value returned")
+			},
+		},
+		{
+			name:   "success - should return values between min-max",
+			engine: Engine{},
+			values: []float64{1, 2, 10, 5, 30, 99, 55},
+			min:    5,
+			max:    55,
+			check: func(res []float64, err error) {
+				assert.Nil(t, err, "should not get error")
+				assert.Equal(t, 4, len(res), "returned invalid number of results")
+				assert.Equal(t, []float64{5, 10, 30, 55}, res, "invalid value returned")
+			},
+		},
+	}
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			test.check(test.engine.findValuesBetween(test.values, test.min, test.max))
+		})
+	}
+}
+
+func TestEngine_avgNodeCount(t *testing.T) {
+	tests := []struct {
+		name       string
+		attrValues []float64
+		reqSum     float64
+		check      func(avg int)
+	}{
+		{
+			name: "calculate average value per node",
+			// sum of vals = 36
+			// avg = 36/8 = 4.5
+			// avg/node = ceil(10/4.5)=3
+			attrValues: []float64{1, 2, 3, 4, 5, 6, 7, 8},
+			reqSum:     10,
+			check: func(avg int) {
+				assert.Equal(t, 3, avg, "the calculated avg is invalid")
+			},
+		},
+	}
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			test.check(avgNodeCount(test.attrValues, test.reqSum))
+		})
+	}
+}
+
+func TestEngine_findCheapestNodePoolSet(t *testing.T) {
+	tests := []struct {
+		name      string
+		engine    Engine
+		nodePools map[string][]NodePool
+		check     func(npo []NodePool)
+	}{
+		{
+			name:   "find cheapest node pool set",
+			engine: Engine{},
+			nodePools: map[string][]NodePool{
+				"memory": {
+					NodePool{ // price = 2*3 +2*2 = 10
+						VmType: VirtualMachine{
+							AvgPrice:      2,
+							OnDemandPrice: 3,
+						},
+						SumNodes: 2,
+						VmClass:  regular,
+					}, NodePool{
+						VmType: VirtualMachine{
+							AvgPrice:      2,
+							OnDemandPrice: 3,
+						},
+						SumNodes: 2,
+						VmClass:  spot,
+					},
+				},
+				"cpu": { // price = 2*2 +2*2 = 8
+					NodePool{
+						VmType: VirtualMachine{
+							AvgPrice:      1,
+							OnDemandPrice: 2,
+						},
+						SumNodes: 2,
+						VmClass:  regular,
+					}, NodePool{
+						VmType: VirtualMachine{
+							AvgPrice:      2,
+							OnDemandPrice: 4,
+						},
+						SumNodes: 2,
+						VmClass:  spot,
+					}, NodePool{
+						VmType: VirtualMachine{
+							AvgPrice:      2,
+							OnDemandPrice: 4,
+						},
+						SumNodes: 0,
+						VmClass:  spot,
+					},
+				},
+			},
+			check: func(npo []NodePool) {
+				assert.Equal(t, 3, len(npo), "wrong selection")
+			},
+		},
+	}
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			test.check(test.engine.findCheapestNodePoolSet(test.nodePools))
 		})
 	}
 }

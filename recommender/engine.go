@@ -178,7 +178,7 @@ func (a ByAvgPricePerMemory) Less(i, j int) bool {
 // RecommendCluster performs recommendation based on the provided arguments
 func (e *Engine) RecommendCluster(provider string, region string, req ClusterRecommendationReq) (*ClusterRecommendationResp, error) {
 
-	log.Infof("recommending cluster configuration")
+	log.Infof("recommending cluster configuration. Provider: [%s], region: [%s], recommendation request: [%#v]")
 
 	attributes := []string{productinfo.Cpu, productinfo.Memory}
 	nodePools := make(map[string][]NodePool, 2)
@@ -189,6 +189,7 @@ func (e *Engine) RecommendCluster(provider string, region string, req ClusterRec
 		if err != nil {
 			return nil, fmt.Errorf("could not get values for attr: [%s], cause: [%s]", attr, err.Error())
 		}
+		log.Debugf("recommended values for [%s]: count:[%d] , values: [%#v./te]", attr, len(values), values)
 
 		vmFilters, err := e.filtersForAttr(attr)
 		if err != nil {
@@ -199,11 +200,13 @@ func (e *Engine) RecommendCluster(provider string, region string, req ClusterRec
 		if err != nil {
 			return nil, fmt.Errorf("could not get virtual machines for attr: [%s], cause: [%s]", attr, err.Error())
 		}
+		log.Debugf("recommended vms for [%s]: count:[%d] , values: [%#V]", attr, len(filteredVms), filteredVms)
 
 		nps, err := e.RecommendNodePools(attr, filteredVms, values, req)
 		if err != nil {
 			return nil, fmt.Errorf("error while recommending node pools for attr: [%s], cause: [%s]", attr, err.Error())
 		}
+		log.Debugf("recommended node pools for [%s]: count:[%d] , values: [%#V]", attr, len(nps), nps)
 
 		nodePools[attr] = nps
 	}
@@ -217,12 +220,14 @@ func (e *Engine) RecommendCluster(provider string, region string, req ClusterRec
 	}, nil
 }
 
-// findCheapestNodePoolSet looks up the "cheapest" nodepoolset
+// findCheapestNodePoolSet looks up the "cheapest" node pool set from the provided map
 func (e *Engine) findCheapestNodePoolSet(nodePoolSets map[string][]NodePool) []NodePool {
+	log.Info("finding  cheapest pool set...")
 	var cheapestNpSet []NodePool
 	var bestPrice float64
-	for attr, nodePools := range nodePoolSets {
 
+	for attr, nodePools := range nodePoolSets {
+		log.Debugf("checking node pool for attr: [%s]", attr)
 		var sumPrice float64
 		var sumCpus float64
 		var sumMem float64
@@ -275,28 +280,27 @@ func (e *Engine) findValuesBetween(attrValues []float64, min float64, max float6
 		}
 	}
 
-	log.Debugf("returning values: %v", values)
 	return values, nil
 }
 
-// avgNodeCount calculates the "average" node count based on the average attribute value and the sum
-func avgNodeCount(values []float64, sum float64) int {
+// avgNodeCount calculates the minimum number of nodes having the "average attribute value" required to fill up the
+// requested value of the given attribute
+func avgNodeCount(attrValues []float64, reqSum float64) int {
 	var total float64
 
 	// calculate the total value of the attributes
-	for _, v := range values {
+	for _, v := range attrValues {
 		total += v
 	}
 	// the average attribute value
-	avgValue := total / float64(len(values))
+	avgValue := total / float64(len(attrValues))
 
 	// the (rounded up) number of nodes with average attribute value that are needed to reach the "sum"
-	return int(math.Ceil(sum / avgValue))
+	return int(math.Ceil(reqSum / avgValue))
 }
 
 // findN returns the number of nodes required
-func findN(values []float64, sum float64) int {
-	avg := avgNodeCount(values, sum)
+func findN(avg int) int {
 	var N int
 	switch {
 	case avg <= 4:
@@ -366,6 +370,7 @@ func (e *Engine) findVmsWithAttrValues(provider string, region string, zones []s
 				Cpus:          vmInfo.Cpus,
 				Mem:           vmInfo.Mem,
 				Gpus:          vmInfo.Gpus,
+				Burst:         vmInfo.IsBurst(),
 			}
 			spotPrice, err := e.productInfo.GetSpotPrice(provider, region, vmInfo.Type, zones)
 			if err != nil {
@@ -423,9 +428,9 @@ func (e *Engine) RecommendAttrValues(provider string, attr string, req ClusterRe
 func (e *Engine) filtersForAttr(attr string) ([]vmFilter, error) {
 	switch attr {
 	case productinfo.Cpu:
-		return []vmFilter{e.minCpuRatioFilter, e.burstFilter}, nil
-	case productinfo.Memory:
 		return []vmFilter{e.minMemRatioFilter, e.burstFilter}, nil
+	case productinfo.Memory:
+		return []vmFilter{e.minCpuRatioFilter, e.burstFilter}, nil
 	default:
 		return nil, fmt.Errorf("unsupported attribute: [%s]", attr)
 	}
@@ -450,7 +455,7 @@ func (e *Engine) RecommendNodePools(attr string, vms []VirtualMachine, values []
 
 	var nps []NodePool
 
-	// find cheapest onDemand instance from the list - based on pricePer attribute
+	// find cheapest onDemand instance from the list - based on price per attribute
 	selectedOnDemand := vms[0]
 	for _, vm := range vms {
 		if vm.OnDemandPrice/vm.getAttrValue(attr) < selectedOnDemand.OnDemandPrice/selectedOnDemand.getAttrValue(attr) {
@@ -458,13 +463,17 @@ func (e *Engine) RecommendNodePools(attr string, vms []VirtualMachine, values []
 		}
 	}
 
-	sum, err := req.sum(attr)
+	requestedSum, err := req.sum(attr)
 	if err != nil {
 		return nil, fmt.Errorf("could not get sum for attr: [%s], cause: [%s]", attr, err.Error())
 	}
+	log.Debugf("requested sum for attribute [%s]: [%f]", attr, requestedSum)
 
-	var sumOnDemandValue = sum * float64(req.OnDemandPct) / 100
-	var sumSpotValue = sum - sumOnDemandValue
+	var sumOnDemandValue = requestedSum * float64(req.OnDemandPct) / 100
+	var sumSpotValue = requestedSum - sumOnDemandValue
+
+	log.Debugf("on demand sum value for attr [%s]: [%f]", attr, sumOnDemandValue)
+	log.Debugf("spot sum value for attr [%s]: [%f]", attr, sumSpotValue)
 
 	// create and append on-demand pool
 	onDemandPool := NodePool{
@@ -479,10 +488,12 @@ func (e *Engine) RecommendNodePools(attr string, vms []VirtualMachine, values []
 	err = e.sortByAttrValue(attr, vms)
 
 	// the "magic" number of machines for diversifying the types
-	N := int(math.Min(float64(findN(values, sum)), float64(len(vms))))
+	N := int(math.Min(float64(findN(avgNodeCount(values, requestedSum))), float64(len(vms))))
 
 	// the second "magic" number for diversifying the layout
 	M := int(math.Min(math.Ceil(float64(N)*1.5), float64(len(vms))))
+
+	log.Debugf("Magic 'Marton' numbers: N=%d, M=%d", N, M)
 
 	// the first M vm-s
 	recommendedVms := vms[:M]
@@ -495,6 +506,7 @@ func (e *Engine) RecommendNodePools(attr string, vms []VirtualMachine, values []
 			VmType:   vm,
 		})
 	}
+	log.Debugf("totally created [%d] regular and spot price node pools", len(nps))
 
 	// fill up instances in spot pools
 	i := 0
@@ -505,17 +517,19 @@ func (e *Engine) RecommendNodePools(attr string, vms []VirtualMachine, values []
 			// always add a new instance to the cheapest option and move on
 			nps[nodePoolIdx].SumNodes += 1
 			sumValueInPools += nps[nodePoolIdx].VmType.getAttrValue(attr)
+			log.Debugf("adding vm to the [%d]th node pool sum value in pools: [%f]", nodePoolIdx, sumValueInPools)
 			i++
 		} else if nps[nodePoolIdx].getNextSum(attr) > nps[1].getSum(attr) {
 			// for other pools, if adding another vm would exceed the current sum of the cheapest option, move on to the next one
+			log.Debugf("skip adding vm to the [%d]th node pool - (price would exceed the sum)", nodePoolIdx)
 			i++
 		} else {
 			// otherwise add a new one, but do not move on to the next one
 			nps[nodePoolIdx].SumNodes += 1
 			sumValueInPools += nps[nodePoolIdx].VmType.getAttrValue(attr)
+			log.Debugf("adding vm to the [%d]th node pool sum value in pools: [%f]", nodePoolIdx, sumValueInPools)
 		}
 	}
-	log.Infof("recommended node pools by %s: %#v", attr, nps)
 
 	return nps, nil
 }
