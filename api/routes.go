@@ -8,17 +8,20 @@ import (
 	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
 	log "github.com/sirupsen/logrus"
+	"gopkg.in/go-playground/validator.v8"
 )
 
 // RouteHandler struct that wraps the recommender engine
 type RouteHandler struct {
-	Engine *recommender.Engine
+	engine    *recommender.Engine
+	validator *validator.Validate
 }
 
 // NewRouteHandler creates a new RouteHandler and returns a reference to it
-func NewRouteHandler(engine *recommender.Engine) *RouteHandler {
+func NewRouteHandler(e *recommender.Engine, v *validator.Validate) *RouteHandler {
 	return &RouteHandler{
-		Engine: engine,
+		engine:    e,
+		validator: v,
 	}
 }
 
@@ -39,6 +42,8 @@ func getCorsConfig() cors.Config {
 // ConfigureRoutes configures the gin engine, defines the rest API for this application
 func (r *RouteHandler) ConfigureRoutes(router *gin.Engine) {
 	log.Info("configuring routes")
+
+	router.Use(ValidatePathParam("provider", r.validator, "provider_supported"))
 	base := router.Group("/")
 	base.Use(cors.New(getCorsConfig()))
 	{
@@ -80,7 +85,7 @@ func (r *RouteHandler) recommendClusterSetup(c *gin.Context) {
 		return
 	}
 	// TODO: validation
-	if response, err := r.Engine.RecommendCluster(provider, region, request); err != nil {
+	if response, err := r.engine.RecommendCluster(provider, region, request); err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"status": http.StatusInternalServerError, "message": fmt.Sprintf("%s", err)})
 	} else {
 		c.JSON(http.StatusOK, *response)

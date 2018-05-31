@@ -143,14 +143,14 @@ func (pi *CachingProductInfo) Start(ctx context.Context) {
 			for _, attr := range attributes {
 				attrValues, err := pi.renewAttrValues(provider, attr)
 				if err != nil {
-					log.Errorf("couldn't renew attribute values in cache", err.Error())
+					log.Errorf("couldn't renew attribute values in cache: %s", err.Error())
 					return
 				}
 				for _, regionId := range infoer.GetRegions() {
 					for _, v := range attrValues {
 						_, err := pi.renewVmsWithAttr(provider, regionId, attr, v)
 						if err != nil {
-							log.Errorf("couldn't renew attribute values in cache", err.Error())
+							log.Errorf("couldn't renew attribute values in cache: %s", err.Error())
 						}
 					}
 				}
@@ -170,7 +170,7 @@ func (pi *CachingProductInfo) Start(ctx context.Context) {
 					defer wg.Done()
 					_, err := pi.renewShortLivedInfo(p, r)
 					if err != nil {
-						log.Errorf("couldn't renew short lived info in cache", err.Error())
+						log.Errorf("couldn't renew short lived info in cache: %s", err.Error())
 						return
 					}
 				}(provider, regionId)
@@ -284,7 +284,7 @@ func (pi *CachingProductInfo) renewShortLivedInfo(provider string, region string
 		return nil, err
 	}
 	for instType, p := range prices {
-		pi.vmAttrStore.Set(pi.getPriceKey(provider, region, instType), p, pi.renewalInterval)
+		pi.vmAttrStore.Set(pi.getPriceKey(provider, region, instType), p, 2*time.Minute)
 	}
 	return prices, nil
 }
