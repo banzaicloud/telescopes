@@ -57,7 +57,7 @@ swagger:
 build:
 	go build .
 
-build-all: check-fmt check-misspell lint vet swagger build
+build-all: check-fmt check-misspell lint vet test swagger build
 
 check-fmt:
 	PKGS="${GOFILES_NOVENDOR}" GOFMT="gofmt" ./scripts/fmt-check.sh
