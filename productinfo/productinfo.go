@@ -136,47 +136,58 @@ func NewCachingProductInfo(ri time.Duration, cache *cache.Cache, infoers map[str
 func (pi *CachingProductInfo) Start(ctx context.Context) {
 
 	renew := func() {
-		// TODO: make it parallel
+		var providerWg sync.WaitGroup
 		for provider, infoer := range pi.productInfoers {
-			log.Infof("renewing %s product info", provider)
-			attributes := []string{Cpu, Memory}
-			for _, attr := range attributes {
-				attrValues, err := pi.renewAttrValues(provider, attr)
-				if err != nil {
-					log.Errorf("couldn't renew attribute values in cache: %s", err.Error())
-					return
-				}
-				for _, regionId := range infoer.GetRegions() {
-					for _, v := range attrValues {
-						_, err := pi.renewVmsWithAttr(provider, regionId, attr, v)
-						if err != nil {
-							log.Errorf("couldn't renew attribute values in cache: %s", err.Error())
+			providerWg.Add(1)
+			go func(p string, i ProductInfoer) {
+				defer providerWg.Done()
+				log.Infof("renewing %s product info", p)
+				attributes := []string{Cpu, Memory}
+				for _, attr := range attributes {
+					attrValues, err := pi.renewAttrValues(p, attr)
+					if err != nil {
+						log.Errorf("couldn't renew attribute values in cache: %s", err.Error())
+						return
+					}
+					for _, regionId := range i.GetRegions() {
+						for _, v := range attrValues {
+							_, err := pi.renewVmsWithAttr(p, regionId, attr, v)
+							if err != nil {
+								log.Errorf("couldn't renew attribute values in cache: %s", err.Error())
+							}
 						}
 					}
 				}
-			}
+			}(provider, infoer)
 		}
+		providerWg.Wait()
 		log.Info("finished renewing product info")
 	}
 
 	renewShortLived := func() {
-		// TODO: make it parallel
+		var providerWg sync.WaitGroup
 		for provider, infoer := range pi.productInfoers {
-			log.Infof("renewing short lived %s product info", provider)
-			var wg sync.WaitGroup
-			for _, regionId := range infoer.GetRegions() {
-				wg.Add(1)
-				go func(p string, r string) {
-					defer wg.Done()
-					_, err := pi.renewShortLivedInfo(p, r)
-					if err != nil {
-						log.Errorf("couldn't renew short lived info in cache: %s", err.Error())
-						return
-					}
-				}(provider, regionId)
-			}
-			wg.Wait()
+			providerWg.Add(1)
+			go func(p string, i ProductInfoer) {
+				defer providerWg.Done()
+				log.Infof("renewing short lived %s product info", p)
+				var wg sync.WaitGroup
+				for _, regionId := range i.GetRegions() {
+					wg.Add(1)
+					go func(p string, r string) {
+						defer wg.Done()
+						_, err := pi.renewShortLivedInfo(p, r)
+						if err != nil {
+							log.Errorf("couldn't renew short lived info in cache: %s", err.Error())
+							return
+						}
+					}(p, regionId)
+				}
+				wg.Wait()
+			}(provider, infoer)
 		}
+		providerWg.Wait()
+		log.Info("finished renewing short lived product info")
 	}
 
 	go renew()
