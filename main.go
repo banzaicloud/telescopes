@@ -15,6 +15,8 @@ package main
 import (
 	"context"
 	"flag"
+	"fmt"
+	"strings"
 	"time"
 
 	"github.com/banzaicloud/telescopes/api"
@@ -27,15 +29,31 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
+type arrayFlags []string
+
+func (i *arrayFlags) String() string {
+	return fmt.Sprintf("%s", *i)
+}
+
+func (i *arrayFlags) Set(value string) error {
+	parts := strings.FieldsFunc(value, func(r rune) bool {
+		return r == ',' || r == ' '
+	})
+	*i = append(*i, parts...)
+	return nil
+}
+
 var (
 	rawLevel                   = flag.String("log-level", "info", "log level")
 	addr                       = flag.String("listen-address", ":9090", "The address to listen on for HTTP requests.")
 	productInfoRenewalInterval = flag.Duration("product-info-renewal-interval", 24*time.Hour, "Duration (in go syntax) between renewing the ec2 product info. Example: 2h30m")
 	prometheusAddress          = flag.String("prometheus-address", "", "http address of a Prometheus instance that has AWS spot price metrics via banzaicloud/spot-price-exporter. If empty, the recommender will use current spot prices queried directly from the AWS API.")
 	promQuery                  = flag.String("prometheus-query", "avg_over_time(aws_spot_current_price{region=\"%s\", product_description=\"Linux/UNIX\"}[1w])", "advanced configuration: change the query used to query spot price info from Prometheus.")
+	providers                  arrayFlags
 )
 
 func init() {
+	flag.Var(&providers, "provider", "Providers that will be used with the recommender.")
 	flag.Parse()
 	parsedLevel, err := log.ParseLevel(*rawLevel)
 	if err != nil {
@@ -44,29 +62,15 @@ func init() {
 		log.SetLevel(parsedLevel)
 		log.Debugf("Set log level to %s", parsedLevel)
 	}
+	if len(providers) == 0 {
+		providers = arrayFlags{recommender.Ec2, recommender.Gce}
+	}
 }
 
 func main() {
-
-	infoers := make(map[string]productinfo.ProductInfoer, 2)
-
-	ec2Infoer, err := ec2.NewEc2Infoer(ec2.NewPricing(ec2.NewConfig()), *prometheusAddress, *promQuery)
-	if err != nil {
-		log.Fatalf("could not initialize product info provider: %s", err.Error())
-		return
-	}
-	infoers[recommender.Ec2] = ec2Infoer
-
-	gceInfoer, err := gce.NewGceInfoer()
-	if err != nil {
-		log.Fatalf("could not initialize product info provider: %s", err.Error())
-		return
-	}
-	infoers[recommender.Gce] = gceInfoer
-
 	c := cache.New(24*time.Hour, 24.*time.Hour)
 
-	productInfo, err := productinfo.NewCachingProductInfo(*productInfoRenewalInterval, c, infoers)
+	productInfo, err := productinfo.NewCachingProductInfo(*productInfoRenewalInterval, c, infoers())
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -77,7 +81,7 @@ func main() {
 		log.Fatal(err)
 	}
 
-	routeHandler := api.NewRouteHandler(engine)
+	routeHandler := api.NewRouteHandler(engine, api.NewValidator(providers))
 
 	router := gin.Default()
 	log.Info("Initialized gin router")
@@ -85,4 +89,29 @@ func main() {
 	log.Info("Configured routes")
 
 	router.Run(*addr)
+}
+
+func infoers() map[string]productinfo.ProductInfoer {
+	infoers := make(map[string]productinfo.ProductInfoer, len(providers))
+	for _, p := range providers {
+		var infoer productinfo.ProductInfoer
+		var err error
+		if err != nil {
+			log.Fatalf(err.Error())
+		}
+		switch p {
+		case recommender.Ec2:
+			infoer, err = ec2.NewEc2Infoer(ec2.NewPricing(ec2.NewConfig()), *prometheusAddress, *promQuery)
+		case recommender.Gce:
+			infoer, err = gce.NewGceInfoer()
+		default:
+			log.Fatalf("provider %s is not supported", p)
+		}
+		if err != nil {
+			log.Fatalf("could not initialize product info provider: %s", err.Error())
+		}
+		infoers[p] = infoer
+		log.Infof("Configured '%s' product info provider", p)
+	}
+	return infoers
 }
