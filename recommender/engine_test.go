@@ -11,11 +11,6 @@ import (
 )
 
 var (
-	vms = []VirtualMachine{
-		{OnDemandPrice: float64(10), AvgPrice: 99, Cpus: float64(10), Mem: float64(10), Gpus: float64(0)},
-		{OnDemandPrice: float64(12), AvgPrice: 89, Cpus: float64(10), Mem: float64(10), Gpus: float64(0)},
-		{OnDemandPrice: float64(21), AvgPrice: 92, Cpus: float64(12), Mem: float64(12), Gpus: float64(0)},
-	}
 	dummyVmInfo1 = []productinfo.VmInfo{
 		{OnDemandPrice: float64(10), SpotPrice: map[string]float64{"zonea": 0.021}, Cpus: float64(4), Mem: float64(10), Gpus: float64(0)},
 		{OnDemandPrice: float64(12), SpotPrice: map[string]float64{"zonea": 0.043}, Cpus: float64(5), Mem: float64(10), Gpus: float64(0)},
@@ -111,6 +106,13 @@ func (d *dummyProductInfo) GetZones(provider string, region string) ([]string, e
 }
 
 func (d *dummyProductInfo) GetSpotPrice(provider string, region string, instanceType string, zones []string) (float64, error) {
+	switch d.TcId {
+	case 1:
+		return float64(4), nil
+	case 2:
+		return float64(6), nil
+
+	}
 	return 0, nil
 }
 
@@ -350,6 +352,12 @@ func TestEngine_RecommendVms(t *testing.T) {
 }
 
 func TestEngine_RecommendNodePools(t *testing.T) {
+	vms := []VirtualMachine{
+		{OnDemandPrice: float64(10), AvgPrice: 99, Cpus: float64(10), Mem: float64(10), Gpus: float64(0)},
+		{OnDemandPrice: float64(12), AvgPrice: 89, Cpus: float64(10), Mem: float64(10), Gpus: float64(0)},
+		{OnDemandPrice: float64(21), AvgPrice: 92, Cpus: float64(12), Mem: float64(12), Gpus: float64(0)},
+	}
+
 	tests := []struct {
 		name    string
 		pi      productinfo.ProductInfo
@@ -478,6 +486,12 @@ func TestEngine_RecommendCluster(t *testing.T) {
 }
 
 func TestEngine_sortByAttrValue(t *testing.T) {
+	vms := []VirtualMachine{
+		{OnDemandPrice: float64(10), AvgPrice: 99, Cpus: float64(10), Mem: float64(10), Gpus: float64(0)},
+		{OnDemandPrice: float64(12), AvgPrice: 89, Cpus: float64(10), Mem: float64(10), Gpus: float64(0)},
+		{OnDemandPrice: float64(21), AvgPrice: 92, Cpus: float64(12), Mem: float64(12), Gpus: float64(0)},
+	}
+
 	tests := []struct {
 		name  string
 		pi    productinfo.ProductInfo
@@ -918,6 +932,40 @@ func TestEngine_findCheapestNodePoolSet(t *testing.T) {
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
 			test.check(test.engine.findCheapestNodePoolSet(test.nodePools))
+		})
+	}
+}
+
+func TestEngine_filterSpots(t *testing.T) {
+	tests := []struct {
+		name   string
+		engine Engine
+		vms    []VirtualMachine
+		check  func(filtered []VirtualMachine)
+	}{
+		{
+			name:   "vm-s filtered out",
+			engine: Engine{},
+			vms: []VirtualMachine{
+				{
+					AvgPrice:      0,
+					OnDemandPrice: 1,
+					Type:          "t100",
+				},
+				{
+					AvgPrice:      2,
+					OnDemandPrice: 5,
+					Type:          "t200",
+				},
+			},
+			check: func(filtered []VirtualMachine) {
+				assert.Equal(t, 1, len(filtered), "vm is not filtered out")
+			},
+		},
+	}
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			test.check(test.engine.filterSpots(test.vms))
 		})
 	}
 }

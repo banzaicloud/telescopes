@@ -135,12 +135,10 @@ func (e *Engine) minMemRatioFilter(vm VirtualMachine, req ClusterRecommendationR
 }
 
 func (e *Engine) burstFilter(vm VirtualMachine, req ClusterRecommendationReq) bool {
-
 	// if not specified in req or it's allowed the filter passes
 	if (req.AllowBurst == nil) || *(req.AllowBurst) {
 		return true
 	}
-
 	// burst is not allowed
 	return !vm.Burst
 }
@@ -151,6 +149,17 @@ func (e *Engine) minCpuRatioFilter(vm VirtualMachine, req ClusterRecommendationR
 		return false
 	}
 	return true
+}
+
+// filterSpots selects vm-s that potentially can be part of "spot" node pools
+func (e *Engine) filterSpots(vms []VirtualMachine) []VirtualMachine {
+	fvms := make([]VirtualMachine, 0)
+	for _, vm := range vms {
+		if vm.AvgPrice != 0 {
+			fvms = append(fvms, vm)
+		}
+	}
+	return fvms
 }
 
 // ByAvgPricePerCpu type for custom sorting of a slice of vms
@@ -178,7 +187,8 @@ func (a ByAvgPricePerMemory) Less(i, j int) bool {
 // RecommendCluster performs recommendation based on the provided arguments
 func (e *Engine) RecommendCluster(provider string, region string, req ClusterRecommendationReq) (*ClusterRecommendationResp, error) {
 
-	log.Infof("recommending cluster configuration. Provider: [%s], region: [%s], recommendation request: [%#v]")
+	log.Infof("recommending cluster configuration. Provider: [%s], region: [%s], recommendation request: [%#v]",
+		provider, region, req)
 
 	attributes := []string{productinfo.Cpu, productinfo.Memory}
 	nodePools := make(map[string][]NodePool, 2)
@@ -214,7 +224,7 @@ func (e *Engine) RecommendCluster(provider string, region string, req ClusterRec
 	cheapestNodePoolSet := e.findCheapestNodePoolSet(nodePools)
 
 	return &ClusterRecommendationResp{
-		Provider:  "aws",
+		Provider:  provider,
 		Zones:     req.Zones,
 		NodePools: cheapestNodePoolSet,
 	}, nil
@@ -483,6 +493,13 @@ func (e *Engine) RecommendNodePools(attr string, vms []VirtualMachine, values []
 	}
 
 	nps = append(nps, onDemandPool)
+
+	// retain only the nodes that are available as spot instances
+	vms = e.filterSpots(vms)
+	if len(vms) == 0 {
+		// todo handle this case properly - recommend more on demand pools maybe
+		return nil, errors.New("no vm's suitable for spot pools")
+	}
 
 	// vms are sorted by attribute value
 	err = e.sortByAttrValue(attr, vms)
