@@ -171,6 +171,9 @@ func (e *Ec2Infoer) GetProducts(regionId string, attrKey string, attrValue produ
 		}
 		vms = append(vms, vm)
 	}
+	if vms == nil {
+		return nil, errors.New("there are no products")
+	}
 	log.Debugf("found vms [%s=%s]: %#v", attrKey, attrValue.StrValue, vms)
 	return vms, nil
 }
@@ -199,33 +202,10 @@ func newPriceData(prData aws.JSONValue) (*priceData, error) {
 	return &pd, nil
 }
 func (pd *priceData) GetDataForKey(attr string) (string, error) {
-	switch attr {
-	case "instanceType":
-		instanceType, ok := pd.attrMap["instanceType"].(string)
-		if !ok {
-			return "", errors.New("could not get instance type or could not cast instance type to string")
-		}
-		return instanceType, nil
-	case Cpu:
-		vcpu, ok := pd.attrMap[Cpu].(string)
-		if !ok {
-			return "", errors.New("could not get vcpu or could not cast vcpu to string")
-		}
-		return vcpu, nil
-	case Memory:
-		mem, ok := pd.attrMap[Memory].(string)
-		if !ok {
-			return "", errors.New("could not get memory or could not cast memory to string")
-		}
-		return mem, nil
-	case "gpu":
-		gpu, ok := pd.attrMap["gpu"].(string)
-		if !ok {
-			return "", errors.New("could not get gpu or could not cast gpu to string")
-		}
-		return gpu, nil
+	if value, ok := pd.attrMap[attr].(string); ok {
+		return value, nil
 	}
-	return "", errors.New("invalid attribute")
+	return "", fmt.Errorf("could not get %s or could not cast %s to string", attr, attr)
 }
 
 func (pd *priceData) GetOnDemandPrice() (string, error) {

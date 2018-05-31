@@ -35,23 +35,6 @@ var data = priceData{
 	},
 }
 
-var wrongCast = priceData{
-	awsData: aws.JSONValue{
-		"product": map[string]interface{}{
-			"attributes": map[string]interface{}{
-				"instanceType": 0,
-				Cpu:            1,
-				Memory:         2,
-				"gpu":          3,
-			}},
-	},
-}
-
-var missingData = priceData{
-	awsData: aws.JSONValue{
-		"product": map[string]interface{}{
-			"attributes": map[string]interface{}{}}}}
-
 func (dps *DummyPricingSource) GetAttributeValues(input *pricing.GetAttributeValuesInput) (*pricing.GetAttributeValuesOutput, error) {
 
 	// example json sequence
@@ -299,8 +282,8 @@ func TestEc2Infoer_GetProducts(t *testing.T) {
 			attrValue:     productinfo.AttrValue{Value: float64(2), StrValue: productinfo.Cpu},
 			pricingServie: &DummyPricingSource{TcId: 6},
 			check: func(vm []productinfo.VmInfo, err error) {
-				assert.Nil(t, err, "the error should be nil")
-				assert.Nil(t, vm, "the vm should not be nil")
+				assert.EqualError(t, err, "there are no products")
+				assert.Nil(t, vm, "the vm should be nil")
 			},
 		},
 		{
@@ -310,8 +293,8 @@ func TestEc2Infoer_GetProducts(t *testing.T) {
 			attrValue:     productinfo.AttrValue{Value: float64(2), StrValue: productinfo.Cpu},
 			pricingServie: &DummyPricingSource{TcId: 7},
 			check: func(vm []productinfo.VmInfo, err error) {
-				assert.Nil(t, err, "the error should be nil")
-				assert.Nil(t, vm, "the vm should not be nil")
+				assert.EqualError(t, err, "there are no products")
+				assert.Nil(t, vm, "the vm should be nil")
 			},
 		},
 		{
@@ -321,8 +304,8 @@ func TestEc2Infoer_GetProducts(t *testing.T) {
 			attrValue:     productinfo.AttrValue{Value: float64(2), StrValue: productinfo.Cpu},
 			pricingServie: &DummyPricingSource{TcId: 8},
 			check: func(vm []productinfo.VmInfo, err error) {
-				assert.Nil(t, err, "the error should be nil")
-				assert.Nil(t, vm, "the vm should not be nil")
+				assert.EqualError(t, err, "there are no products")
+				assert.Nil(t, vm, "the vm should be nil")
 			},
 		},
 		{
@@ -332,8 +315,8 @@ func TestEc2Infoer_GetProducts(t *testing.T) {
 			attrValue:     productinfo.AttrValue{Value: float64(2), StrValue: productinfo.Cpu},
 			pricingServie: &DummyPricingSource{TcId: 9},
 			check: func(vm []productinfo.VmInfo, err error) {
-				assert.Nil(t, err, "the error should be nil")
-				assert.Nil(t, vm, "the vm should not be nil")
+				assert.EqualError(t, err, "there are no products")
+				assert.Nil(t, vm, "the vm should be nil")
 			},
 		},
 	}
@@ -427,6 +410,21 @@ func TestNewPricing(t *testing.T) {
 }
 
 func TestPriceData_GetDataForKey(t *testing.T) {
+	var missingData = priceData{
+		awsData: aws.JSONValue{
+			"product": map[string]interface{}{
+				"attributes": map[string]interface{}{}}}}
+	var wrongCast = priceData{
+		awsData: aws.JSONValue{
+			"product": map[string]interface{}{
+				"attributes": map[string]interface{}{
+					"instanceType": 0,
+					Cpu:            1,
+					Memory:         2,
+					"gpu":          3,
+				}},
+		},
+	}
 	tests := []struct {
 		name  string
 		attr  string
@@ -448,7 +446,7 @@ func TestPriceData_GetDataForKey(t *testing.T) {
 			price: wrongCast,
 			check: func(s string, err error) {
 				assert.Equal(t, s, "")
-				assert.EqualError(t, err, "could not get instance type or could not cast instance type to string")
+				assert.EqualError(t, err, "could not get instanceType or could not cast instanceType to string")
 			},
 		},
 		{
@@ -457,7 +455,7 @@ func TestPriceData_GetDataForKey(t *testing.T) {
 			price: missingData,
 			check: func(s string, err error) {
 				assert.Equal(t, s, "")
-				assert.EqualError(t, err, "could not get instance type or could not cast instance type to string")
+				assert.EqualError(t, err, "could not get instanceType or could not cast instanceType to string")
 			},
 		},
 		{
@@ -539,15 +537,6 @@ func TestPriceData_GetDataForKey(t *testing.T) {
 			check: func(s string, err error) {
 				assert.Equal(t, s, "")
 				assert.EqualError(t, err, "could not get gpu or could not cast gpu to string")
-			},
-		},
-		{
-			name:  "invalid attribute",
-			attr:  "invalid",
-			price: data,
-			check: func(s string, err error) {
-				assert.Equal(t, s, "")
-				assert.EqualError(t, err, "invalid attribute")
 			},
 		},
 	}
