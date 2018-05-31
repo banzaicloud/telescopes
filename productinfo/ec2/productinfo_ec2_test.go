@@ -278,7 +278,7 @@ func TestEc2Infoer_GetProducts(t *testing.T) {
 			pricingServie: &DummyPricingSource{TcId: 4},
 			check: func(vm []productinfo.VmInfo, err error) {
 				assert.Nil(t, err, "the error should be nil")
-				assert.Equal(t, vm, []productinfo.VmInfo{productinfo.VmInfo{Type:"db.t2.small", OnDemandPrice:5, SpotPrice:productinfo.PriceInfo(nil), Cpus:1, Mem:2, Gpus:0}})
+				assert.Equal(t, vm, []productinfo.VmInfo{productinfo.VmInfo{Type: "db.t2.small", OnDemandPrice: 5, SpotPrice: productinfo.PriceInfo(nil), Cpus: 1, Mem: 2, Gpus: 0}})
 			},
 		},
 		{
