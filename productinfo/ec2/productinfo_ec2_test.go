@@ -445,7 +445,7 @@ func TestPriceData_GetInstanceType(t *testing.T) {
 			price: wrongCast,
 			check: func(s string, err error) {
 				assert.Equal(t, s, "")
-				assert.EqualError(t, err, "could not cast instance type to string")
+				assert.EqualError(t, err, "could not get instance type or could not cast instance type to string")
 			},
 		},
 		{
@@ -453,7 +453,7 @@ func TestPriceData_GetInstanceType(t *testing.T) {
 			price: missingData,
 			check: func(s string, err error) {
 				assert.Equal(t, s, "")
-				assert.EqualError(t, err, "could not get instance type")
+				assert.EqualError(t, err, "could not get instance type or could not cast instance type to string")
 			},
 		},
 	}
@@ -484,7 +484,7 @@ func TestPriceData_GetVcpu(t *testing.T) {
 			price: wrongCast,
 			check: func(s string, err error) {
 				assert.Equal(t, s, "")
-				assert.EqualError(t, err, "could not cast vcpu to string")
+				assert.EqualError(t, err, "could not get vcpu or could not cast vcpu to string")
 			},
 		},
 		{
@@ -492,7 +492,7 @@ func TestPriceData_GetVcpu(t *testing.T) {
 			price: missingData,
 			check: func(s string, err error) {
 				assert.Equal(t, s, "")
-				assert.EqualError(t, err, "could not get vcpu")
+				assert.EqualError(t, err, "could not get vcpu or could not cast vcpu to string")
 			},
 		},
 	}
@@ -523,7 +523,7 @@ func TestPriceData_GetMem(t *testing.T) {
 			price: wrongCast,
 			check: func(s string, err error) {
 				assert.Equal(t, s, "")
-				assert.EqualError(t, err, "could not cast memory to string")
+				assert.EqualError(t, err, "could not get memory or could not cast memory to string")
 			},
 		},
 		{
@@ -531,7 +531,7 @@ func TestPriceData_GetMem(t *testing.T) {
 			price: missingData,
 			check: func(s string, err error) {
 				assert.Equal(t, s, "")
-				assert.EqualError(t, err, "could not get memory")
+				assert.EqualError(t, err, "could not get memory or could not cast memory to string")
 			},
 		},
 	}
@@ -562,7 +562,7 @@ func TestPriceData_GetGpu(t *testing.T) {
 			price: wrongCast,
 			check: func(s string, err error) {
 				assert.Equal(t, s, "")
-				assert.EqualError(t, err, "could not cast gpu to string")
+				assert.EqualError(t, err, "could not get gpu or could not cast gpu to string")
 			},
 		},
 		{
@@ -570,7 +570,7 @@ func TestPriceData_GetGpu(t *testing.T) {
 			price: missingData,
 			check: func(s string, err error) {
 				assert.Equal(t, s, "")
-				assert.EqualError(t, err, "could not get gpu")
+				assert.EqualError(t, err, "could not get gpu or could not cast gpu to string")
 			},
 		},
 	}
@@ -610,7 +610,7 @@ func TestPriceData_GetOnDemandPrice(t *testing.T) {
 										}}}}}}}},
 			check: func(s string, err error) {
 				assert.Equal(t, s, "")
-				assert.EqualError(t, err, "could not cast on demand price to string")
+				assert.EqualError(t, err, "could not get on demand price or could not cast on demand price to string")
 			},
 		},
 		{
@@ -625,7 +625,7 @@ func TestPriceData_GetOnDemandPrice(t *testing.T) {
 										"pricePerUnit": map[string]interface{}{}}}}}}}},
 			check: func(s string, err error) {
 				assert.Equal(t, s, "")
-				assert.EqualError(t, err, "could not get on demand price")
+				assert.EqualError(t, err, "could not get on demand price or could not cast on demand price to string")
 			},
 		},
 		{

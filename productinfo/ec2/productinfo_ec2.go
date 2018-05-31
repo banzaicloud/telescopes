@@ -151,7 +151,6 @@ func (e *Ec2Infoer) GetProducts(regionId string, attrKey string, attrValue produ
 		gpu, err := pd.GetGpu()
 		if err != nil {
 			log.Warn("could not retrieve gpu")
-			continue
 		}
 		odPriceStr, err := pd.GetOnDemandPrice()
 		if err != nil {
@@ -201,66 +200,35 @@ func newPriceData(prData aws.JSONValue) (*priceData, error) {
 }
 
 func (pd *priceData) GetInstanceType() (string, error) {
-
-	instanceType, ok := pd.attrMap["instanceType"]
+	instanceType, ok := pd.attrMap["instanceType"].(string)
 	if !ok {
-		return "", errors.New("could not get instance type")
+		return "", errors.New("could not get instance type or could not cast instance type to string")
 	}
-
-	instanceTypeStr, ok := instanceType.(string)
-	if !ok {
-		return "", errors.New("could not cast instance type to string")
-	}
-
-	return instanceTypeStr, nil
+	return instanceType, nil
 }
 
 func (pd *priceData) GetVcpu() (string, error) {
-
-	vcpu, ok := pd.attrMap[Cpu]
-
+	vcpu, ok := pd.attrMap[Cpu].(string)
 	if !ok {
-		return "", errors.New("could not get vcpu")
+		return "", errors.New("could not get vcpu or could not cast vcpu to string")
 	}
-
-	vcpuStr, ok := vcpu.(string)
-	if !ok {
-		return "", errors.New("could not cast vcpu to string")
-	}
-
-	return vcpuStr, nil
+	return vcpu, nil
 }
 
 func (pd *priceData) GetMem() (string, error) {
-
-	mem, ok := pd.attrMap[Memory]
-
+	mem, ok := pd.attrMap[Memory].(string)
 	if !ok {
-		return "", errors.New("could not get memory")
+		return "", errors.New("could not get memory or could not cast memory to string")
 	}
-
-	memStr, ok := mem.(string)
-	if !ok {
-		return "", errors.New("could not cast memory to string")
-	}
-
-	return memStr, nil
+	return mem, nil
 }
 
 func (pd *priceData) GetGpu() (string, error) {
-
-	gpu, ok := pd.attrMap["gpu"]
-
+	gpu, ok := pd.attrMap["gpu"].(string)
 	if !ok {
-		return "", errors.New("could not get gpu")
+		return "", errors.New("could not get gpu or could not cast gpu to string")
 	}
-
-	gpuStr, ok := gpu.(string)
-	if !ok {
-		return "", errors.New("could not cast gpu to string")
-	}
-
-	return gpuStr, nil
+	return gpu, nil
 }
 
 func (pd *priceData) GetOnDemandPrice() (string, error) {
@@ -268,13 +236,11 @@ func (pd *priceData) GetOnDemandPrice() (string, error) {
 	if err != nil {
 		return "", err
 	}
-
 	onDemandMap, err := getMapForKey("OnDemand", termsMap)
 	if err != nil {
 		return "", err
 	}
 	for _, term := range onDemandMap {
-
 		priceDimensionsMap, err := getMapForKey("priceDimensions", term.(map[string]interface{}))
 		if err != nil {
 			return "", err
@@ -285,36 +251,26 @@ func (pd *priceData) GetOnDemandPrice() (string, error) {
 			if err != nil {
 				return "", err
 			}
-			odPrice, ok := pricePerUnitMap["USD"]
-
+			odPrice, ok := pricePerUnitMap["USD"].(string)
 			if !ok {
-				return "", errors.New("could not get on demand price")
+				return "", errors.New("could not get on demand price or could not cast on demand price to string")
 			}
-			odPriceStr, ok := odPrice.(string)
-			if !ok {
-				return "", errors.New("could not cast on demand price to string")
-			}
-			return odPriceStr, nil
-
+			return odPrice, nil
 		}
 	}
 	return "", nil
 }
 
 func getMapForKey(key string, srcMap map[string]interface{}) (map[string]interface{}, error) {
-
 	rawMap, ok := srcMap[key]
-
 	if !ok {
 		return nil, fmt.Errorf("could not get map for key: [ %s ]", key)
 	}
 
 	remap, ok := rawMap.(map[string]interface{})
-
 	if !ok {
 		return nil, fmt.Errorf("the value for key: [ %s ] could not be cast to map[string]interface{}", key)
 	}
-
 	return remap, nil
 }
 
