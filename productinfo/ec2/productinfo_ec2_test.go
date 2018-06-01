@@ -282,7 +282,7 @@ func TestEc2Infoer_GetProducts(t *testing.T) {
 			attrValue:     productinfo.AttrValue{Value: float64(2), StrValue: productinfo.Cpu},
 			pricingServie: &DummyPricingSource{TcId: 6},
 			check: func(vm []productinfo.VmInfo, err error) {
-				assert.EqualError(t, err, "could not find available virtual machines with these parameters")
+				assert.Nil(t, err, "the error should be nil")
 				assert.Nil(t, vm, "the vm should be nil")
 			},
 		},
@@ -293,7 +293,7 @@ func TestEc2Infoer_GetProducts(t *testing.T) {
 			attrValue:     productinfo.AttrValue{Value: float64(2), StrValue: productinfo.Cpu},
 			pricingServie: &DummyPricingSource{TcId: 7},
 			check: func(vm []productinfo.VmInfo, err error) {
-				assert.EqualError(t, err, "could not find available virtual machines with these parameters")
+				assert.Nil(t, err, "the error should be nil")
 				assert.Nil(t, vm, "the vm should be nil")
 			},
 		},
@@ -304,7 +304,7 @@ func TestEc2Infoer_GetProducts(t *testing.T) {
 			attrValue:     productinfo.AttrValue{Value: float64(2), StrValue: productinfo.Cpu},
 			pricingServie: &DummyPricingSource{TcId: 8},
 			check: func(vm []productinfo.VmInfo, err error) {
-				assert.EqualError(t, err, "could not find available virtual machines with these parameters")
+				assert.Nil(t, err, "the error should be nil")
 				assert.Nil(t, vm, "the vm should be nil")
 			},
 		},
@@ -315,7 +315,7 @@ func TestEc2Infoer_GetProducts(t *testing.T) {
 			attrValue:     productinfo.AttrValue{Value: float64(2), StrValue: productinfo.Cpu},
 			pricingServie: &DummyPricingSource{TcId: 9},
 			check: func(vm []productinfo.VmInfo, err error) {
-				assert.EqualError(t, err, "could not find available virtual machines with these parameters")
+				assert.Nil(t, err, "the error should be nil")
 				assert.Nil(t, vm, "the vm should be nil")
 			},
 		},

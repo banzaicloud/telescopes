@@ -150,7 +150,7 @@ func (e *Ec2Infoer) GetProducts(regionId string, attrKey string, attrValue produ
 		}
 		gpu, err := pd.GetDataForKey("gpu")
 		if err != nil {
-			log.Warn("could not retrieve gpu")
+			log.Debugf("could not retrieve gpu")
 		}
 		odPriceStr, err := pd.GetOnDemandPrice()
 		if err != nil {
@@ -170,9 +170,6 @@ func (e *Ec2Infoer) GetProducts(regionId string, attrKey string, attrValue produ
 			Gpus:          gpus,
 		}
 		vms = append(vms, vm)
-	}
-	if vms == nil {
-		return nil, errors.New("could not find available virtual machines with these parameters")
 	}
 	log.Debugf("found vms [%s=%s]: %#v", attrKey, attrValue.StrValue, vms)
 	return vms, nil
