@@ -72,6 +72,8 @@ type ClusterRecommendationReq struct {
 	SumGpu int `json:"sumGpu,omitempty"`
 	// Are burst instances allowed in recommendation
 	AllowBurst *bool `json:"allowBurst,omitempty"`
+	// NertworkPerf specifies the network performance category
+	NertworkPerf *string `json:"networkPerf,omitempty""`
 }
 
 // ClusterRecommendationResp encapsulates recommendation result data
@@ -111,6 +113,8 @@ type VirtualMachine struct {
 	Gpus float64 `json:"gpusPerVm"`
 	// Burst signals a burst type instance
 	Burst bool `json:"burst"`
+	// NetworkPerf holds the network performance category
+	NetworkPerf string `json:"networkPerf"`
 }
 
 func (v *VirtualMachine) getAttrValue(attr string) float64 {
@@ -368,6 +372,8 @@ func (e *Engine) findVmsWithAttrValues(provider string, region string, zones []s
 		zones = z
 	}
 
+	ntwMapper := e.productInfo.GetNetworkPerfMapper(provider)
+
 	for _, v := range values {
 		vmInfos, err := e.productInfo.GetVmsWithAttrValue(provider, region, attr, v)
 		if err != nil {
@@ -381,6 +387,7 @@ func (e *Engine) findVmsWithAttrValues(provider string, region string, zones []s
 				Mem:           vmInfo.Mem,
 				Gpus:          vmInfo.Gpus,
 				Burst:         vmInfo.IsBurst(),
+				NetworkPerf:   vmInfo.NetworkPerformance(ntwMapper),
 			}
 			spotPrice, err := e.productInfo.GetSpotPrice(provider, region, vmInfo.Type, zones)
 			if err != nil {

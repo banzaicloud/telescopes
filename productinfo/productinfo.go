@@ -52,6 +52,9 @@ type ProductInfoer interface {
 
 	// GetCpuAttrName returns the provider representation of the cpu attribute
 	GetCpuAttrName() string
+
+	// GetNetworkMapper returns the provider specific network performance mapper
+	GetNetworkMapper() NetworkMapper
 }
 
 // ProductInfo is the main entry point for retrieving vm type characteristics and pricing information on different cloud providers
@@ -70,6 +73,9 @@ type ProductInfo interface {
 
 	// GetSpotPrice returns the zone averaged computed spot price for a given instance type in a given region
 	GetSpotPrice(provider string, region string, instanceType string, zones []string) (float64, error)
+
+	// GetNetworkPerfMapper retrieves the network performance mapper implementaiton
+	GetNetworkPerfMapper(provider string) NetworkMapper
 }
 
 // CachingProductInfo is the module struct, holds configuration and cache
@@ -114,6 +120,15 @@ type VmInfo struct {
 // the decision is made based on the instance type
 func (vm VmInfo) IsBurst() bool {
 	return strings.HasPrefix(strings.ToUpper(vm.Type), "T")
+}
+
+//NetworkPerformance returns the network performance category for the vm
+func (vm VmInfo) NetworkPerformance(nm NetworkMapper) string {
+	nc, err := nm.NetworkPerf(vm)
+	if err != nil {
+		log.Warnf("could not get network performance for vm [%s], error: [%s]", vm.Type, err.Error())
+	}
+	return nc
 }
 
 // NewCachingProductInfo creates a new CachingProductInfo instance
@@ -363,4 +378,9 @@ func (pi *CachingProductInfo) getAttrValue(provider string, attrKey string, attr
 // GetZones returns the availability zones in a region
 func (pi *CachingProductInfo) GetZones(provider string, region string) ([]string, error) {
 	return pi.productInfoers[provider].GetZones(region)
+}
+
+// GetNetworkPerfMapper returns the provider specific network performance mapper
+func (pi *CachingProductInfo) GetNetworkPerfMapper(provider string) (NetworkMapper, error) {
+	return pi.productInfoers[provider].GetNetworkMapper(), nil
 }
