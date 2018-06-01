@@ -15,6 +15,26 @@ type DummyPricingSource struct {
 	TcId int
 }
 
+var data = priceData{
+	awsData: aws.JSONValue{
+		"product": map[string]interface{}{
+			"attributes": map[string]interface{}{
+				"instanceType": "db.t2.small",
+				Cpu:            "1",
+				Memory:         "2",
+				"gpu":          "5",
+			}},
+		"terms": map[string]interface{}{
+			"OnDemand": map[string]interface{}{
+				"2ZP4J8GPBP6QFK3Y.JRTCKXETXF": map[string]interface{}{
+					"priceDimensions": map[string]interface{}{
+						"2ZP4J8GPBP6QFK3Y.JRTCKXETXF.6YS6EN2CT7": map[string]interface{}{
+							"pricePerUnit": map[string]interface{}{
+								"USD": "5",
+							}}}}}},
+	},
+}
+
 func (dps *DummyPricingSource) GetAttributeValues(input *pricing.GetAttributeValuesInput) (*pricing.GetAttributeValuesOutput, error) {
 
 	// example json sequence
@@ -67,10 +87,75 @@ func (dps *DummyPricingSource) GetProducts(input *pricing.GetProductsInput) (*pr
 	switch dps.TcId {
 	case 4:
 		return &pricing.GetProductsOutput{
-			PriceList: []aws.JSONValue{},
+			PriceList: []aws.JSONValue{
+				{
+					"product": map[string]interface{}{
+						"attributes": map[string]interface{}{
+							"instanceType": "db.t2.small",
+							Cpu:            "1",
+							Memory:         "2",
+						}},
+					"terms": map[string]interface{}{
+						"OnDemand": map[string]interface{}{
+							"2ZP4J8GPBP6QFK3Y.JRTCKXETXF": map[string]interface{}{
+								"priceDimensions": map[string]interface{}{
+									"2ZP4J8GPBP6QFK3Y.JRTCKXETXF.6YS6EN2CT7": map[string]interface{}{
+										"pricePerUnit": map[string]interface{}{
+											"USD": "5",
+										}}}}}}},
+			},
 		}, nil
 	case 5:
 		return nil, errors.New("failed to retrieve values")
+	case 6:
+		return &pricing.GetProductsOutput{
+			PriceList: []aws.JSONValue{
+				{
+					"product": map[string]interface{}{
+						"attributes": map[string]interface{}{
+							"instanceType": "db.t2.small",
+							Cpu:            "1",
+							Memory:         "2",
+						}},
+					"terms": map[string]interface{}{
+						"OnDemand": map[string]interface{}{
+							"2ZP4J8GPBP6QFK3Y.JRTCKXETXF": map[string]interface{}{
+								"priceDimensions": map[string]interface{}{
+									"2ZP4J8GPBP6QFK3Y.JRTCKXETXF.6YS6EN2CT7": map[string]interface{}{
+										"pricePerUnit": map[string]interface{}{},
+									}}}}}},
+			},
+		}, nil
+	case 7:
+		return &pricing.GetProductsOutput{
+			PriceList: []aws.JSONValue{
+				{
+					"product": map[string]interface{}{
+						"attributes": map[string]interface{}{
+							"instanceType": "db.t2.small",
+							Cpu:            "1",
+						}}},
+			},
+		}, nil
+	case 8:
+		return &pricing.GetProductsOutput{
+			PriceList: []aws.JSONValue{
+				{
+					"product": map[string]interface{}{
+						"attributes": map[string]interface{}{
+							"instanceType": "db.t2.small",
+						}}},
+			},
+		}, nil
+	case 9:
+		return &pricing.GetProductsOutput{
+			PriceList: []aws.JSONValue{
+				{
+					"product": map[string]interface{}{
+						"attributes": map[string]interface{}{},
+					}},
+			},
+		}, nil
 
 	}
 	return nil, nil
@@ -171,22 +256,66 @@ func TestEc2Infoer_GetProducts(t *testing.T) {
 		{
 			name:          "successful",
 			regionId:      "eu-central-1",
-			attrKey:       productinfo.Cpu,
+			attrKey:       Cpu,
 			attrValue:     productinfo.AttrValue{Value: float64(2), StrValue: productinfo.Cpu},
 			pricingServie: &DummyPricingSource{TcId: 4},
+			check: func(vm []productinfo.VmInfo, err error) {
+				assert.Nil(t, err, "the error should be nil")
+				assert.Equal(t, vm, []productinfo.VmInfo{productinfo.VmInfo{Type: "db.t2.small", OnDemandPrice: 5, SpotPrice: productinfo.PriceInfo(nil), Cpus: 1, Mem: 2, Gpus: 0}})
+			},
+		},
+		{
+			name:          "error - GetProducts",
+			regionId:      "eu-central-1",
+			attrKey:       Cpu,
+			attrValue:     productinfo.AttrValue{Value: float64(2), StrValue: productinfo.Cpu},
+			pricingServie: &DummyPricingSource{TcId: 5},
+			check: func(vm []productinfo.VmInfo, err error) {
+				assert.Equal(t, err, errors.New("failed to retrieve values"))
+				assert.Nil(t, vm, "the vm should be nil")
+			},
+		},
+		{
+			name:          "error - on demand price",
+			regionId:      "eu-central-1",
+			attrKey:       Cpu,
+			attrValue:     productinfo.AttrValue{Value: float64(2), StrValue: productinfo.Cpu},
+			pricingServie: &DummyPricingSource{TcId: 6},
 			check: func(vm []productinfo.VmInfo, err error) {
 				assert.Nil(t, err, "the error should be nil")
 				assert.Nil(t, vm, "the vm should be nil")
 			},
 		},
 		{
-			name:          "error - GetProducts",
+			name:          "error - memory",
 			regionId:      "eu-central-1",
-			attrKey:       productinfo.Cpu,
+			attrKey:       Cpu,
 			attrValue:     productinfo.AttrValue{Value: float64(2), StrValue: productinfo.Cpu},
-			pricingServie: &DummyPricingSource{TcId: 5},
+			pricingServie: &DummyPricingSource{TcId: 7},
 			check: func(vm []productinfo.VmInfo, err error) {
-				assert.Equal(t, err, errors.New("failed to retrieve values"))
+				assert.Nil(t, err, "the error should be nil")
+				assert.Nil(t, vm, "the vm should be nil")
+			},
+		},
+		{
+			name:          "error - cpu",
+			regionId:      "eu-central-1",
+			attrKey:       Cpu,
+			attrValue:     productinfo.AttrValue{Value: float64(2), StrValue: productinfo.Cpu},
+			pricingServie: &DummyPricingSource{TcId: 8},
+			check: func(vm []productinfo.VmInfo, err error) {
+				assert.Nil(t, err, "the error should be nil")
+				assert.Nil(t, vm, "the vm should be nil")
+			},
+		},
+		{
+			name:          "error - instance type",
+			regionId:      "eu-central-1",
+			attrKey:       Cpu,
+			attrValue:     productinfo.AttrValue{Value: float64(2), StrValue: productinfo.Cpu},
+			pricingServie: &DummyPricingSource{TcId: 9},
+			check: func(vm []productinfo.VmInfo, err error) {
+				assert.Nil(t, err, "the error should be nil")
 				assert.Nil(t, vm, "the vm should be nil")
 			},
 		},
@@ -276,6 +405,282 @@ func TestNewPricing(t *testing.T) {
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
 			test.check(NewPricing(test.cfg))
+		})
+	}
+}
+
+func TestPriceData_GetDataForKey(t *testing.T) {
+	var missingData = priceData{
+		awsData: aws.JSONValue{
+			"product": map[string]interface{}{
+				"attributes": map[string]interface{}{}}}}
+	var wrongCast = priceData{
+		awsData: aws.JSONValue{
+			"product": map[string]interface{}{
+				"attributes": map[string]interface{}{
+					"instanceType": 0,
+					Cpu:            1,
+					Memory:         2,
+					"gpu":          3,
+				}},
+		},
+	}
+	tests := []struct {
+		name  string
+		attr  string
+		price priceData
+		check func(s string, err error)
+	}{
+		{
+			name:  "successful - get instance type",
+			attr:  "instanceType",
+			price: data,
+			check: func(s string, err error) {
+				assert.Nil(t, err, "the error should be nil")
+				assert.Equal(t, s, "db.t2.small")
+			},
+		},
+		{
+			name:  "cast problem - get instance type",
+			attr:  "instanceType",
+			price: wrongCast,
+			check: func(s string, err error) {
+				assert.Equal(t, s, "")
+				assert.EqualError(t, err, "could not get instanceType or could not cast instanceType to string")
+			},
+		},
+		{
+			name:  "missing data - get instance type",
+			attr:  "instanceType",
+			price: missingData,
+			check: func(s string, err error) {
+				assert.Equal(t, s, "")
+				assert.EqualError(t, err, "could not get instanceType or could not cast instanceType to string")
+			},
+		},
+		{
+			name:  "successful - get cpu",
+			attr:  Cpu,
+			price: data,
+			check: func(s string, err error) {
+				assert.Nil(t, err, "the error should be nil")
+				assert.Equal(t, s, "1")
+			},
+		},
+		{
+			name:  "cast problem - get cpu",
+			attr:  Cpu,
+			price: wrongCast,
+			check: func(s string, err error) {
+				assert.Equal(t, s, "")
+				assert.EqualError(t, err, "could not get vcpu or could not cast vcpu to string")
+			},
+		},
+		{
+			name:  "missing data - get cpu",
+			attr:  Cpu,
+			price: missingData,
+			check: func(s string, err error) {
+				assert.Equal(t, s, "")
+				assert.EqualError(t, err, "could not get vcpu or could not cast vcpu to string")
+			},
+		},
+		{
+			name:  "successful - get memory",
+			attr:  Memory,
+			price: data,
+			check: func(s string, err error) {
+				assert.Nil(t, err, "the error should be nil")
+				assert.Equal(t, s, "2")
+			},
+		},
+		{
+			name:  "cast problem - get memory",
+			attr:  Memory,
+			price: wrongCast,
+			check: func(s string, err error) {
+				assert.Equal(t, s, "")
+				assert.EqualError(t, err, "could not get memory or could not cast memory to string")
+			},
+		},
+		{
+			name:  "missing data - get memory",
+			attr:  Memory,
+			price: missingData,
+			check: func(s string, err error) {
+				assert.Equal(t, s, "")
+				assert.EqualError(t, err, "could not get memory or could not cast memory to string")
+			},
+		},
+		{
+			name:  "successful - get gpu",
+			attr:  "gpu",
+			price: data,
+			check: func(s string, err error) {
+				assert.Nil(t, err, "the error should be nil")
+				assert.Equal(t, s, "5")
+			},
+		},
+		{
+			name:  "cast problem - get gpu",
+			attr:  "gpu",
+			price: wrongCast,
+			check: func(s string, err error) {
+				assert.Equal(t, s, "")
+				assert.EqualError(t, err, "could not get gpu or could not cast gpu to string")
+			},
+		},
+		{
+			name:  "missing data - get gpu",
+			attr:  "gpu",
+			price: missingData,
+			check: func(s string, err error) {
+				assert.Equal(t, s, "")
+				assert.EqualError(t, err, "could not get gpu or could not cast gpu to string")
+			},
+		},
+	}
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			pricedata, _ := newPriceData(test.price.awsData)
+			test.check(pricedata.GetDataForKey(test.attr))
+		})
+	}
+}
+
+func TestPriceData_GetOnDemandPrice(t *testing.T) {
+	tests := []struct {
+		name  string
+		price priceData
+		check func(s string, err error)
+	}{
+		{
+			name:  "successful",
+			price: data,
+			check: func(s string, err error) {
+				assert.Nil(t, err, "the error should be nil")
+				assert.Equal(t, s, "5")
+			},
+		},
+		{
+			name: "cast problem",
+			price: priceData{
+				awsData: aws.JSONValue{
+					"terms": map[string]interface{}{
+						"OnDemand": map[string]interface{}{
+							"2ZP4J8GPBP6QFK3Y.JRTCKXETXF": map[string]interface{}{
+								"priceDimensions": map[string]interface{}{
+									"2ZP4J8GPBP6QFK3Y.JRTCKXETXF.6YS6EN2CT7": map[string]interface{}{
+										"pricePerUnit": map[string]interface{}{
+											"USD": 5,
+										}}}}}}}},
+			check: func(s string, err error) {
+				assert.Equal(t, s, "")
+				assert.EqualError(t, err, "could not get on demand price or could not cast on demand price to string")
+			},
+		},
+		{
+			name: "missing data",
+			price: priceData{
+				awsData: aws.JSONValue{
+					"terms": map[string]interface{}{
+						"OnDemand": map[string]interface{}{
+							"2ZP4J8GPBP6QFK3Y.JRTCKXETXF": map[string]interface{}{
+								"priceDimensions": map[string]interface{}{
+									"2ZP4J8GPBP6QFK3Y.JRTCKXETXF.6YS6EN2CT7": map[string]interface{}{
+										"pricePerUnit": map[string]interface{}{}}}}}}}},
+			check: func(s string, err error) {
+				assert.Equal(t, s, "")
+				assert.EqualError(t, err, "could not get on demand price or could not cast on demand price to string")
+			},
+		},
+		{
+			name: "could not get pricePerUnit",
+			price: priceData{
+				awsData: aws.JSONValue{
+					"terms": map[string]interface{}{
+						"OnDemand": map[string]interface{}{
+							"2ZP4J8GPBP6QFK3Y.JRTCKXETXF": map[string]interface{}{
+								"priceDimensions": map[string]interface{}{
+									"2ZP4J8GPBP6QFK3Y.JRTCKXETXF.6YS6EN2CT7": map[string]interface{}{}}}}}}},
+			check: func(s string, err error) {
+				assert.Equal(t, s, "")
+				assert.EqualError(t, err, "could not get map for key: [ pricePerUnit ]")
+			},
+		},
+		{
+			name: "could not get priceDimensions",
+			price: priceData{
+				awsData: aws.JSONValue{
+					"terms": map[string]interface{}{
+						"OnDemand": map[string]interface{}{
+							"2ZP4J8GPBP6QFK3Y.JRTCKXETXF": map[string]interface{}{}}}}},
+			check: func(s string, err error) {
+				assert.Equal(t, s, "")
+				assert.EqualError(t, err, "could not get map for key: [ priceDimensions ]")
+			},
+		},
+		{
+			name: "could not get OnDemand",
+			price: priceData{
+				awsData: aws.JSONValue{
+					"terms": map[string]interface{}{}}},
+			check: func(s string, err error) {
+				assert.Equal(t, s, "")
+				assert.EqualError(t, err, "could not get map for key: [ OnDemand ]")
+			},
+		},
+		{
+			name: "could not get terms",
+			price: priceData{
+				awsData: aws.JSONValue{}},
+			check: func(s string, err error) {
+				assert.Equal(t, s, "")
+				assert.EqualError(t, err, "could not get map for key: [ terms ]")
+			},
+		},
+	}
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			test.check(test.price.GetOnDemandPrice())
+		})
+	}
+}
+
+func TestPriceData_newPriceData(t *testing.T) {
+	tests := []struct {
+		name   string
+		prData aws.JSONValue
+		check  func(data *priceData, err error)
+	}{
+		{
+			name:   "successful",
+			prData: aws.JSONValue{"product": map[string]interface{}{"attributes": map[string]interface{}{}}},
+			check: func(data *priceData, err error) {
+				assert.NotNil(t, data, "")
+				assert.Nil(t, err)
+			},
+		},
+		{
+			name:   "could not get map for key attributes",
+			prData: aws.JSONValue{"product": map[string]interface{}{}},
+			check: func(data *priceData, err error) {
+				assert.Nil(t, data, "")
+				assert.EqualError(t, err, "could not get map for key: [ attributes ]")
+			},
+		},
+		{
+			name:   "could not get map for key product",
+			prData: aws.JSONValue{},
+			check: func(data *priceData, err error) {
+				assert.Nil(t, data, "")
+				assert.EqualError(t, err, "could not get map for key: [ product ]")
+			},
+		},
+	}
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			test.check(newPriceData(test.prData))
 		})
 	}
 }

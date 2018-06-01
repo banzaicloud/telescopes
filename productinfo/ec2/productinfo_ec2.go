@@ -2,6 +2,7 @@ package ec2
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"strconv"
 	"strings"
@@ -125,27 +126,42 @@ func (e *Ec2Infoer) GetProducts(regionId string, attrKey string, attrValue produ
 	if err != nil {
 		return nil, err
 	}
-	for _, price := range products.PriceList {
-		var onDemandPrice float64
-		// TODO: this is unsafe, check for nil values if needed
-		instanceType := price["product"].(map[string]interface{})["attributes"].(map[string]interface{})["instanceType"].(string)
-		cpusStr := price["product"].(map[string]interface{})["attributes"].(map[string]interface{})[Cpu].(string)
-		memStr := price["product"].(map[string]interface{})["attributes"].(map[string]interface{})[Memory].(string)
-		var gpus float64
-		if price["product"].(map[string]interface{})["attributes"].(map[string]interface{})["gpu"] != nil {
-			gpuStr := price["product"].(map[string]interface{})["attributes"].(map[string]interface{})["gpu"].(string)
-			gpus, _ = strconv.ParseFloat(gpuStr, 32)
+	for i, price := range products.PriceList {
+		pd, err := newPriceData(price)
+		if err != nil {
+			log.Warn("could not extract pricing info for the item with index: [ %d ]", i)
+			continue
 		}
-		onDemandTerm := price["terms"].(map[string]interface{})["OnDemand"].(map[string]interface{})
-		for _, term := range onDemandTerm {
-			priceDimensions := term.(map[string]interface{})["priceDimensions"].(map[string]interface{})
-			for _, dimension := range priceDimensions {
-				odPriceStr := dimension.(map[string]interface{})["pricePerUnit"].(map[string]interface{})["USD"].(string)
-				onDemandPrice, _ = strconv.ParseFloat(odPriceStr, 32)
-			}
+
+		instanceType, err := pd.GetDataForKey("instanceType")
+		if err != nil {
+			log.Warn("could not retrieve instance type")
+			continue
 		}
+		cpusStr, err := pd.GetDataForKey(Cpu)
+		if err != nil {
+			log.Warn("could not retrieve vcpu")
+			continue
+		}
+		memStr, err := pd.GetDataForKey(Memory)
+		if err != nil {
+			log.Warn("could not retrieve memory")
+			continue
+		}
+		gpu, err := pd.GetDataForKey("gpu")
+		if err != nil {
+			log.Debugf("could not retrieve gpu")
+		}
+		odPriceStr, err := pd.GetOnDemandPrice()
+		if err != nil {
+			log.Warn("could not retrieve on demand price")
+			continue
+		}
+
+		onDemandPrice, _ := strconv.ParseFloat(odPriceStr, 32)
 		cpus, _ := strconv.ParseFloat(cpusStr, 32)
 		mem, _ := strconv.ParseFloat(strings.Split(memStr, " ")[0], 32)
+		gpus, _ := strconv.ParseFloat(gpu, 32)
 		vm := productinfo.VmInfo{
 			Type:          instanceType,
 			OnDemandPrice: onDemandPrice,
@@ -155,8 +171,84 @@ func (e *Ec2Infoer) GetProducts(regionId string, attrKey string, attrValue produ
 		}
 		vms = append(vms, vm)
 	}
+	if vms == nil {
+		log.Debugf("couldn't find any virtual machines to recommend")
+	}
 	log.Debugf("found vms [%s=%s]: %#v", attrKey, attrValue.StrValue, vms)
 	return vms, nil
+}
+
+type priceData struct {
+	awsData aws.JSONValue
+	attrMap map[string]interface{}
+}
+
+func newPriceData(prData aws.JSONValue) (*priceData, error) {
+	pd := priceData{awsData: prData}
+
+	// get the attributes map
+	productMap, err := getMapForKey("product", pd.awsData)
+	if err != nil {
+		return nil, err
+	}
+
+	attrMap, err := getMapForKey("attributes", productMap)
+	if err != nil {
+		return nil, err
+	}
+
+	pd.attrMap = attrMap
+
+	return &pd, nil
+}
+func (pd *priceData) GetDataForKey(attr string) (string, error) {
+	if value, ok := pd.attrMap[attr].(string); ok {
+		return value, nil
+	}
+	return "", fmt.Errorf("could not get %s or could not cast %s to string", attr, attr)
+}
+
+func (pd *priceData) GetOnDemandPrice() (string, error) {
+	termsMap, err := getMapForKey("terms", pd.awsData)
+	if err != nil {
+		return "", err
+	}
+	onDemandMap, err := getMapForKey("OnDemand", termsMap)
+	if err != nil {
+		return "", err
+	}
+	for _, term := range onDemandMap {
+		priceDimensionsMap, err := getMapForKey("priceDimensions", term.(map[string]interface{}))
+		if err != nil {
+			return "", err
+		}
+		for _, dimension := range priceDimensionsMap {
+
+			pricePerUnitMap, err := getMapForKey("pricePerUnit", dimension.(map[string]interface{}))
+			if err != nil {
+				return "", err
+			}
+			odPrice, ok := pricePerUnitMap["USD"].(string)
+			if !ok {
+				return "", errors.New("could not get on demand price or could not cast on demand price to string")
+			}
+			return odPrice, nil
+		}
+	}
+	return "", nil
+}
+
+func getMapForKey(key string, srcMap map[string]interface{}) (map[string]interface{}, error) {
+	rawMap, ok := srcMap[key]
+	if !ok {
+		return nil, fmt.Errorf("could not get map for key: [ %s ]", key)
+	}
+
+	remap, ok := rawMap.(map[string]interface{})
+	if !ok {
+		return nil, fmt.Errorf("the value for key: [ %s ] could not be cast to map[string]interface{}", key)
+	}
+	return remap, nil
 }
 
 // GetRegion gets the api specific region representation based on the provided id
