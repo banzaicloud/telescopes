@@ -171,6 +171,9 @@ func (e *Ec2Infoer) GetProducts(regionId string, attrKey string, attrValue produ
 		}
 		vms = append(vms, vm)
 	}
+	if vms == nil {
+		log.Debugf("couldn't find any virtual machines to recommend")
+	}
 	log.Debugf("found vms [%s=%s]: %#v", attrKey, attrValue.StrValue, vms)
 	return vms, nil
 }
