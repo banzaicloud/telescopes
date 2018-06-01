@@ -57,6 +57,14 @@ func TestNewEngine(t *testing.T) {
 	}
 }
 
+// dummy network mapper
+type dummyNetworkMapper struct {
+}
+
+func (dm dummyNetworkMapper) NetworkPerf(vm productinfo.VmInfo) (string, error) {
+	return productinfo.NTW_HIGH, nil
+}
+
 // utility VmRegistry for mocking purposes
 type dummyProductInfo struct {
 	// test case id to drive the behaviour
@@ -114,6 +122,11 @@ func (d *dummyProductInfo) GetSpotPrice(provider string, region string, instance
 
 	}
 	return 0, nil
+}
+
+func (d *dummyProductInfo) GetNetworkPerfMapper(provider string) (productinfo.NetworkMapper, error) {
+	nm := dummyNetworkMapper{}
+	return nm, nil
 }
 
 func TestEngine_RecommendAttrValues(t *testing.T) {

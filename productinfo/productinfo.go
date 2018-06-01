@@ -54,7 +54,7 @@ type ProductInfoer interface {
 	GetCpuAttrName() string
 
 	// GetNetworkMapper returns the provider specific network performance mapper
-	GetNetworkMapper() NetworkMapper
+	GetNetworkMapper() (NetworkMapper, error)
 }
 
 // ProductInfo is the main entry point for retrieving vm type characteristics and pricing information on different cloud providers
@@ -75,7 +75,7 @@ type ProductInfo interface {
 	GetSpotPrice(provider string, region string, instanceType string, zones []string) (float64, error)
 
 	// GetNetworkPerfMapper retrieves the network performance mapper implementaiton
-	GetNetworkPerfMapper(provider string) NetworkMapper
+	GetNetworkPerfMapper(provider string) (NetworkMapper, error)
 }
 
 // CachingProductInfo is the module struct, holds configuration and cache
@@ -382,5 +382,8 @@ func (pi *CachingProductInfo) GetZones(provider string, region string) ([]string
 
 // GetNetworkPerfMapper returns the provider specific network performance mapper
 func (pi *CachingProductInfo) GetNetworkPerfMapper(provider string) (NetworkMapper, error) {
-	return pi.productInfoers[provider].GetNetworkMapper(), nil
+	if infoer, ok := pi.productInfoers[provider]; ok {
+		return infoer.GetNetworkMapper() // this also can return with err!
+	}
+	return nil, fmt.Errorf("could not retrieve network perf mapper for provider: [%s]", provider)
 }

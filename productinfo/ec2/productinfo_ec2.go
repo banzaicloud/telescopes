@@ -412,3 +412,7 @@ func (e *Ec2Infoer) GetMemoryAttrName() string {
 func (e *Ec2Infoer) GetCpuAttrName() string {
 	return Cpu
 }
+
+func (e *Ec2Infoer) GetNetworkMapper() (productinfo.NetworkMapper, error) {
+	return nil, errors.New("not yet implemented")
+}

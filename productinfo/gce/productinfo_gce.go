@@ -1,6 +1,7 @@
 package gce
 
 import (
+	"errors"
 	"github.com/banzaicloud/telescopes/productinfo"
 )
 
@@ -53,4 +54,9 @@ func (g *GceInfoer) GetMemoryAttrName() string {
 // GetCpuAttrName returns the provider representation of the cpu attribute
 func (g *GceInfoer) GetCpuAttrName() string {
 	return "cpu"
+}
+
+func (g *GceInfoer) GetNetworkMapper() (productinfo.NetworkMapper, error) {
+	//todo
+	return nil, errors.New("not yet implemented")
 }

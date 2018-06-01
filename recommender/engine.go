@@ -73,7 +73,7 @@ type ClusterRecommendationReq struct {
 	// Are burst instances allowed in recommendation
 	AllowBurst *bool `json:"allowBurst,omitempty"`
 	// NertworkPerf specifies the network performance category
-	NertworkPerf *string `json:"networkPerf,omitempty""`
+	NertworkPerf *string `json:"networkPerf,omitempty"`
 }
 
 // ClusterRecommendationResp encapsulates recommendation result data
@@ -372,7 +372,10 @@ func (e *Engine) findVmsWithAttrValues(provider string, region string, zones []s
 		zones = z
 	}
 
-	ntwMapper := e.productInfo.GetNetworkPerfMapper(provider)
+	ntwMapper, err := e.productInfo.GetNetworkPerfMapper(provider)
+	if err != nil {
+		return nil, err
+	}
 
 	for _, v := range values {
 		vmInfos, err := e.productInfo.GetVmsWithAttrValue(provider, region, attr, v)
