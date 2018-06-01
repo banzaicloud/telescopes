@@ -91,6 +91,11 @@ func NewConfig() *aws.Config {
 	return &aws.Config{Region: aws.String("us-east-1")}
 }
 
+// Initialize is not needed on EC2 because price info is changing frequently
+func (e *Ec2Infoer) Initialize() (map[string]map[string]productinfo.Price, error) {
+	return nil, nil
+}
+
 // GetAttributeValues gets the AttributeValues for the given attribute name
 // Delegates to the underlying PricingSource instance and unifies (transforms) the response
 func (e *Ec2Infoer) GetAttributeValues(attribute string) (productinfo.AttrValues, error) {
@@ -313,12 +318,12 @@ func (e *Ec2Infoer) newGetProductsInput(regionId string, attrKey string, attrVal
 
 // GetRegions returns a map with available regions
 // transforms the api representation into a "plain" map
-func (e *Ec2Infoer) GetRegions() map[string]string {
+func (e *Ec2Infoer) GetRegions() (map[string]string, error) {
 	regionIdMap := make(map[string]string)
 	for key, region := range endpoints.AwsPartition().Regions() {
 		regionIdMap[key] = region.ID()
 	}
-	return regionIdMap
+	return regionIdMap, nil
 }
 
 // GetZones returns the availability zones in a region
@@ -337,9 +342,14 @@ func (e *Ec2Infoer) GetZones(region string) ([]string, error) {
 	return zones, nil
 }
 
-func (e *Ec2Infoer) getSpotPricesFromPrometheus(region string) (map[string]productinfo.PriceInfo, error) {
+// HasShortLivedPriceInfo - Spot Prices are changing continuously on EC2
+func (e *Ec2Infoer) HasShortLivedPriceInfo() bool {
+	return true
+}
+
+func (e *Ec2Infoer) getSpotPricesFromPrometheus(region string) (map[string]productinfo.SpotPriceInfo, error) {
 	log.Debug("getting spot price averages from Prometheus API")
-	priceInfo := make(map[string]productinfo.PriceInfo)
+	priceInfo := make(map[string]productinfo.SpotPriceInfo)
 	query := fmt.Sprintf(e.promQuery, region)
 	log.Debugf("sending prometheus query: %s", query)
 	result, err := e.prometheus.Query(context.Background(), query, time.Now())
@@ -357,7 +367,7 @@ func (e *Ec2Infoer) getSpotPricesFromPrometheus(region string) (map[string]produ
 				return nil, err
 			}
 			if priceInfo[instanceType] == nil {
-				priceInfo[instanceType] = make(productinfo.PriceInfo)
+				priceInfo[instanceType] = make(productinfo.SpotPriceInfo)
 			}
 			priceInfo[instanceType][az] = price
 		}
@@ -365,8 +375,8 @@ func (e *Ec2Infoer) getSpotPricesFromPrometheus(region string) (map[string]produ
 	return priceInfo, nil
 }
 
-func (e *Ec2Infoer) getCurrentSpotPrices(region string) (map[string]productinfo.PriceInfo, error) {
-	priceInfo := make(map[string]productinfo.PriceInfo)
+func (e *Ec2Infoer) getCurrentSpotPrices(region string) (map[string]productinfo.SpotPriceInfo, error) {
+	priceInfo := make(map[string]productinfo.SpotPriceInfo)
 	ec2Svc := ec2.New(e.session, &aws.Config{Region: aws.String(region)})
 	err := ec2Svc.DescribeSpotPriceHistoryPages(&ec2.DescribeSpotPriceHistoryInput{
 		StartTime:           aws.Time(time.Now()),
@@ -379,7 +389,7 @@ func (e *Ec2Infoer) getCurrentSpotPrices(region string) (map[string]productinfo.
 				continue
 			}
 			if priceInfo[*pe.InstanceType] == nil {
-				priceInfo[*pe.InstanceType] = make(productinfo.PriceInfo)
+				priceInfo[*pe.InstanceType] = make(productinfo.SpotPriceInfo)
 			}
 			priceInfo[*pe.InstanceType][*pe.AvailabilityZone] = price
 		}
@@ -391,22 +401,29 @@ func (e *Ec2Infoer) getCurrentSpotPrices(region string) (map[string]productinfo.
 	return priceInfo, nil
 }
 
-// GetCurrentSpotPrices returns the current spot prices of every instance type in every availability zone in a given region
-func (e *Ec2Infoer) GetCurrentSpotPrices(region string) (map[string]productinfo.PriceInfo, error) {
+// GetCurrentPrices returns the current spot prices of every instance type in every availability zone in a given region
+func (e *Ec2Infoer) GetCurrentPrices(region string) (map[string]productinfo.Price, error) {
+	var spotPrices map[string]productinfo.SpotPriceInfo
+	var err error
 	if e.prometheus != nil {
-		spotPrices, err := e.getSpotPricesFromPrometheus(region)
+		spotPrices, err = e.getSpotPricesFromPrometheus(region)
 		if err != nil {
 			log.WithError(err).Warn("Couldn't get spot price info from Prometheus API, fallback to direct AWS API access.")
-		} else {
-			return spotPrices, nil
 		}
 	}
 	log.Debug("getting current spot prices directly from the AWS API")
-	spotPrices, err := e.getCurrentSpotPrices(region)
+	spotPrices, err = e.getCurrentSpotPrices(region)
 	if err != nil {
 		return nil, err
 	}
-	return spotPrices, nil
+	prices := make(map[string]productinfo.Price)
+	for region, sp := range spotPrices {
+		prices[region] = productinfo.Price{
+			SpotPrice:     sp,
+			OnDemandPrice: -1,
+		}
+	}
+	return prices, nil
 }
 
 // GetMemoryAttrName returns the provider representation of the memory attribute

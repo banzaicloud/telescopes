@@ -74,6 +74,10 @@ type dummyProductInfo struct {
 	TcId string
 }
 
+func (d *dummyProductInfo) Initialize(provider string) (map[string]map[string]productinfo.Price, error) {
+	return nil, nil
+}
+
 func (d *dummyProductInfo) Start(ctx context.Context) {
 
 }
@@ -107,8 +111,12 @@ func (d *dummyProductInfo) GetZones(provider string, region string) ([]string, e
 	return nil, nil
 }
 
-func (d *dummyProductInfo) GetSpotPrice(provider string, region string, instanceType string, zones []string) (float64, error) {
-	return float64(6), nil
+func (d *dummyProductInfo) GetPrice(provider string, region string, instanceType string, zones []string) (float64, float64, error) {
+	return -1, 6.0, nil
+}
+
+func (d *dummyProductInfo) HasShortLivedPriceInfo(provider string) bool {
+	return true
 }
 
 func (d *dummyProductInfo) GetNetworkPerfMapper(provider string) (productinfo.NetworkPerfMapper, error) {
@@ -409,7 +417,7 @@ func TestEngine_RecommendNodePools(t *testing.T) {
 				SumCpu:   100,
 			},
 			check: func(nps []NodePool, err error) {
-				assert.EqualError(t, err, "no vm's suitable for spot pools")
+				assert.EqualError(t, err, "no vms suitable for spot pools")
 				assert.Nil(t, nps, "the nps should be nil")
 
 			},

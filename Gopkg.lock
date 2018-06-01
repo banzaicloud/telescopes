@@ -2,6 +2,12 @@
 
 
 [[projects]]
+  name = "cloud.google.com/go"
+  packages = ["compute/metadata"]
+  revision = "0fd7230b2a7505833d5f69b75cbd6c9582401479"
+  version = "v0.23.0"
+
+[[projects]]
   name = "github.com/aws/aws-sdk-go"
   packages = [
     "aws",
@@ -141,12 +147,63 @@
 
 [[projects]]
   branch = "master"
+  name = "golang.org/x/net"
+  packages = [
+    "context",
+    "context/ctxhttp"
+  ]
+  revision = "1e491301e022f8f977054da4c2d852decd59571f"
+
+[[projects]]
+  branch = "master"
+  name = "golang.org/x/oauth2"
+  packages = [
+    ".",
+    "google",
+    "internal",
+    "jws",
+    "jwt"
+  ]
+  revision = "ec22f46f877b4505e0117eeaab541714644fdd28"
+
+[[projects]]
+  branch = "master"
   name = "golang.org/x/sys"
   packages = [
     "unix",
     "windows"
   ]
   revision = "d5840adf789d732bc8b00f37b26ca956a7cc8e79"
+
+[[projects]]
+  branch = "master"
+  name = "google.golang.org/api"
+  packages = [
+    "cloudbilling/v1",
+    "compute/v1",
+    "gensupport",
+    "googleapi",
+    "googleapi/internal/uritemplates",
+    "googleapi/transport"
+  ]
+  revision = "f71c6d4abd9757df4168c39856698c341d07251f"
+
+[[projects]]
+  name = "google.golang.org/appengine"
+  packages = [
+    ".",
+    "internal",
+    "internal/app_identity",
+    "internal/base",
+    "internal/datastore",
+    "internal/log",
+    "internal/modules",
+    "internal/remote_api",
+    "internal/urlfetch",
+    "urlfetch"
+  ]
+  revision = "150dc57a1b433e64154302bdc40b6bb8aefa313a"
+  version = "v1.0.0"
 
 [[projects]]
   name = "gopkg.in/go-playground/validator.v8"
@@ -163,6 +220,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "2e075d69d396037ea41d9273544270dcd11c0200f60180bfc1b7d914676f7a3e"
+  inputs-digest = "64f83f42faa5b585770a2e60cfcbe8371460d3ea1b9f2dcda6964ed5bfb833e7"
   solver-name = "gps-cdcl"
   solver-version = 1

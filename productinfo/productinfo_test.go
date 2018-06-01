@@ -20,7 +20,10 @@ type DummyProductInfoer struct {
 	ProductInfoer
 }
 
-// GetAttributeValues mocks the call for attribute values
+func (dpi *DummyProductInfoer) Initialize() (map[string]map[string]Price, error) {
+	return nil, nil
+}
+
 func (dpi *DummyProductInfoer) GetAttributeValues(attribute string) (AttrValues, error) {
 	if attribute == "error" {
 		return nil, fmt.Errorf("attribute value error")
@@ -28,7 +31,6 @@ func (dpi *DummyProductInfoer) GetAttributeValues(attribute string) (AttrValues,
 	return dpi.AttrValues, nil
 }
 
-// GetProducts mocks the call for products
 func (dpi *DummyProductInfoer) GetProducts(regionId string, attrKey string, attrValue AttrValue) ([]VmInfo, error) {
 	if regionId == "errorRegion" {
 		return nil, fmt.Errorf("regionId error")
@@ -36,15 +38,23 @@ func (dpi *DummyProductInfoer) GetProducts(regionId string, attrKey string, attr
 	return dpi.Vms, nil
 }
 
+func (dpi *DummyProductInfoer) GetZones(region string) ([]string, error) {
+	return nil, nil
+}
+
 func (dpi *DummyProductInfoer) GetRegion(id string) *endpoints.Region {
 	return nil
 }
 
-func (dpi *DummyProductInfoer) GetRegions() map[string]string {
-	return nil
+func (dpi *DummyProductInfoer) GetRegions() (map[string]string, error) {
+	return nil, nil
 }
 
-func (dpi *DummyProductInfoer) GetCurrentSpotPrices(region string) (map[string]PriceInfo, error) {
+func (dpi *DummyProductInfoer) HasShortLivedPriceInfo() bool {
+	return true
+}
+
+func (dpi *DummyProductInfoer) GetCurrentPrices(region string) (map[string]Price, error) {
 	return nil, nil
 }
 
