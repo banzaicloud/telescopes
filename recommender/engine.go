@@ -497,7 +497,6 @@ func (e *Engine) RecommendNodePools(attr string, vms []VirtualMachine, values []
 	// retain only the nodes that are available as spot instances
 	vms = e.filterSpots(vms)
 	if len(vms) == 0 {
-		// todo handle this case properly - recommend more on demand pools maybe
 		return nil, errors.New("no vm's suitable for spot pools")
 	}
 
