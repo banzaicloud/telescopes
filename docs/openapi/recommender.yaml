@@ -87,6 +87,12 @@ paths:
           in: query
           schema:
             type: boolean
+        - x-go-name: NertworkPerf
+          description: NertworkPerf specifies the network performance category
+          name: networkPerf
+          in: query
+          schema:
+            type: string
       responses:
         '200':
           $ref: '#/components/responses/recommendationResp'
@@ -164,6 +170,10 @@ components:
           type: number
           format: double
           x-go-name: Mem
+        networkPerf:
+          description: NetworkPerf holds the network performance category
+          type: string
+          x-go-name: NetworkPerf
         onDemandPrice:
           description: Regular price of the instance type
           type: number
