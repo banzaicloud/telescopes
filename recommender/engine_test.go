@@ -553,7 +553,7 @@ func TestEngine_filtersForAttr(t *testing.T) {
 			pi:   &dummyProductInfo{},
 			attr: productinfo.Cpu,
 			check: func(vmfs []vmFilter, err error) {
-				assert.Equal(t, 2, len(vmfs), "invalid filter count")
+				assert.Equal(t, 3, len(vmfs), "invalid filter count")
 			},
 		},
 		{
@@ -561,7 +561,7 @@ func TestEngine_filtersForAttr(t *testing.T) {
 			pi:   &dummyProductInfo{},
 			attr: productinfo.Memory,
 			check: func(vmfs []vmFilter, err error) {
-				assert.Equal(t, 2, len(vmfs), "invalid filter count")
+				assert.Equal(t, 3, len(vmfs), "invalid filter count")
 			},
 		},
 	}

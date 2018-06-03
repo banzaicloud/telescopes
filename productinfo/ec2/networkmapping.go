@@ -33,7 +33,7 @@ func NewEc2NetworkMapper() Ec2NetworkMapper {
 	return Ec2NetworkMapper{}
 }
 
-func (nm *Ec2NetworkMapper) NetworkPerf(vm productinfo.VmInfo) (string, error) {
+func (nm *Ec2NetworkMapper) MapNetworkPerf(vm productinfo.VmInfo) (string, error) {
 	for perfCat, strVals := range ntwPerfMap {
 		if contains(strVals, vm.NtwPerf) {
 			return perfCat, nil
