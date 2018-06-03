@@ -114,6 +114,7 @@ type VmInfo struct {
 	Cpus          float64   `json:"cpusPerVm"`
 	Mem           float64   `json:"memPerVm"`
 	Gpus          float64   `json:"gpusPerVm"`
+	NtwPerf       string    `json:"ntwPerf"`
 }
 
 // IsBurst returns true if the EC2 instance vCPU is burst type

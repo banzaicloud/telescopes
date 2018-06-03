@@ -157,6 +157,11 @@ func (e *Ec2Infoer) GetProducts(regionId string, attrKey string, attrValue produ
 			log.Warn("could not retrieve on demand price")
 			continue
 		}
+		ntwPerf, err := pd.GetDataForKey("networkPerformance")
+		if err != nil {
+			log.Warn("could not parse network performance")
+			continue
+		}
 
 		onDemandPrice, _ := strconv.ParseFloat(odPriceStr, 32)
 		cpus, _ := strconv.ParseFloat(cpusStr, 32)
@@ -168,6 +173,7 @@ func (e *Ec2Infoer) GetProducts(regionId string, attrKey string, attrValue produ
 			Cpus:          cpus,
 			Mem:           mem,
 			Gpus:          gpus,
+			NtwPerf:       ntwPerf,
 		}
 		vms = append(vms, vm)
 	}
@@ -414,5 +420,6 @@ func (e *Ec2Infoer) GetCpuAttrName() string {
 }
 
 func (e *Ec2Infoer) GetNetworkMapper() (productinfo.NetworkMapper, error) {
-	return nil, errors.New("not yet implemented")
+	nm := NewEc2NetworkMapper()
+	return &nm, nil
 }
