@@ -419,6 +419,7 @@ func (e *Ec2Infoer) GetCpuAttrName() string {
 	return Cpu
 }
 
+// GetNetworkPerformanceMapper gets the ec2 specific network performance mapper implementation
 func (e *Ec2Infoer) GetNetworkPerformanceMapper() (productinfo.NetworkPerfMapper, error) {
 	nm := NewEc2NetworkMapper()
 	return &nm, nil

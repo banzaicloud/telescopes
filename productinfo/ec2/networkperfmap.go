@@ -29,7 +29,8 @@ var (
 type Ec2NetworkMapper struct {
 }
 
-func NewEc2NetworkMapper() Ec2NetworkMapper {
+// newEc2NetworkMapper initializes the network performance mapper struct
+func newEc2NetworkMapper() Ec2NetworkMapper {
 	return Ec2NetworkMapper{}
 }
 
