@@ -74,7 +74,7 @@ type ProductInfo interface {
 	// GetSpotPrice returns the zone averaged computed spot price for a given instance type in a given region
 	GetSpotPrice(provider string, region string, instanceType string, zones []string) (float64, error)
 
-	// GetNetworkPerfMapper retrieves the network performance mapper implementaiton
+	// GetNetworkPerfMapper retrieves the network performance mapper implementation
 	GetNetworkPerfMapper(provider string) (NetworkPerfMapper, error)
 }
 
