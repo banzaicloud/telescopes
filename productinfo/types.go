@@ -7,8 +7,8 @@ const (
 	NTW_HIGH   = "high"
 )
 
-// NetworkMapper operations related  to mapping between virtual machines to network performance categories
-type NetworkMapper interface {
+// NetworkPerfMapper operations related  to mapping between virtual machines to network performance categories
+type NetworkPerfMapper interface {
 	// NetworkForMachine gets the network performance category for the given
 	NetworkPerf(vm VmInfo) (string, error)
 }

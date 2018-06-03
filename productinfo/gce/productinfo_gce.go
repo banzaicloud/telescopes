@@ -56,7 +56,7 @@ func (g *GceInfoer) GetCpuAttrName() string {
 	return "cpu"
 }
 
-func (g *GceInfoer) GetNetworkMapper() (productinfo.NetworkMapper, error) {
+func (g *GceInfoer) GetNetworkMapper() (productinfo.NetworkPerfMapper, error) {
 	//todo
 	return nil, errors.New("not yet implemented")
 }

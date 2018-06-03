@@ -124,7 +124,7 @@ func (d *dummyProductInfo) GetSpotPrice(provider string, region string, instance
 	return 0, nil
 }
 
-func (d *dummyProductInfo) GetNetworkPerfMapper(provider string) (productinfo.NetworkMapper, error) {
+func (d *dummyProductInfo) GetNetworkPerfMapper(provider string) (productinfo.NetworkPerfMapper, error) {
 	nm := dummyNetworkMapper{}
 	return nm, nil
 }
