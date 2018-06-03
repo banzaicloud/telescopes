@@ -125,7 +125,7 @@ func (vm VmInfo) IsBurst() bool {
 
 //NetworkPerformance returns the network performance category for the vm
 func (vm VmInfo) NetworkPerformance(nm NetworkPerfMapper) string {
-	nc, err := nm.NetworkPerf(vm)
+	nc, err := nm.MapNetworkPerf(vm)
 	if err != nil {
 		log.Warnf("could not get network performance for vm [%s], error: [%s]", vm.Type, err.Error())
 	}

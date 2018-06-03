@@ -155,6 +155,16 @@ func (e *Engine) minCpuRatioFilter(vm VirtualMachine, req ClusterRecommendationR
 	return true
 }
 
+func (e *Engine) ntwPerformanceFilter(vm VirtualMachine, req ClusterRecommendationReq) bool {
+	if req.NertworkPerf == nil { //there is no filter set
+		return true
+	}
+	if vm.NetworkPerf == *req.NertworkPerf { //the network performance category matches the vm
+		return true
+	}
+	return false
+}
+
 // filterSpots selects vm-s that potentially can be part of "spot" node pools
 func (e *Engine) filterSpots(vms []VirtualMachine) []VirtualMachine {
 	fvms := make([]VirtualMachine, 0)
@@ -448,9 +458,9 @@ func (e *Engine) RecommendAttrValues(provider string, attr string, req ClusterRe
 func (e *Engine) filtersForAttr(attr string) ([]vmFilter, error) {
 	switch attr {
 	case productinfo.Cpu:
-		return []vmFilter{e.minMemRatioFilter, e.burstFilter}, nil
+		return []vmFilter{e.ntwPerformanceFilter, e.minMemRatioFilter, e.burstFilter}, nil
 	case productinfo.Memory:
-		return []vmFilter{e.minCpuRatioFilter, e.burstFilter}, nil
+		return []vmFilter{e.ntwPerformanceFilter, e.minCpuRatioFilter, e.burstFilter}, nil
 	default:
 		return nil, fmt.Errorf("unsupported attribute: [%s]", attr)
 	}

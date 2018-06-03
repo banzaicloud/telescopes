@@ -1,6 +1,6 @@
 package productinfo
 
-const (
+var (
 	// network performance of vm-s
 	NTW_LOW    = "low"
 	NTW_MEDIUM = "medium"
@@ -9,6 +9,6 @@ const (
 
 // NetworkPerfMapper operations related  to mapping between virtual machines to network performance categories
 type NetworkPerfMapper interface {
-	// NetworkForMachine gets the network performance category for the given
-	NetworkPerf(vm VmInfo) (string, error)
+	// MapNetworkPerf gets the network performance category for the given
+	MapNetworkPerf(vm VmInfo) (string, error)
 }
