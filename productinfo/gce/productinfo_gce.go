@@ -56,7 +56,8 @@ func (g *GceInfoer) GetCpuAttrName() string {
 	return "cpu"
 }
 
-func (g *GceInfoer) GetNetworkMapper() (productinfo.NetworkPerfMapper, error) {
+// GetNetworkPerformanceMapper returns the network performance mappier implementation for this provider
+func (g *GceInfoer) GetNetworkPerformanceMapper() (productinfo.NetworkPerfMapper, error) {
 	//todo
 	return nil, errors.New("not yet implemented")
 }

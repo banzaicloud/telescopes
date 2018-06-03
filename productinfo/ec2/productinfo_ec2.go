@@ -419,7 +419,7 @@ func (e *Ec2Infoer) GetCpuAttrName() string {
 	return Cpu
 }
 
-func (e *Ec2Infoer) GetNetworkMapper() (productinfo.NetworkPerfMapper, error) {
+func (e *Ec2Infoer) GetNetworkPerformanceMapper() (productinfo.NetworkPerfMapper, error) {
 	nm := NewEc2NetworkMapper()
 	return &nm, nil
 }

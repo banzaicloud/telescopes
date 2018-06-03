@@ -1,10 +1,14 @@
 package productinfo
 
 var (
-	// network performance of vm-s
-	NTW_LOW    = "low"
+	// telescope supported network performance of vm-s
+
+	// NTW_LOW the low network performance category
+	NTW_LOW = "low"
+	// NTW_MEDIUM the medium network performance category
 	NTW_MEDIUM = "medium"
-	NTW_HIGH   = "high"
+	// NTW_HIGH the high network performance category
+	NTW_HIGH = "high"
 )
 
 // NetworkPerfMapper operations related  to mapping between virtual machines to network performance categories

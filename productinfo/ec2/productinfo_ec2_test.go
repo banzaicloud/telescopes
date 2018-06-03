@@ -245,6 +245,8 @@ func TestEc2Infoer_GetRegions(t *testing.T) {
 	}
 }
 
+// todo better comment test cases, improve the setup
+// todo every test case should have its own fixture - it's hard to follow the individual cases
 func TestEc2Infoer_GetProducts(t *testing.T) {
 	tests := []struct {
 		name          string
