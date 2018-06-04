@@ -19,6 +19,16 @@ var (
 	falseVal = false
 )
 
+const (
+	OutOfLimits      = "2 values between 10 - 20"
+	LargerValues     = "all values are larger than 20, return the closest value"
+	SmallerValues    = "all values are less than 10, return the closest value"
+	MinLargerThanMax = "error, min > max"
+	Error            = "error returned"
+	AttrError        = "attribute value error"
+	ZoneError        = "zone error"
+)
+
 func TestNewEngine(t *testing.T) {
 	tests := []struct {
 		name    string
@@ -69,17 +79,15 @@ func (d *dummyProductInfo) Start(ctx context.Context) {
 }
 func (d *dummyProductInfo) GetAttrValues(provider string, attribute string) ([]float64, error) {
 	switch d.TcId {
-	case "3 values between 10-20":
-		return []float64{12, 13, 14}, nil
-	case "2 values between 10 - 20":
+	case OutOfLimits:
 		return []float64{8, 13, 14, 6}, nil
-	case "all values are larger than 20, return the closest value":
+	case LargerValues:
 		return []float64{30, 40, 50, 60}, nil
-	case "all values are less than 10, return the closest value":
+	case SmallerValues:
 		return []float64{1, 2, 3, 5, 9}, nil
-	case "error, min > max":
+	case MinLargerThanMax:
 		return []float64{1}, nil
-	case "error returned":
+	case Error:
 		return nil, errors.New("error")
 
 	}
@@ -87,13 +95,13 @@ func (d *dummyProductInfo) GetAttrValues(provider string, attribute string) ([]f
 }
 
 func (d *dummyProductInfo) GetVmsWithAttrValue(provider string, regionId string, attrKey string, value float64) ([]productinfo.VmInfo, error) {
-	if d.TcId == "attribute value error" {
+	if d.TcId == AttrError {
 		return nil, errors.New("attribute value error")
 	}
 	return dummyVmInfo, nil
 }
 func (d *dummyProductInfo) GetZones(provider string, region string) ([]string, error) {
-	if d.TcId == "zone error" {
+	if d.TcId == ZoneError {
 		return nil, errors.New("no zone available")
 	}
 	return nil, nil
@@ -120,7 +128,7 @@ func TestEngine_RecommendAttrValues(t *testing.T) {
 	}{
 		{
 			name: "all attributes between limits",
-			pi:   &dummyProductInfo{"3 values between 10-20"},
+			pi:   &dummyProductInfo{},
 			request: ClusterRecommendationReq{
 				MinNodes: 5,
 				MaxNodes: 10,
@@ -133,13 +141,13 @@ func TestEngine_RecommendAttrValues(t *testing.T) {
 			check: func(values []float64, err error) {
 				assert.Nil(t, err, "should not get error when recommending attributes")
 				assert.Equal(t, 3, len(values), "recommended number of values is not as expected")
-				assert.Equal(t, []float64{12, 13, 14}, values)
+				assert.Equal(t, []float64{15, 16, 17}, values)
 
 			},
 		},
 		{
 			name: "attributes out of limits not recommended",
-			pi:   &dummyProductInfo{"2 values between 10 - 20"},
+			pi:   &dummyProductInfo{OutOfLimits},
 			request: ClusterRecommendationReq{
 				MinNodes: 5,
 				MaxNodes: 10,
@@ -157,7 +165,7 @@ func TestEngine_RecommendAttrValues(t *testing.T) {
 		},
 		{
 			name: "no values between limits found - smallest value returned",
-			pi:   &dummyProductInfo{"all values are larger than 20, return the closest value"},
+			pi:   &dummyProductInfo{LargerValues},
 			request: ClusterRecommendationReq{
 				MinNodes: 5,
 				MaxNodes: 10,
@@ -176,7 +184,7 @@ func TestEngine_RecommendAttrValues(t *testing.T) {
 		},
 		{
 			name: "no values between limits found - largest value returned",
-			pi:   &dummyProductInfo{"all values are less than 10, return the closest value"},
+			pi:   &dummyProductInfo{SmallerValues},
 			request: ClusterRecommendationReq{
 				MinNodes: 5,
 				MaxNodes: 10,
@@ -195,7 +203,7 @@ func TestEngine_RecommendAttrValues(t *testing.T) {
 		},
 		{
 			name: "error - min larger than max",
-			pi:   &dummyProductInfo{"error, min > max"},
+			pi:   &dummyProductInfo{MinLargerThanMax},
 			request: ClusterRecommendationReq{
 				MinNodes: 10,
 				MaxNodes: 5,
@@ -212,7 +220,7 @@ func TestEngine_RecommendAttrValues(t *testing.T) {
 		},
 		{
 			name: "error - attribute values could not be retrieved",
-			pi:   &dummyProductInfo{"error returned"},
+			pi:   &dummyProductInfo{Error},
 			request: ClusterRecommendationReq{
 				MinNodes: 10,
 				MaxNodes: 10,
@@ -273,7 +281,7 @@ func TestEngine_RecommendVms(t *testing.T) {
 		{
 			name:   "error - findVmsWithAttrValues",
 			region: "us-west-2",
-			pi:     &dummyProductInfo{"attribute value error"},
+			pi:     &dummyProductInfo{AttrError},
 			values: []float64{1, 2},
 			check: func(vms []VirtualMachine, err error) {
 				assert.EqualError(t, err, "attribute value error")
@@ -295,10 +303,11 @@ func TestEngine_RecommendVms(t *testing.T) {
 			check: func(vms []VirtualMachine, err error) {
 				assert.Nil(t, err, "the error should be nil")
 				assert.Equal(t, 3, len(vms))
-				assert.Equal(t, []VirtualMachine{VirtualMachine{Type: "", AvgPrice: 6, OnDemandPrice: 10, Cpus: 10,
-					Mem: 10, Gpus: 0, Burst: false, NetworkPerf: "high"}, VirtualMachine{Type: "", AvgPrice: 6, OnDemandPrice: 12,
-					Cpus: 10, Mem: 10, Gpus: 0, Burst: false, NetworkPerf: "high"}, VirtualMachine{Type: "", AvgPrice: 6,
-					OnDemandPrice: 21, Cpus: 12, Mem: 12, Gpus: 0, Burst: false, NetworkPerf: "high"}}, vms)
+				assert.Equal(t, []VirtualMachine{
+					{Type: "", AvgPrice: 6, OnDemandPrice: 10, Cpus: 10, Mem: 10, Gpus: 0, Burst: false, NetworkPerf: "high"},
+					{Type: "", AvgPrice: 6, OnDemandPrice: 12, Cpus: 10, Mem: 10, Gpus: 0, Burst: false, NetworkPerf: "high"},
+					{Type: "", AvgPrice: 6, OnDemandPrice: 21, Cpus: 12, Mem: 12, Gpus: 0, Burst: false, NetworkPerf: "high"}},
+					vms)
 
 			},
 		},
@@ -360,11 +369,13 @@ func TestEngine_RecommendNodePools(t *testing.T) {
 			},
 			check: func(nps []NodePool, err error) {
 				assert.Nil(t, err, "the error should be nil")
-				assert.Equal(t, nps, []NodePool{NodePool{VmType: VirtualMachine{Type: "", AvgPrice: 99, OnDemandPrice: 10,
-					Cpus: 10, Mem: 10, Gpus: 0, Burst: false}, SumNodes: 0, VmClass: "regular"},
-					NodePool{VmType: VirtualMachine{Type: "", AvgPrice: 89, OnDemandPrice: 12, Cpus: 10, Mem: 10, Gpus: 0,
-						Burst: false}, SumNodes: 5, VmClass: "spot"}, NodePool{VmType: VirtualMachine{Type: "", AvgPrice: 99,
-						OnDemandPrice: 10, Cpus: 10, Mem: 10, Gpus: 0, Burst: false}, SumNodes: 5, VmClass: "spot"}})
+				assert.Equal(t, []NodePool{
+					{VmType: VirtualMachine{Type: "", AvgPrice: 99, OnDemandPrice: 10, Cpus: 10, Mem: 10, Gpus: 0, Burst: false}, SumNodes: 0, VmClass: "regular"},
+					{VmType: VirtualMachine{Type: "", AvgPrice: 89, OnDemandPrice: 12, Cpus: 10, Mem: 10, Gpus: 0, Burst: false}, SumNodes: 5, VmClass: "spot"},
+					{VmType: VirtualMachine{Type: "", AvgPrice: 99, OnDemandPrice: 10, Cpus: 10, Mem: 10, Gpus: 0, Burst: false}, SumNodes: 5, VmClass: "spot"}},
+					nps)
+				assert.Equal(t, 3, len(nps))
+
 			},
 		},
 		{
@@ -438,16 +449,9 @@ func TestEngine_RecommendCluster(t *testing.T) {
 			region:   "us-west-2",
 			check: func(response *ClusterRecommendationResp, err error) {
 				assert.Nil(t, err, "should not get error when recommending")
-				assert.Equal(t, &ClusterRecommendationResp{Provider: "dummy", Zones: []string{"testZone1", "testZone2"},
-					NodePools: []NodePool{
-						{VmType: VirtualMachine{Type: "", AvgPrice: 6, OnDemandPrice: 10, Cpus: 10, Mem: 10, Gpus: 0, Burst: false, NetworkPerf: "high"}, SumNodes: 0, VmClass: "regular"},
-						{VmType: VirtualMachine{Type: "", AvgPrice: 6, OnDemandPrice: 21, Cpus: 12, Mem: 12, Gpus: 0, Burst: false, NetworkPerf: "high"}, SumNodes: 3, VmClass: "spot"},
-						{VmType: VirtualMachine{Type: "", AvgPrice: 6, OnDemandPrice: 21, Cpus: 12, Mem: 12, Gpus: 0, Burst: false, NetworkPerf: "high"}, SumNodes: 2, VmClass: "spot"},
-						{VmType: VirtualMachine{Type: "", AvgPrice: 6, OnDemandPrice: 21, Cpus: 12, Mem: 12, Gpus: 0, Burst: false, NetworkPerf: "high"}, SumNodes: 2, VmClass: "spot"},
-						{VmType: VirtualMachine{Type: "", AvgPrice: 6, OnDemandPrice: 10, Cpus: 10, Mem: 10, Gpus: 0, Burst: false, NetworkPerf: "high"}, SumNodes: 2, VmClass: "spot"},
-						{VmType: VirtualMachine{Type: "", AvgPrice: 6, OnDemandPrice: 12, Cpus: 10, Mem: 10, Gpus: 0, Burst: false, NetworkPerf: "high"}, SumNodes: 0, VmClass: "spot"},
-						{VmType: VirtualMachine{Type: "", AvgPrice: 6, OnDemandPrice: 10, Cpus: 10, Mem: 10, Gpus: 0, Burst: false, NetworkPerf: "high"}, SumNodes: 0, VmClass: "spot"}}},
-					response)
+				assert.Equal(t, 7, len(response.NodePools))
+				assert.Equal(t, "dummy", response.Provider)
+				assert.Equal(t, []string{"testZone1", "testZone2"}, response.Zones)
 			},
 		},
 		{
@@ -468,7 +472,7 @@ func TestEngine_RecommendCluster(t *testing.T) {
 		},
 		{
 			name: "error - RecommendVms, no zone available",
-			pi:   &dummyProductInfo{"zone error"},
+			pi:   &dummyProductInfo{ZoneError},
 			request: ClusterRecommendationReq{
 				MinNodes: 5,
 				MaxNodes: 10,
