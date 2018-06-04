@@ -20,8 +20,9 @@ var (
 		//"Very Low"
 
 		productinfo.NTW_LOW:    {"Very Low", "Low", "Low to Moderate"},
-		productinfo.NTW_MEDIUM: {"Moderate"},
-		productinfo.NTW_HIGH:   {"High", "Up to 10 Gigabit", "10 Gigabit", "20 Gigabit", "25 Gigabit"},
+		productinfo.NTW_MEDIUM: {"Moderate", "High"},
+		productinfo.NTW_HIGH:   {"Up to 10 Gigabit", "10 Gigabit"},
+		productinfo.NTW_EXTRA:  {"20 Gigabit", "25 Gigabit"},
 	}
 )
 

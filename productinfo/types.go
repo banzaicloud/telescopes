@@ -9,6 +9,8 @@ var (
 	NTW_MEDIUM = "medium"
 	// NTW_HIGH the high network performance category
 	NTW_HIGH = "high"
+	// NTW_EXTRA the highest network performance category
+	NTW_EXTRA = "extra"
 )
 
 // NetworkPerfMapper operations related  to mapping between virtual machines to network performance categories
