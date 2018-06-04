@@ -215,10 +215,7 @@ func (e *Engine) RecommendCluster(provider string, region string, req ClusterRec
 		}
 		log.Debugf("recommended values for [%s]: count:[%d] , values: [%#v./te]", attr, len(values), values)
 
-		vmFilters, err := e.filtersForAttr(attr)
-		if err != nil {
-			return nil, fmt.Errorf("could not get filters for attr: [%s], cause: [%s]", attr, err.Error())
-		}
+		vmFilters, _ := e.filtersForAttr(attr)
 
 		filteredVms, err := e.RecommendVms(provider, region, attr, values, vmFilters, req)
 		if err != nil {
@@ -441,10 +438,7 @@ func (e *Engine) RecommendAttrValues(provider string, attr string, req ClusterRe
 		return nil, err
 	}
 
-	maxValuePerVm, err := req.maxValuePerVm(attr)
-	if err != nil {
-		return nil, err
-	}
+	maxValuePerVm, _ := req.maxValuePerVm(attr)
 
 	values, err := e.findValuesBetween(allValues, minValuePerVm, maxValuePerVm)
 	if err != nil {
@@ -466,7 +460,7 @@ func (e *Engine) filtersForAttr(attr string) ([]vmFilter, error) {
 	}
 }
 
-// filtersForAttr returns the slice for
+// sortByAttrValue returns the slice for
 func (e *Engine) sortByAttrValue(attr string, vms []VirtualMachine) error {
 	// sort and cut
 	switch attr {

@@ -5,7 +5,6 @@ import (
 	"errors"
 	"testing"
 
-	"fmt"
 	"github.com/banzaicloud/telescopes/productinfo"
 	"github.com/stretchr/testify/assert"
 )
@@ -26,7 +25,6 @@ var (
 )
 
 func TestNewEngine(t *testing.T) {
-
 	tests := []struct {
 		name    string
 		pi      productinfo.ProductInfo
@@ -313,7 +311,7 @@ func TestEngine_RecommendVms(t *testing.T) {
 			pi:     &dummyProductInfo{TcId: 7},
 			values: []float64{1, 2},
 			check: func(vms []VirtualMachine, err error) {
-				assert.Equal(t, err, errors.New("attribute value error"))
+				assert.EqualError(t, err, "attribute value error")
 				assert.Nil(t, vms, "the vms should be nil")
 
 			},
@@ -332,6 +330,10 @@ func TestEngine_RecommendVms(t *testing.T) {
 			check: func(vms []VirtualMachine, err error) {
 				assert.Nil(t, err, "the error should be nil")
 				assert.Equal(t, 3, len(vms))
+				assert.Equal(t, vms, []VirtualMachine{VirtualMachine{Type: "", AvgPrice: 0, OnDemandPrice: 10, Cpus: 10,
+					Mem: 10, Gpus: 0, Burst: false}, VirtualMachine{Type: "", AvgPrice: 0, OnDemandPrice: 12, Cpus: 10, Mem: 10,
+					Gpus: 0, Burst: false}, VirtualMachine{Type: "", AvgPrice: 0, OnDemandPrice: 21, Cpus: 12, Mem: 12, Gpus: 0,
+					Burst: false}})
 
 			},
 		},
@@ -347,7 +349,7 @@ func TestEngine_RecommendVms(t *testing.T) {
 			attribute: productinfo.Cpu,
 
 			check: func(vms []VirtualMachine, err error) {
-				assert.Equal(t, err, errors.New("couldn't find any VMs to recommend"))
+				assert.EqualError(t, err, "couldn't find any VMs to recommend")
 				assert.Nil(t, vms, "the vms should be nil")
 
 			},
@@ -368,7 +370,6 @@ func TestEngine_RecommendNodePools(t *testing.T) {
 	vms := []VirtualMachine{
 		{OnDemandPrice: float64(10), AvgPrice: 99, Cpus: float64(10), Mem: float64(10), Gpus: float64(0)},
 		{OnDemandPrice: float64(12), AvgPrice: 89, Cpus: float64(10), Mem: float64(10), Gpus: float64(0)},
-		{OnDemandPrice: float64(21), AvgPrice: 92, Cpus: float64(12), Mem: float64(12), Gpus: float64(0)},
 	}
 
 	tests := []struct {
@@ -394,8 +395,11 @@ func TestEngine_RecommendNodePools(t *testing.T) {
 			},
 			check: func(nps []NodePool, err error) {
 				assert.Nil(t, err, "the error should be nil")
-				assert.NotNil(t, nps, "the nps shouldn't be nil")
-
+				assert.Equal(t, nps, []NodePool{NodePool{VmType: VirtualMachine{Type: "", AvgPrice: 99, OnDemandPrice: 10,
+					Cpus: 10, Mem: 10, Gpus: 0, Burst: false}, SumNodes: 0, VmClass: "regular"},
+					NodePool{VmType: VirtualMachine{Type: "", AvgPrice: 89, OnDemandPrice: 12, Cpus: 10, Mem: 10, Gpus: 0,
+						Burst: false}, SumNodes: 5, VmClass: "spot"}, NodePool{VmType: VirtualMachine{Type: "", AvgPrice: 99,
+						OnDemandPrice: 10, Cpus: 10, Mem: 10, Gpus: 0, Burst: false}, SumNodes: 5, VmClass: "spot"}})
 			},
 		},
 		{
@@ -411,7 +415,25 @@ func TestEngine_RecommendNodePools(t *testing.T) {
 				SumCpu:   100,
 			},
 			check: func(nps []NodePool, err error) {
-				assert.Equal(t, err, errors.New("could not get sum for attr: [error], cause: [unsupported attribute: [error]]"))
+				assert.EqualError(t, err, "could not get sum for attr: [error], cause: [unsupported attribute: [error]]")
+				assert.Nil(t, nps, "the nps should be nil")
+
+			},
+		},
+		{
+			name:   "no spot instances available",
+			pi:     &dummyProductInfo{TcId: 1},
+			vms:    []VirtualMachine{{OnDemandPrice: float64(2), AvgPrice: 0, Cpus: float64(10), Mem: float64(10), Gpus: float64(0)}},
+			attr:   productinfo.Cpu,
+			values: []float64{4},
+			request: ClusterRecommendationReq{
+				MinNodes: 5,
+				MaxNodes: 10,
+				SumMem:   100,
+				SumCpu:   100,
+			},
+			check: func(nps []NodePool, err error) {
+				assert.EqualError(t, err, "no vm's suitable for spot pools")
 				assert.Nil(t, nps, "the nps should be nil")
 
 			},
@@ -466,7 +488,7 @@ func TestEngine_RecommendCluster(t *testing.T) {
 			provider: "dummy",
 			region:   "us-west-2",
 			check: func(response *ClusterRecommendationResp, err error) {
-				assert.Equal(t, err, errors.New("could not get values for attr: [cpu], cause: [min value cannot be larger than the max value]"))
+				assert.EqualError(t, err, "could not get values for attr: [cpu], cause: [min value cannot be larger than the max value]")
 				assert.Nil(t, response, "the response should be nil")
 			},
 		},
@@ -482,7 +504,7 @@ func TestEngine_RecommendCluster(t *testing.T) {
 			provider: "dummy",
 			region:   "us-west-2",
 			check: func(response *ClusterRecommendationResp, err error) {
-				assert.Equal(t, fmt.Errorf("could not get virtual machines for attr: [%s], cause: [couldn't find any VMs to recommend]", productinfo.Memory).Error(), err.Error())
+				assert.EqualError(t, err, "could not get virtual machines for attr: [memory], cause: [couldn't find any VMs to recommend]")
 				assert.Nil(t, response, "the response should be nil")
 			},
 		},
@@ -502,7 +524,6 @@ func TestEngine_sortByAttrValue(t *testing.T) {
 	vms := []VirtualMachine{
 		{OnDemandPrice: float64(10), AvgPrice: 99, Cpus: float64(10), Mem: float64(10), Gpus: float64(0)},
 		{OnDemandPrice: float64(12), AvgPrice: 89, Cpus: float64(10), Mem: float64(10), Gpus: float64(0)},
-		{OnDemandPrice: float64(21), AvgPrice: 92, Cpus: float64(12), Mem: float64(12), Gpus: float64(0)},
 	}
 
 	tests := []struct {
@@ -519,6 +540,24 @@ func TestEngine_sortByAttrValue(t *testing.T) {
 			vms:  vms,
 			check: func(err error) {
 				assert.EqualError(t, err, "unsupported attribute: [error]")
+			},
+		},
+		{
+			name: "successful - memory",
+			pi:   &dummyProductInfo{},
+			attr: productinfo.Memory,
+			vms:  vms,
+			check: func(err error) {
+				assert.Nil(t, err, "the error should be nil")
+			},
+		},
+		{
+			name: "successful - cpu",
+			pi:   &dummyProductInfo{},
+			attr: productinfo.Cpu,
+			vms:  vms,
+			check: func(err error) {
+				assert.Nil(t, err, "the error should be nil")
 			},
 		},
 	}
@@ -546,22 +585,25 @@ func TestEngine_filtersForAttr(t *testing.T) {
 			attr: "error",
 			check: func(vms []vmFilter, err error) {
 				assert.EqualError(t, err, "unsupported attribute: [error]")
+				assert.Nil(t, vms, "the vms should be nil")
 			},
 		},
 		{
 			name: "all filters added - cpu",
 			pi:   &dummyProductInfo{},
 			attr: productinfo.Cpu,
-			check: func(vmfs []vmFilter, err error) {
-				assert.Equal(t, 3, len(vmfs), "invalid filter count")
+			check: func(vms []vmFilter, err error) {
+				assert.Equal(t, 2, len(vms), "invalid filter count")
+				assert.Nil(t, err, "the error should be nil")
 			},
 		},
 		{
 			name: "all filters added - memory",
 			pi:   &dummyProductInfo{},
 			attr: productinfo.Memory,
-			check: func(vmfs []vmFilter, err error) {
-				assert.Equal(t, 3, len(vmfs), "invalid filter count")
+			check: func(vms []vmFilter, err error) {
+				assert.Equal(t, 2, len(vms), "invalid filter count")
+				assert.Nil(t, err, "the error should be nil")
 			},
 		},
 	}
@@ -661,7 +703,7 @@ func TestEngine_minCpuRatioFilter(t *testing.T) {
 			vm:   VirtualMachine{Cpus: 4, Mem: float64(4)},
 			attr: productinfo.Cpu,
 			check: func(filterApplies bool) {
-				assert.Equal(t, true, filterApplies, "vm should pass the  minCpuRatioFilter")
+				assert.Equal(t, true, filterApplies, "vm should pass the minCpuRatioFilter")
 			},
 		},
 		{
@@ -673,7 +715,7 @@ func TestEngine_minCpuRatioFilter(t *testing.T) {
 			vm:   VirtualMachine{Cpus: 4, Mem: float64(8)},
 			attr: productinfo.Cpu,
 			check: func(filterApplies bool) {
-				assert.Equal(t, false, filterApplies, "vm should not pass the  minCpuRatioFilter")
+				assert.Equal(t, false, filterApplies, "vm should not pass the minCpuRatioFilter")
 			},
 		},
 	}
@@ -704,7 +746,7 @@ func TestEngine_minMemRatioFilter(t *testing.T) {
 			vm:   VirtualMachine{Mem: float64(16), Cpus: 4},
 			attr: productinfo.Cpu,
 			check: func(filterApplies bool) {
-				assert.Equal(t, true, filterApplies, "vm should pass the  minMemRatioFilter")
+				assert.Equal(t, true, filterApplies, "vm should pass the minMemRatioFilter")
 			},
 		},
 		{
@@ -716,7 +758,7 @@ func TestEngine_minMemRatioFilter(t *testing.T) {
 			vm:   VirtualMachine{Cpus: 4, Mem: float64(4)},
 			attr: productinfo.Cpu,
 			check: func(filterApplies bool) {
-				assert.Equal(t, false, filterApplies, "vm should not pass the  minMemRatioFilter")
+				assert.Equal(t, false, filterApplies, "vm should not pass the minMemRatioFilter")
 			},
 		},
 	}
@@ -743,7 +785,7 @@ func TestEngine_burstFilter(t *testing.T) {
 			req:    ClusterRecommendationReq{AllowBurst: &trueVal},
 			vm:     VirtualMachine{Burst: true},
 			check: func(filterApplies bool) {
-				assert.Equal(t, true, filterApplies, "vm should pass the  burst filter")
+				assert.Equal(t, true, filterApplies, "vm should pass the burst filter")
 			},
 		},
 		{
@@ -753,7 +795,7 @@ func TestEngine_burstFilter(t *testing.T) {
 			req: ClusterRecommendationReq{},
 			vm:  VirtualMachine{Burst: true},
 			check: func(filterApplies bool) {
-				assert.Equal(t, true, filterApplies, "vm should pass the  burst filter")
+				assert.Equal(t, true, filterApplies, "vm should pass the burst filter")
 			},
 		},
 		{
@@ -762,7 +804,7 @@ func TestEngine_burstFilter(t *testing.T) {
 			req:    ClusterRecommendationReq{AllowBurst: &falseVal},
 			vm:     VirtualMachine{Burst: true},
 			check: func(filterApplies bool) {
-				assert.Equal(t, false, filterApplies, "vm should not pass the  burst filter")
+				assert.Equal(t, false, filterApplies, "vm should not pass the burst filter")
 			},
 		},
 		{
@@ -772,7 +814,7 @@ func TestEngine_burstFilter(t *testing.T) {
 			// not a burst vm!
 			vm: VirtualMachine{Burst: false},
 			check: func(filterApplies bool) {
-				assert.Equal(t, true, filterApplies, "vm should pass the  burst filter")
+				assert.Equal(t, true, filterApplies, "vm should pass the burst filter")
 			},
 		},
 	}
