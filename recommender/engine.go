@@ -72,6 +72,8 @@ type ClusterRecommendationReq struct {
 	SumGpu int `json:"sumGpu,omitempty"`
 	// Are burst instances allowed in recommendation
 	AllowBurst *bool `json:"allowBurst,omitempty"`
+	// NertworkPerf specifies the network performance category
+	NertworkPerf *string `json:"networkPerf,omitempty"`
 }
 
 // ClusterRecommendationResp encapsulates recommendation result data
@@ -111,6 +113,8 @@ type VirtualMachine struct {
 	Gpus float64 `json:"gpusPerVm"`
 	// Burst signals a burst type instance
 	Burst bool `json:"burst"`
+	// NetworkPerf holds the network performance category
+	NetworkPerf string `json:"networkPerf"`
 }
 
 func (v *VirtualMachine) getAttrValue(attr string) float64 {
@@ -149,6 +153,16 @@ func (e *Engine) minCpuRatioFilter(vm VirtualMachine, req ClusterRecommendationR
 		return false
 	}
 	return true
+}
+
+func (e *Engine) ntwPerformanceFilter(vm VirtualMachine, req ClusterRecommendationReq) bool {
+	if req.NertworkPerf == nil { //there is no filter set
+		return true
+	}
+	if vm.NetworkPerf == *req.NertworkPerf { //the network performance category matches the vm
+		return true
+	}
+	return false
 }
 
 // filterSpots selects vm-s that potentially can be part of "spot" node pools
@@ -368,6 +382,11 @@ func (e *Engine) findVmsWithAttrValues(provider string, region string, zones []s
 		zones = z
 	}
 
+	ntwMapper, err := e.productInfo.GetNetworkPerfMapper(provider)
+	if err != nil {
+		return nil, err
+	}
+
 	for _, v := range values {
 		vmInfos, err := e.productInfo.GetVmsWithAttrValue(provider, region, attr, v)
 		if err != nil {
@@ -381,6 +400,7 @@ func (e *Engine) findVmsWithAttrValues(provider string, region string, zones []s
 				Mem:           vmInfo.Mem,
 				Gpus:          vmInfo.Gpus,
 				Burst:         vmInfo.IsBurst(),
+				NetworkPerf:   vmInfo.NetworkPerformance(ntwMapper),
 			}
 			spotPrice, err := e.productInfo.GetSpotPrice(provider, region, vmInfo.Type, zones)
 			if err != nil {
@@ -438,9 +458,9 @@ func (e *Engine) RecommendAttrValues(provider string, attr string, req ClusterRe
 func (e *Engine) filtersForAttr(attr string) ([]vmFilter, error) {
 	switch attr {
 	case productinfo.Cpu:
-		return []vmFilter{e.minMemRatioFilter, e.burstFilter}, nil
+		return []vmFilter{e.ntwPerformanceFilter, e.minMemRatioFilter, e.burstFilter}, nil
 	case productinfo.Memory:
-		return []vmFilter{e.minCpuRatioFilter, e.burstFilter}, nil
+		return []vmFilter{e.ntwPerformanceFilter, e.minCpuRatioFilter, e.burstFilter}, nil
 	default:
 		return nil, fmt.Errorf("unsupported attribute: [%s]", attr)
 	}

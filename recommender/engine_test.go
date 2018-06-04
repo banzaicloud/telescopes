@@ -57,6 +57,14 @@ func TestNewEngine(t *testing.T) {
 	}
 }
 
+// dummy network mapper
+type dummyNetworkMapper struct {
+}
+
+func (dm dummyNetworkMapper) MapNetworkPerf(vm productinfo.VmInfo) (string, error) {
+	return productinfo.NTW_HIGH, nil
+}
+
 // utility VmRegistry for mocking purposes
 type dummyProductInfo struct {
 	// test case id to drive the behaviour
@@ -114,6 +122,11 @@ func (d *dummyProductInfo) GetSpotPrice(provider string, region string, instance
 
 	}
 	return 0, nil
+}
+
+func (d *dummyProductInfo) GetNetworkPerfMapper(provider string) (productinfo.NetworkPerfMapper, error) {
+	nm := dummyNetworkMapper{}
+	return nm, nil
 }
 
 func TestEngine_RecommendAttrValues(t *testing.T) {
@@ -540,7 +553,7 @@ func TestEngine_filtersForAttr(t *testing.T) {
 			pi:   &dummyProductInfo{},
 			attr: productinfo.Cpu,
 			check: func(vmfs []vmFilter, err error) {
-				assert.Equal(t, 2, len(vmfs), "invalid filter count")
+				assert.Equal(t, 3, len(vmfs), "invalid filter count")
 			},
 		},
 		{
@@ -548,7 +561,7 @@ func TestEngine_filtersForAttr(t *testing.T) {
 			pi:   &dummyProductInfo{},
 			attr: productinfo.Memory,
 			check: func(vmfs []vmFilter, err error) {
-				assert.Equal(t, 2, len(vmfs), "invalid filter count")
+				assert.Equal(t, 3, len(vmfs), "invalid filter count")
 			},
 		},
 	}
@@ -966,6 +979,63 @@ func TestEngine_filterSpots(t *testing.T) {
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
 			test.check(test.engine.filterSpots(test.vms))
+		})
+	}
+}
+
+func TestEngine_ntwPerformanceFilter(t *testing.T) {
+	tests := []struct {
+		name   string
+		engine Engine
+		req    ClusterRecommendationReq
+		vm     VirtualMachine
+		check  func(passed bool)
+	}{
+		{
+			name:   "vm passes the network performance filter",
+			engine: Engine{},
+			req: ClusterRecommendationReq{
+				NertworkPerf: &productinfo.NTW_LOW,
+			},
+			vm: VirtualMachine{
+				NetworkPerf: productinfo.NTW_LOW,
+				Type:        "instance type",
+			},
+			check: func(passed bool) {
+				assert.True(t, passed, "vm should pass the check")
+			},
+		},
+		{
+			name:   "vm doesn't pass the network performance filter",
+			engine: Engine{},
+			req: ClusterRecommendationReq{
+				NertworkPerf: &productinfo.NTW_LOW,
+			},
+			vm: VirtualMachine{
+				NetworkPerf: productinfo.NTW_HIGH,
+				Type:        "instance type",
+			},
+			check: func(passed bool) {
+				assert.False(t, passed, "vm should not pass the check")
+			},
+		},
+		{
+			name:   "vm passes the network performance filter - no filter in req",
+			engine: Engine{},
+			req:    ClusterRecommendationReq{ // filter is missing
+			},
+			vm: VirtualMachine{
+				NetworkPerf: productinfo.NTW_LOW,
+				Type:        "instance type",
+			},
+			check: func(passed bool) {
+				assert.True(t, passed, "vm should pass the check")
+			},
+		},
+	}
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			test.check(test.engine.ntwPerformanceFilter(test.vm, test.req))
 		})
 	}
 }

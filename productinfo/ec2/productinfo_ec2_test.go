@@ -91,9 +91,10 @@ func (dps *DummyPricingSource) GetProducts(input *pricing.GetProductsInput) (*pr
 				{
 					"product": map[string]interface{}{
 						"attributes": map[string]interface{}{
-							"instanceType": "db.t2.small",
-							Cpu:            "1",
-							Memory:         "2",
+							"instanceType":       "db.t2.small",
+							Cpu:                  "1",
+							Memory:               "2",
+							"networkPerformance": "Low to Moderate",
 						}},
 					"terms": map[string]interface{}{
 						"OnDemand": map[string]interface{}{
@@ -244,6 +245,8 @@ func TestEc2Infoer_GetRegions(t *testing.T) {
 	}
 }
 
+// todo better comment test cases, improve the setup
+// todo every test case should have its own fixture - it's hard to follow the individual cases
 func TestEc2Infoer_GetProducts(t *testing.T) {
 	tests := []struct {
 		name          string
@@ -261,7 +264,7 @@ func TestEc2Infoer_GetProducts(t *testing.T) {
 			pricingServie: &DummyPricingSource{TcId: 4},
 			check: func(vm []productinfo.VmInfo, err error) {
 				assert.Nil(t, err, "the error should be nil")
-				assert.Equal(t, vm, []productinfo.VmInfo{productinfo.VmInfo{Type: "db.t2.small", OnDemandPrice: 5, SpotPrice: productinfo.PriceInfo(nil), Cpus: 1, Mem: 2, Gpus: 0}})
+				assert.Equal(t, []productinfo.VmInfo{{Type: "db.t2.small", OnDemandPrice: 5, SpotPrice: productinfo.PriceInfo(nil), Cpus: 1, Mem: 2, Gpus: 0, NtwPerf: "Low to Moderate"}}, vm)
 			},
 		},
 		{
