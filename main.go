@@ -14,6 +14,8 @@ package main
 
 import (
 	"context"
+	"os"
+	"strings"
 	"time"
 
 	"github.com/patrickmn/go-cache"
@@ -22,13 +24,12 @@ import (
 
 	"github.com/banzaicloud/telescopes/api"
 	"github.com/banzaicloud/telescopes/productinfo"
+	"github.com/banzaicloud/telescopes/productinfo/azure"
 	"github.com/banzaicloud/telescopes/productinfo/ec2"
 	"github.com/banzaicloud/telescopes/productinfo/gce"
 	"github.com/banzaicloud/telescopes/recommender"
 	"github.com/gin-gonic/gin"
 	flag "github.com/spf13/pflag"
-	"os"
-	"strings"
 )
 
 const (
@@ -48,8 +49,9 @@ const (
 	helpFlag                   = "help"
 
 	//temporary flags
-	gceProjectIdFlag = "gce-project-id"
-	gceApiKeyFlag    = "gce-api-key"
+	gceProjectIdFlag    = "gce-project-id"
+	gceApiKeyFlag       = "gce-api-key"
+	azureSubscriptionId = "azure-subscription-id"
 
 	cfgAppRole     = "telescopes-app-role"
 	defaultAppRole = "telescopes"
@@ -72,9 +74,10 @@ func defineFlags() {
 	flag.Bool(devModeFlag, false, "development mode, if true token based authentication is disabled, false by default")
 	flag.String(gceProjectIdFlag, "", "GCE project ID to use")
 	flag.String(gceApiKeyFlag, "", "GCE API key to use for getting SKUs")
-	flag.StringSlice(providerFlag, []string{recommender.Ec2, recommender.Gce}, "cloud providers to be used for recommendation")
-	flag.String(tokenSigningKeyFlag, "", "string representing a shared secret with the token emitter component")
-	flag.String(vaultAddrFlag, "", "the vault address for authentication token management, not used in development mode")
+	flag.StringSlice(providerFlag, []string{recommender.Ec2, recommender.Gce, recommender.Azure}, "Providers that will be used with the recommender.")
+	flag.String(azureSubscriptionId, "", "Azure subscription ID to use with the APIs")
+	flag.String(tokenSigningKeyFlag, "", "The token signing key for the authentication process")
+	flag.String(vaultAddrFlag, "", "The vault address for authentication token management")
 	flag.Bool(helpFlag, false, "print usage")
 }
 
@@ -198,16 +201,11 @@ func infoers() map[string]productinfo.ProductInfoer {
 
 		switch p {
 		case recommender.Ec2:
-			infoer, err = ec2.NewEc2Infoer(ec2.NewPricing(ec2.NewConfig()), viper.GetString(prometheusAddressFlag),
-				viper.GetString(prometheusQueryFlag))
-			if err != nil {
-				break
-			}
+			infoer, err = ec2.NewEc2Infoer(ec2.NewPricing(ec2.NewConfig()), viper.GetString(prometheusAddressFlag), viper.GetString(prometheusQueryFlag))
 		case recommender.Gce:
 			infoer, err = gce.NewGceInfoer(viper.GetString(gceApiKeyFlag), viper.GetString(gceProjectIdFlag))
-			if err != nil {
-				break
-			}
+		case recommender.Azure:
+			infoer, err = azure.NewAzureInfoer(viper.GetString(azureSubscriptionId))
 		default:
 			log.Fatalf("provider %s is not supported", p)
 		}

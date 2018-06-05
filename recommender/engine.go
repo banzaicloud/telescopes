@@ -14,6 +14,9 @@ const (
 	Gce = "gce"
 	// Ec2 is the identifier of the Google Cloud Engine provider
 	Ec2 = "ec2"
+	// Azure is the identifier of the MS Azure provider
+	Azure = "azure"
+
 
 	// vm types
 	regular = "regular"
