@@ -22,6 +22,7 @@ import (
 
 	"github.com/banzaicloud/telescopes/api"
 	"github.com/banzaicloud/telescopes/productinfo"
+	"github.com/banzaicloud/telescopes/productinfo/azure"
 	"github.com/banzaicloud/telescopes/productinfo/ec2"
 	"github.com/banzaicloud/telescopes/productinfo/gce"
 	"github.com/banzaicloud/telescopes/recommender"
@@ -44,8 +45,9 @@ const (
 	vaultAddrFlag              = "vault_addr"
 
 	//temporary flags
-	gceProjectIdFlag = "gce-project-id"
-	gceApiKeyFlag    = "gce-api-key"
+	gceProjectIdFlag    = "gce-project-id"
+	gceApiKeyFlag       = "gce-api-key"
+	azureSubscriptionId = "azure-subscription-id"
 
 	cfgAppRole     = "telescopes_app_role"
 	defaultAppRole = "telescopes"
@@ -66,7 +68,8 @@ func defineFlags() {
 	flag.Bool(devModeFlag, false, "advanced configuration - development mode, no auth")
 	flag.String(gceProjectIdFlag, "", "GCE project ID to use")
 	flag.String(gceApiKeyFlag, "", "GCE API key to use for getting SKUs")
-	flag.StringSlice(providerFlag, []string{recommender.Ec2, recommender.Gce}, "Providers that will be used with the recommender.")
+	flag.String(azureSubscriptionId, "", "Azure subscription ID to use with the APIs")
+	flag.StringSlice(providerFlag, []string{recommender.Ec2, recommender.Gce, recommender.Azure}, "Providers that will be used with the recommender.")
 	flag.String(tokenSigningKeyFlag, "", "The token signing key for the authentication process")
 	flag.String(vaultAddrFlag, "", "The vault address for authentication token management")
 }
@@ -175,6 +178,8 @@ func infoers() map[string]productinfo.ProductInfoer {
 				viper.GetString(prometheusQueryFlag))
 		case recommender.Gce:
 			infoer, err = gce.NewGceInfoer(viper.GetString(gceApiKeyFlag), viper.GetString(gceProjectIdFlag))
+		case recommender.Azure:
+			infoer, err = azure.NewAzureInfoer(viper.GetString(azureSubscriptionId))
 		default:
 			log.Fatalf("provider %s is not supported", p)
 		}
