@@ -4,10 +4,12 @@ import (
 	"fmt"
 	"net/http"
 
+	"github.com/banzaicloud/bank-vaults/auth"
 	"github.com/banzaicloud/telescopes/recommender"
 	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
 	log "github.com/sirupsen/logrus"
+	"github.com/spf13/viper"
 	"gopkg.in/go-playground/validator.v8"
 )
 
@@ -31,7 +33,7 @@ func getCorsConfig() cors.Config {
 	if !config.AllowAllOrigins {
 		config.AllowOrigins = []string{"http://", "https://"}
 	}
-	config.AllowMethods = []string{"PUT", "DELETE", "GET", "POST", "OPTIONS"}
+	config.AllowMethods = []string{http.MethodPut, http.MethodDelete, http.MethodGet, http.MethodPost, http.MethodOptions}
 	config.AllowHeaders = []string{"Origin", "Authorization", "Content-Type"}
 	config.ExposeHeaders = []string{"Content-Length"}
 	config.AllowCredentials = true
@@ -53,6 +55,12 @@ func (r *RouteHandler) ConfigureRoutes(router *gin.Engine) {
 	{
 		v1.POST("/recommender/:provider/:region/cluster", r.recommendClusterSetup)
 	}
+}
+
+// EnableAuth enables authentication middleware
+func (r *RouteHandler) EnableAuth(router *gin.Engine) {
+	signingKey := viper.GetString("tokensigningkey")
+	router.Use(auth.JWTAuth(auth.NewVaultTokenStore(""), signingKey, nil))
 }
 
 func (r *RouteHandler) signalStatus(c *gin.Context) {
