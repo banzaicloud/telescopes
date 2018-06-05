@@ -49,6 +49,8 @@ var (
 	productInfoRenewalInterval = flag.Duration("product-info-renewal-interval", 24*time.Hour, "Duration (in go syntax) between renewing the ec2 product info. Example: 2h30m")
 	prometheusAddress          = flag.String("prometheus-address", "", "http address of a Prometheus instance that has AWS spot price metrics via banzaicloud/spot-price-exporter. If empty, the recommender will use current spot prices queried directly from the AWS API.")
 	promQuery                  = flag.String("prometheus-query", "avg_over_time(aws_spot_current_price{region=\"%s\", product_description=\"Linux/UNIX\"}[1w])", "advanced configuration: change the query used to query spot price info from Prometheus.")
+	gceProjectId               = flag.String("gce-project-id", "", "GCE project ID to use")
+	gceApiKey                  = flag.String("gce-api-key", "", "GCE API key to use for getting SKUs")
 	providers                  arrayFlags
 )
 
@@ -103,7 +105,7 @@ func infoers() map[string]productinfo.ProductInfoer {
 		case recommender.Ec2:
 			infoer, err = ec2.NewEc2Infoer(ec2.NewPricing(ec2.NewConfig()), *prometheusAddress, *promQuery)
 		case recommender.Gce:
-			infoer, err = gce.NewGceInfoer()
+			infoer, err = gce.NewGceInfoer(*gceApiKey, *gceProjectId)
 		default:
 			log.Fatalf("provider %s is not supported", p)
 		}

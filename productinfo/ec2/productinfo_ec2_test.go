@@ -1,9 +1,9 @@
 package ec2
 
 import (
+	"errors"
 	"testing"
 
-	"errors"
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/endpoints"
 	"github.com/aws/aws-sdk-go/service/pricing"
@@ -239,8 +239,8 @@ func TestEc2Infoer_GetRegions(t *testing.T) {
 			if err != nil {
 				t.Fatalf("failed to create productinfoer; [%s]", err.Error())
 			}
-
-			test.check(productInfoer.GetRegions())
+			regions, _ := productInfoer.GetRegions()
+			test.check(regions)
 		})
 	}
 }
@@ -264,7 +264,7 @@ func TestEc2Infoer_GetProducts(t *testing.T) {
 			pricingService: &DummyPricingSource{TcId: 4},
 			check: func(vm []productinfo.VmInfo, err error) {
 				assert.Nil(t, err, "the error should be nil")
-				assert.Equal(t, []productinfo.VmInfo{{Type: "db.t2.small", OnDemandPrice: 5, SpotPrice: productinfo.PriceInfo(nil), Cpus: 1, Mem: 2, Gpus: 0, NtwPerf: "Low to Moderate"}}, vm)
+				assert.Equal(t, []productinfo.VmInfo{{Type: "db.t2.small", OnDemandPrice: 5, SpotPrice: productinfo.SpotPriceInfo(nil), Cpus: 1, Mem: 2, Gpus: 0, NtwPerf: "Low to Moderate"}}, vm)
 			},
 		},
 		{

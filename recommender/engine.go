@@ -399,9 +399,12 @@ func (e *Engine) findVmsWithAttrValues(provider string, region string, zones []s
 				Burst:         vmInfo.IsBurst(),
 				NetworkPerf:   vmInfo.NetworkPerformance(ntwMapper),
 			}
-			spotPrice, err := e.productInfo.GetSpotPrice(provider, region, vmInfo.Type, zones)
+			odPrice, spotPrice, err := e.productInfo.GetPrice(provider, region, vmInfo.Type, zones)
 			if err != nil {
 				return nil, err
+			}
+			if odPrice > 0 {
+				vm.OnDemandPrice = odPrice
 			}
 			vm.AvgPrice = spotPrice
 			vms = append(vms, vm)
@@ -511,7 +514,7 @@ func (e *Engine) RecommendNodePools(attr string, vms []VirtualMachine, values []
 	// retain only the nodes that are available as spot instances
 	vms = e.filterSpots(vms)
 	if len(vms) == 0 {
-		return nil, errors.New("no vm's suitable for spot pools")
+		return nil, errors.New("no vms suitable for spot pools")
 	}
 
 	// vms are sorted by attribute value
