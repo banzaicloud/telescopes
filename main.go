@@ -27,6 +27,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/patrickmn/go-cache"
 	log "github.com/sirupsen/logrus"
+	"github.com/spf13/viper"
 )
 
 type arrayFlags []string
@@ -49,12 +50,14 @@ var (
 	productInfoRenewalInterval = flag.Duration("product-info-renewal-interval", 24*time.Hour, "Duration (in go syntax) between renewing the ec2 product info. Example: 2h30m")
 	prometheusAddress          = flag.String("prometheus-address", "", "http address of a Prometheus instance that has AWS spot price metrics via banzaicloud/spot-price-exporter. If empty, the recommender will use current spot prices queried directly from the AWS API.")
 	promQuery                  = flag.String("prometheus-query", "avg_over_time(aws_spot_current_price{region=\"%s\", product_description=\"Linux/UNIX\"}[1w])", "advanced configuration: change the query used to query spot price info from Prometheus.")
+	devMode                    = flag.Bool("dev-mode", false, "advanced configuration - development mode, no auth")
 	gceProjectId               = flag.String("gce-project-id", "", "GCE project ID to use")
 	gceApiKey                  = flag.String("gce-api-key", "", "GCE API key to use for getting SKUs")
 	providers                  arrayFlags
 )
 
 func init() {
+
 	flag.Var(&providers, "provider", "Providers that will be used with the recommender.")
 	flag.Parse()
 	parsedLevel, err := log.ParseLevel(*rawLevel)
@@ -67,9 +70,44 @@ func init() {
 	if len(providers) == 0 {
 		providers = arrayFlags{recommender.Ec2, recommender.Gce}
 	}
+
+	// set configuration defaults
+	viper.SetDefault(cfgAppRole, defaultAppRole)
+
+}
+
+const (
+	cfgTokenSigningKey = "tokensigningkey"
+	cfgVaultAddr       = "vault_addr"
+	cfgAppRole         = "telescopes_app_role"
+	defaultAppRole     = "telescopes"
+)
+
+var (
+	// env vars required by the application
+	cfgEnvVars = []string{cfgTokenSigningKey, cfgVaultAddr}
+)
+
+// ensureCfg ensures that the application configuration is available
+// currently this only refers to configuration as environment variable
+// to be extended for app critical entries (flags, config files ...)
+func ensureCfg() {
+
+	for _, envVar := range cfgEnvVars {
+		// bind the env var
+		viper.BindEnv(envVar)
+
+		// read the env var value
+		if nil == viper.Get(envVar) {
+			panic(fmt.Sprintf("application is missing configuration: %s", envVar))
+		}
+	}
 }
 
 func main() {
+
+	ensureCfg()
+
 	c := cache.New(24*time.Hour, 24.*time.Hour)
 
 	productInfo, err := productinfo.NewCachingProductInfo(*productInfoRenewalInterval, c, infoers())
@@ -85,7 +123,18 @@ func main() {
 
 	routeHandler := api.NewRouteHandler(engine, api.NewValidator(providers))
 
+	// new default gin engine (recovery, logger middleware)
 	router := gin.Default()
+
+	// enable authentication if not dev-mode
+	if !*devMode {
+		log.Debug("enable authentication")
+		signingKey := viper.GetString(cfgTokenSigningKey)
+		appRole := viper.GetString(cfgAppRole)
+
+		routeHandler.EnableAuth(router, appRole, signingKey)
+	}
+
 	log.Info("Initialized gin router")
 	routeHandler.ConfigureRoutes(router)
 	log.Info("Configured routes")

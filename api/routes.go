@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"net/http"
 
+	"github.com/banzaicloud/bank-vaults/auth"
 	"github.com/banzaicloud/telescopes/recommender"
 	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
@@ -31,7 +32,7 @@ func getCorsConfig() cors.Config {
 	if !config.AllowAllOrigins {
 		config.AllowOrigins = []string{"http://", "https://"}
 	}
-	config.AllowMethods = []string{"PUT", "DELETE", "GET", "POST", "OPTIONS"}
+	config.AllowMethods = []string{http.MethodPut, http.MethodDelete, http.MethodGet, http.MethodPost, http.MethodOptions}
 	config.AllowHeaders = []string{"Origin", "Authorization", "Content-Type"}
 	config.ExposeHeaders = []string{"Content-Length"}
 	config.AllowCredentials = true
@@ -53,6 +54,11 @@ func (r *RouteHandler) ConfigureRoutes(router *gin.Engine) {
 	{
 		v1.POST("/recommender/:provider/:region/cluster", r.recommendClusterSetup)
 	}
+}
+
+// EnableAuth enables authentication middleware
+func (r *RouteHandler) EnableAuth(router *gin.Engine, role string, sgnKey string) {
+	router.Use(auth.JWTAuth(auth.NewVaultTokenStore(role), sgnKey, nil))
 }
 
 func (r *RouteHandler) signalStatus(c *gin.Context) {
