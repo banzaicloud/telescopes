@@ -129,8 +129,8 @@ func main() {
 	// enable authentication if not dev-mode
 	if !*devMode {
 		log.Debug("enable authentication")
-		signingKey := viper.GetString("tokensigningkey")
-		appRole := viper.GetString("telescopes_app_role")
+		signingKey := viper.GetString(cfgTokenSigningKey)
+		appRole := viper.GetString(cfgAppRole)
 
 		routeHandler.EnableAuth(router, appRole, signingKey)
 	}
