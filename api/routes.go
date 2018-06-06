@@ -9,7 +9,6 @@ import (
 	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
 	log "github.com/sirupsen/logrus"
-	"github.com/spf13/viper"
 	"gopkg.in/go-playground/validator.v8"
 )
 
@@ -58,9 +57,8 @@ func (r *RouteHandler) ConfigureRoutes(router *gin.Engine) {
 }
 
 // EnableAuth enables authentication middleware
-func (r *RouteHandler) EnableAuth(router *gin.Engine) {
-	signingKey := viper.GetString("tokensigningkey")
-	router.Use(auth.JWTAuth(auth.NewVaultTokenStore(""), signingKey, nil))
+func (r *RouteHandler) EnableAuth(router *gin.Engine, role string, sgnKey string) {
+	router.Use(auth.JWTAuth(auth.NewVaultTokenStore(role), sgnKey, nil))
 }
 
 func (r *RouteHandler) signalStatus(c *gin.Context) {

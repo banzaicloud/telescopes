@@ -71,23 +71,29 @@ func init() {
 		providers = arrayFlags{recommender.Ec2, recommender.Gce}
 	}
 
+	// set configuration defaults
+	viper.SetDefault(cfgAppRole, defaultAppRole)
+
 }
 
 const (
 	cfgTokenSigningKey = "tokensigningkey"
 	cfgVaultAddr       = "vault_addr"
+	cfgAppRole         = "telescopes_app_role"
+	defaultAppRole     = "telescopes"
 )
 
 var (
 	// env vars required by the application
-	cfgEnvVar = [3]string{cfgTokenSigningKey, cfgVaultAddr}
+	cfgEnvVars = []string{cfgTokenSigningKey, cfgVaultAddr}
 )
 
 // ensureCfg ensures that the application configuration is available
 // currently this only refers to configuration as environment variable
 // to be extended for app critical entries (flags, config files ...)
 func ensureCfg() {
-	for _, envVar := range cfgEnvVar {
+
+	for _, envVar := range cfgEnvVars {
 		// bind the env var
 		viper.BindEnv(envVar)
 
@@ -123,7 +129,10 @@ func main() {
 	// enable authentication if not dev-mode
 	if !*devMode {
 		log.Debug("enable authentication")
-		routeHandler.EnableAuth(router)
+		signingKey := viper.GetString("tokensigningkey")
+		appRole := viper.GetString("telescopes_app_role")
+
+		routeHandler.EnableAuth(router, appRole, signingKey)
 	}
 
 	log.Info("Initialized gin router")
