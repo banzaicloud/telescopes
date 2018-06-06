@@ -51,63 +51,7 @@ func NewAzureInfoer(subscriptionId string) (*AzureInfoer, error) {
 }
 
 func (a *AzureInfoer) Initialize() (map[string]map[string]productinfo.Price, error) {
-	panic("implement me")
-}
-
-func (a *AzureInfoer) GetAttributeValues(attribute string) (productinfo.AttrValues, error) {
-	panic("implement me")
-}
-
-func (a *AzureInfoer) GetProducts(regionId string, attrKey string, attrValue productinfo.AttrValue) ([]productinfo.VmInfo, error) {
-	panic("implement me")
-}
-
-func (a *AzureInfoer) GetZones(region string) ([]string, error) {
-	panic("implement me")
-}
-
-func (a *AzureInfoer) GetRegions() (map[string]string, error) {
-	panic("implement me")
-}
-
-func (a *AzureInfoer) HasShortLivedPriceInfo() bool {
-	panic("implement me")
-}
-
-func (a *AzureInfoer) GetCurrentPrices(region string) (map[string]productinfo.Price, error) {
-	panic("implement me")
-}
-
-func (a *AzureInfoer) GetMemoryAttrName() string {
-	panic("implement me")
-}
-
-func (a *AzureInfoer) GetCpuAttrName() string {
-	panic("implement me")
-}
-
-func (a *AzureInfoer) GetNetworkPerformanceMapper() (productinfo.NetworkPerfMapper, error) {
-	panic("implement me")
-}
-
-func (a *AzureInfoer) teszting() bool {
-	locations, err := a.subscriptionsClient.ListLocations(context.TODO(), a.subscriptionId)
-
-	for _, loc := range *locations.Value {
-		fmt.Println(*loc.Name, *loc.DisplayName, *loc.ID)
-	}
-
-	fmt.Println(time.Now().UTC())
-
-	result1, err := a.vmSizesClient.List(context.TODO(), "eastus")
-	if err != nil {
-		fmt.Println(err)
-	}
-	for _, v := range *result1.Value {
-		fmt.Println(*v.Name, *v.NumberOfCores, *v.MemoryInMB)
-	}
-	fmt.Println(time.Now().UTC())
-
+	// TODO
 	result, err := a.rateCardClient.Get(context.TODO(), "OfferDurableId eq 'MS-AZR-0003p' and Currency eq 'USD' and Locale eq 'en-US' and RegionInfo eq 'US'")
 	if err != nil {
 		fmt.Println(err)
@@ -118,5 +62,73 @@ func (a *AzureInfoer) teszting() bool {
 			fmt.Println(key, *value)
 		}
 	}
-	return true
+	return nil, nil
+}
+
+func (a *AzureInfoer) GetAttributeValues(attribute string) (productinfo.AttrValues, error) {
+	// TODO
+	// get regions
+	// for range regions
+	result1, err := a.vmSizesClient.List(context.TODO(), "eastus")
+	if err != nil {
+		fmt.Println(err)
+	}
+	for _, v := range *result1.Value {
+		fmt.Println(*v.Name, *v.NumberOfCores, *v.MemoryInMB)
+	}
+	// aggregate
+	return nil, nil
+}
+
+func (a *AzureInfoer) GetProducts(regionId string, attrKey string, attrValue productinfo.AttrValue) ([]productinfo.VmInfo, error) {
+	// TODO
+	fmt.Println(time.Now().UTC())
+
+	result1, err := a.vmSizesClient.List(context.TODO(), "eastus")
+	if err != nil {
+		fmt.Println(err)
+	}
+	for _, v := range *result1.Value {
+		fmt.Println(*v.Name, *v.NumberOfCores, *v.MemoryInMB)
+	}
+	fmt.Println(time.Now().UTC())
+	// TODO
+	return nil, nil
+}
+
+func (a *AzureInfoer) GetZones(region string) ([]string, error) {
+	// TODO: check if it works an empty slice
+	return []string{}, nil
+}
+
+func (a *AzureInfoer) GetRegions() (map[string]string, error) {
+	regions := make(map[string]string)
+	locations, err := a.subscriptionsClient.ListLocations(context.TODO(), a.subscriptionId)
+	if err != nil {
+		return nil, err
+	}
+	for _, loc := range *locations.Value {
+		regions[*loc.Name] = *loc.DisplayName
+	}
+	return regions, nil
+}
+
+func (a *AzureInfoer) HasShortLivedPriceInfo() bool {
+	return false
+}
+
+func (a *AzureInfoer) GetCurrentPrices(region string) (map[string]productinfo.Price, error) {
+	panic("implement me")
+}
+
+func (a *AzureInfoer) GetMemoryAttrName() string {
+	return memory
+}
+
+func (a *AzureInfoer) GetCpuAttrName() string {
+	return cpu
+}
+
+func (a *AzureInfoer) GetNetworkPerformanceMapper() (productinfo.NetworkPerfMapper, error) {
+	return newAzureNetworkMapper(), nil
 }
