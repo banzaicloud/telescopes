@@ -2,7 +2,9 @@ package azure
 
 import (
 	"context"
+	"errors"
 	"fmt"
+	"strconv"
 	"strings"
 
 	"github.com/Azure/azure-sdk-for-go/services/compute/mgmt/2018-04-01/compute"
@@ -18,6 +20,20 @@ const (
 	cpu    = "cpu"
 	memory = "memory"
 )
+
+var regionCodeMappings = map[string]string{
+	"ap": "asia",
+	"au": "australia",
+	"br": "brazil",
+	"ca": "canada",
+	"eu": "europe",
+	"fr": "france",
+	"in": "india",
+	"ja": "japan",
+	"kr": "korea",
+	"uk": "uk",
+	"us": "us",
+}
 
 // AzureInfoer encapsulates the data and operations needed to access external Azure resources
 type AzureInfoer struct {
@@ -51,6 +67,49 @@ func NewAzureInfoer(subscriptionId string) (*AzureInfoer, error) {
 	}, nil
 }
 
+type regionParts []string
+
+func (r regionParts) String() string {
+	var result string
+	for _, p := range r {
+		result += p
+	}
+	return result
+}
+
+func (a *AzureInfoer) toRegionID(meterRegion string, regions map[string]string) (string, error) {
+	var rp regionParts = strings.Split(strings.ToLower(meterRegion), " ")
+	regionCode := regionCodeMappings[rp[0]]
+	lastPart := rp[len(rp)-1]
+	var regionIds []string
+	if _, err := strconv.Atoi(lastPart); err == nil {
+		regionIds = []string{
+			fmt.Sprintf("%s%s%s", regionCode, rp[1:len(rp)-1], lastPart),
+			fmt.Sprintf("%s%s%s", rp[1:len(rp)-1], regionCode, lastPart),
+		}
+	} else {
+		regionIds = []string{
+			fmt.Sprintf("%s%s", regionCode, rp[1:]),
+			fmt.Sprintf("%s%s", rp[1:], regionCode),
+		}
+	}
+	for _, regionID := range regionIds {
+		if a.checkRegionID(regionID, regions) {
+			return regionID, nil
+		}
+	}
+	return "", errors.New("couldn't find region")
+}
+
+func (a *AzureInfoer) checkRegionID(regionID string, regions map[string]string) bool {
+	for region := range regions {
+		if regionID == region {
+			return true
+		}
+	}
+	return false
+}
+
 func (a *AzureInfoer) Initialize() (map[string]map[string]productinfo.Price, error) {
 	log.Debug("initializing Azure price info")
 	allPrices := make(map[string]map[string]productinfo.Price)
@@ -70,9 +129,10 @@ func (a *AzureInfoer) Initialize() (map[string]map[string]productinfo.Price, err
 	for _, v := range *result.Meters {
 		if *v.MeterCategory == "Virtual Machines" && len(*v.MeterTags) == 0 && *v.MeterRegion != "" {
 			if !strings.Contains(*v.MeterSubCategory, "(Windows)") {
-
-				// TODO: convert region to lowercase-id
-				region := *v.MeterRegion
+				region, err := a.toRegionID(*v.MeterRegion, regions)
+				if err != nil {
+					log.Debugf("region not found among Azure reported locations")
+				}
 				instanceType := strings.Split(*v.MeterSubCategory, " ")[0]
 				if instanceType == "" {
 					log.Debugf("instance type is empty: %s, region=%s", *v.MeterSubCategory, *v.MeterRegion)
@@ -201,6 +261,9 @@ func (a *AzureInfoer) HasShortLivedPriceInfo() bool {
 	return false
 }
 
+// TODO: We have some VM types, where we don't have pricing info, e.g.: M64-16ms
+// it's stored as a VM, and when we want to have pricing info for them, it cannot be found in cache
+// -> calls initialize for all vmInfos that's not found -> takes an eternity
 func (a *AzureInfoer) GetCurrentPrices(region string) (map[string]productinfo.Price, error) {
 	log.Debugf("getting current prices in region %s", region)
 	allPrices, err := a.Initialize()
