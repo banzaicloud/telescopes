@@ -10,7 +10,7 @@
 [[projects]]
   name = "github.com/Azure/azure-sdk-for-go"
   packages = [
-    "services/compute/mgmt/2017-12-01/compute",
+    "services/compute/mgmt/2018-04-01/compute",
     "services/preview/commerce/mgmt/2015-06-01-preview/commerce",
     "services/resources/mgmt/2016-06-01/subscriptions",
     "version"
