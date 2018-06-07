@@ -1,13 +1,13 @@
 package main
 
 import (
+	"fmt"
 	"github.com/banzaicloud/telescopes/recommender"
 	"github.com/spf13/pflag"
 	"github.com/spf13/viper"
 	"github.com/stretchr/testify/assert"
 	"os"
 	"testing"
-	"fmt"
 )
 
 var stdin *os.File
