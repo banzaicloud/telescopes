@@ -199,11 +199,11 @@ func (g *GceInfoer) GetProducts(regionId string, attrKey string, attrValue produ
 	err = g.computeSvc.MachineTypes.List(g.projectId, zones[0]).Pages(context.TODO(), func(allMts *compute.MachineTypeList) error {
 		for _, mt := range allMts.Items {
 			switch attrKey {
-			case "cpu":
+			case cpu:
 				if mt.GuestCpus != int64(attrValue.Value) {
 					continue
 				}
-			case "memory":
+			case memory:
 				if mt.MemoryMb != int64(attrValue.Value*1000) {
 					continue
 				}
@@ -234,7 +234,8 @@ func (g *GceInfoer) GetRegions() (map[string]string, error) {
 		return nil, err
 	}
 	for _, region := range regionList.Items {
-		regionIdMap[region.Name] = region.Name
+		regionIdMap[region.Name] = region.Description
+
 	}
 	log.Debugf("regions found: %v", regionIdMap)
 	return regionIdMap, nil

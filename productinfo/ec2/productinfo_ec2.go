@@ -321,7 +321,7 @@ func (e *Ec2Infoer) newGetProductsInput(regionId string, attrKey string, attrVal
 func (e *Ec2Infoer) GetRegions() (map[string]string, error) {
 	regionIdMap := make(map[string]string)
 	for key, region := range endpoints.AwsPartition().Regions() {
-		regionIdMap[key] = region.ID()
+		regionIdMap[key] = region.Description()
 	}
 	return regionIdMap, nil
 }
