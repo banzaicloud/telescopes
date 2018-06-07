@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 	"strings"
-	"time"
 
 	"github.com/Azure/azure-sdk-for-go/services/compute/mgmt/2018-04-01/compute"
 	"github.com/Azure/azure-sdk-for-go/services/preview/commerce/mgmt/2015-06-01-preview/commerce"
@@ -69,9 +68,10 @@ func (a *AzureInfoer) Initialize() (map[string]map[string]productinfo.Price, err
 		return nil, err
 	}
 	for _, v := range *result.Meters {
-		if *v.MeterCategory == "Virtual Machines" && len(*v.MeterTags) == 0 && *v.MeterRegion != "" { //&& *v.MeterRegion == "US East"
+		if *v.MeterCategory == "Virtual Machines" && len(*v.MeterTags) == 0 && *v.MeterRegion != "" {
 			if !strings.Contains(*v.MeterSubCategory, "(Windows)") {
 
+				// TODO: convert region to lowercase-id
 				region := *v.MeterRegion
 				instanceType := strings.Split(*v.MeterSubCategory, " ")[0]
 				if instanceType == "" {
@@ -151,26 +151,38 @@ func (a *AzureInfoer) GetAttributeValues(attribute string) (productinfo.AttrValu
 }
 
 func (a *AzureInfoer) GetProducts(regionId string, attrKey string, attrValue productinfo.AttrValue) ([]productinfo.VmInfo, error) {
-	// TODO
-	fmt.Println(time.Now().UTC())
+	log.Debugf("getting product info [region=%s, %s=%v]", regionId, attrKey, attrValue.Value)
+	var vms []productinfo.VmInfo
 
-	result1, err := a.vmSizesClient.List(context.TODO(), "eastus")
+	vmSizes, err := a.vmSizesClient.List(context.TODO(), regionId)
 	if err != nil {
-		fmt.Println(err)
+		return nil, err
 	}
-	for _, v := range *result1.Value {
-		if strings.Contains(*v.Name, "Standard_M64") {
-			fmt.Println(*v.Name, *v.NumberOfCores, *v.MemoryInMB)
+	for _, v := range *vmSizes.Value {
+		switch attrKey {
+		case cpu:
+			if *v.NumberOfCores != int32(attrValue.Value) {
+				continue
+			}
+		case memory:
+			if *v.MemoryInMB != int32(attrValue.Value*1000) {
+				continue
+			}
 		}
+		vms = append(vms, productinfo.VmInfo{
+			Type: *v.Name,
+			Cpus: float64(*v.NumberOfCores),
+			Mem:  float64(*v.MemoryInMB) / 1000,
+			// TODO: netw perf
+		})
 	}
-	fmt.Println(time.Now().UTC())
-	// TODO
-	return nil, nil
+
+	log.Debugf("found vms [%s=%v]: %#v", attrKey, attrValue.Value, vms)
+	return vms, nil
 }
 
 func (a *AzureInfoer) GetZones(region string) ([]string, error) {
-	// TODO: check if it works an empty slice
-	return []string{}, nil
+	return []string{region}, nil
 }
 
 func (a *AzureInfoer) GetRegions() (map[string]string, error) {
@@ -190,7 +202,13 @@ func (a *AzureInfoer) HasShortLivedPriceInfo() bool {
 }
 
 func (a *AzureInfoer) GetCurrentPrices(region string) (map[string]productinfo.Price, error) {
-	panic("implement me")
+	log.Debugf("getting current prices in region %s", region)
+	allPrices, err := a.Initialize()
+	if err != nil {
+		return nil, err
+	}
+	log.Debugf("found prices in region %s", region)
+	return allPrices[region], nil
 }
 
 func (a *AzureInfoer) GetMemoryAttrName() string {

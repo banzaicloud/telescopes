@@ -188,12 +188,12 @@ func (pi *CachingProductInfo) Start(ctx context.Context) {
 						log.Errorf("couldn't renew attribute values in cache: %s", err.Error())
 						return
 					}
-					regionIds, err := i.GetRegions()
+					regions, err := i.GetRegions()
 					if err != nil {
 						log.Errorf("couldn't renew attribute values in cache: %s", err.Error())
 						return
 					}
-					for _, regionId := range regionIds {
+					for regionId := range regions {
 						for _, v := range attrValues {
 							_, err := pi.renewVmsWithAttr(p, regionId, attr, v)
 							if err != nil {
@@ -217,12 +217,12 @@ func (pi *CachingProductInfo) Start(ctx context.Context) {
 				if i.HasShortLivedPriceInfo() {
 					log.Infof("renewing short lived %s product info", p)
 					var wg sync.WaitGroup
-					regionIds, err := i.GetRegions()
+					regions, err := i.GetRegions()
 					if err != nil {
 						log.Errorf("couldn't renew attribute values in cache: %s", err.Error())
 						return
 					}
-					for _, regionId := range regionIds {
+					for regionId := range regions {
 						wg.Add(1)
 						go func(p string, r string) {
 							defer wg.Done()
