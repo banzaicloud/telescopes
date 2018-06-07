@@ -14,7 +14,6 @@ package main
 
 import (
 	"context"
-	"fmt"
 	"time"
 
 	"github.com/patrickmn/go-cache"
@@ -117,8 +116,8 @@ func ensureCfg() {
 
 		// read the env var value
 		if nil == viper.Get(envVar) {
-			panic(fmt.Sprintf("application is missing configuration: %s", envVar))
 			flag.Usage()
+			log.Fatalf("application is missing configuration: %s \n %s", envVar)
 		}
 	}
 }
