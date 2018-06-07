@@ -3,6 +3,7 @@ package azure
 import (
 	"context"
 	"fmt"
+	"strings"
 	"time"
 
 	"github.com/Azure/azure-sdk-for-go/services/compute/mgmt/2017-12-01/compute"
@@ -11,6 +12,7 @@ import (
 	"github.com/Azure/go-autorest/autorest/azure"
 	"github.com/Azure/go-autorest/autorest/azure/auth"
 	"github.com/banzaicloud/telescopes/productinfo"
+	log "github.com/sirupsen/logrus"
 )
 
 const (
@@ -51,31 +53,79 @@ func NewAzureInfoer(subscriptionId string) (*AzureInfoer, error) {
 }
 
 func (a *AzureInfoer) Initialize() (map[string]map[string]productinfo.Price, error) {
-	// TODO
-	result, err := a.rateCardClient.Get(context.TODO(), "OfferDurableId eq 'MS-AZR-0003p' and Currency eq 'USD' and Locale eq 'en-US' and RegionInfo eq 'US'")
+	log.Debug("initializing Azure price info")
+	allPrices := make(map[string]map[string]productinfo.Price)
+
+	regions, err := a.GetRegions()
 	if err != nil {
-		fmt.Println(err)
+		return nil, err
+	}
+
+	log.Debugf("queried regions: %v", regions)
+
+	rateCardFilter := "OfferDurableId eq 'MS-AZR-0003p' and Currency eq 'USD' and Locale eq 'en-US' and RegionInfo eq 'US'"
+	result, err := a.rateCardClient.Get(context.TODO(), rateCardFilter)
+	if err != nil {
+		return nil, err
 	}
 	for _, v := range *result.Meters {
-		fmt.Println(*v.MeterName, *v.MeterCategory, *v.MeterSubCategory, *v.MeterRegion, *v.MeterTags, *v.IncludedQuantity, *v.Unit)
-		for key, value := range v.MeterRates {
-			fmt.Println(key, *value)
+		if *v.MeterCategory == "Virtual Machines" && len(*v.MeterTags) == 0 && *v.MeterRegion != "" { //&& *v.MeterRegion == "US East"
+			if !strings.Contains(*v.MeterSubCategory, "(Windows)") {
+
+				region := *v.MeterRegion
+				instanceType := strings.Split(*v.MeterSubCategory, " ")[0]
+				if instanceType == "" {
+					log.Debugf("instance type is empty: %s, region=%s", *v.MeterSubCategory, *v.MeterRegion)
+					continue
+				}
+				var priceInUsd float64
+
+				if len(v.MeterRates) < 1 {
+					log.Debugf("%s doesn't have rate info in region %s", *v.MeterSubCategory, *v.MeterRegion)
+					continue
+				}
+				for _, rate := range v.MeterRates {
+					priceInUsd += *rate
+				}
+				if allPrices[region] == nil {
+					allPrices[region] = make(map[string]productinfo.Price)
+				}
+				price := allPrices[region][instanceType]
+				if !strings.Contains(*v.MeterSubCategory, "Low Priority") {
+					price.OnDemandPrice = priceInUsd
+				} else {
+					spotPrice := make(productinfo.SpotPriceInfo)
+					spotPrice[region] = priceInUsd
+					price.SpotPrice = spotPrice
+				}
+				allPrices[region][instanceType] = price
+				log.Debugf("price info added: [region=%s, machinetype=%s, price=%v]", region, instanceType, price)
+			}
 		}
 	}
-	return nil, nil
+
+	log.Debug("finished initializing Azure price info")
+	return allPrices, nil
 }
 
 func (a *AzureInfoer) GetAttributeValues(attribute string) (productinfo.AttrValues, error) {
 	// TODO
 	// get regions
 	// for range regions
+
+	vmset := make(map[string]interface{})
 	result1, err := a.vmSizesClient.List(context.TODO(), "eastus")
 	if err != nil {
 		fmt.Println(err)
 	}
 	for _, v := range *result1.Value {
-		fmt.Println(*v.Name, *v.NumberOfCores, *v.MemoryInMB)
+		if strings.Contains(*v.Name, "Standard_M64") {
+			vmset[*v.Name] = ""
+			fmt.Println(*v.Name, *v.NumberOfCores, *v.MemoryInMB)
+		}
 	}
+
+	fmt.Println("ennyi vm van itt:", len(vmset))
 	// aggregate
 	return nil, nil
 }
@@ -89,7 +139,9 @@ func (a *AzureInfoer) GetProducts(regionId string, attrKey string, attrValue pro
 		fmt.Println(err)
 	}
 	for _, v := range *result1.Value {
-		fmt.Println(*v.Name, *v.NumberOfCores, *v.MemoryInMB)
+		if strings.Contains(*v.Name, "Standard_M64") {
+			fmt.Println(*v.Name, *v.NumberOfCores, *v.MemoryInMB)
+		}
 	}
 	fmt.Println(time.Now().UTC())
 	// TODO
