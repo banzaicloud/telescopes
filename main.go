@@ -14,10 +14,12 @@ package main
 
 import (
 	"context"
-	"flag"
 	"fmt"
-	"strings"
 	"time"
+
+	"github.com/patrickmn/go-cache"
+	log "github.com/sirupsen/logrus"
+	"github.com/spf13/viper"
 
 	"github.com/banzaicloud/telescopes/api"
 	"github.com/banzaicloud/telescopes/productinfo"
@@ -25,68 +27,84 @@ import (
 	"github.com/banzaicloud/telescopes/productinfo/gce"
 	"github.com/banzaicloud/telescopes/recommender"
 	"github.com/gin-gonic/gin"
-	"github.com/patrickmn/go-cache"
-	log "github.com/sirupsen/logrus"
-	"github.com/spf13/viper"
+	flag "github.com/spf13/pflag"
 )
 
-type arrayFlags []string
+const (
+	// the list of flags supported by the application
+	// these constants can be used to retrieve the passed in values or defaults via viper
 
-func (i *arrayFlags) String() string {
-	return fmt.Sprintf("%s", *i)
-}
+	logLevelFlag               = "log-level"
+	listenAddressFlag          = "listen-address"
+	prodInfRenewalIntervalFlag = "product-info-renewal-interval"
+	prometheusAddressFlag      = "prometheus-address"
+	prometheusQueryFlag        = "prometheus-query"
+	providerFlag               = "provider"
+	devModeFlag                = "dev-mode"
+	tokenSigningKeyFlag        = "tokensigningkey"
+	vaultAddrFlag              = "vault_addre"
 
-func (i *arrayFlags) Set(value string) error {
-	parts := strings.FieldsFunc(value, func(r rune) bool {
-		return r == ',' || r == ' '
-	})
-	*i = append(*i, parts...)
-	return nil
-}
+	//temporary flags
+	gceProjectIdFlag = "gce-project-id"
+	gceApiKeyFlag    = "gce-api-key"
+
+	cfgAppRole     = "telescopes_app_role"
+	defaultAppRole = "telescopes"
+)
 
 var (
-	rawLevel                   = flag.String("log-level", "info", "log level")
-	addr                       = flag.String("listen-address", ":9090", "The address to listen on for HTTP requests.")
-	productInfoRenewalInterval = flag.Duration("product-info-renewal-interval", 24*time.Hour, "Duration (in go syntax) between renewing the ec2 product info. Example: 2h30m")
-	prometheusAddress          = flag.String("prometheus-address", "", "http address of a Prometheus instance that has AWS spot price metrics via banzaicloud/spot-price-exporter. If empty, the recommender will use current spot prices queried directly from the AWS API.")
-	promQuery                  = flag.String("prometheus-query", "avg_over_time(aws_spot_current_price{region=\"%s\", product_description=\"Linux/UNIX\"}[1w])", "advanced configuration: change the query used to query spot price info from Prometheus.")
-	devMode                    = flag.Bool("dev-mode", false, "advanced configuration - development mode, no auth")
-	gceProjectId               = flag.String("gce-project-id", "", "GCE project ID to use")
-	gceApiKey                  = flag.String("gce-api-key", "", "GCE API key to use for getting SKUs")
-	providers                  arrayFlags
+	// env vars required by the application
+	cfgEnvVars = []string{tokenSigningKeyFlag, vaultAddrFlag}
 )
 
-func init() {
+// defineFlags defines supported flags and makes them available for viper
+func defineFlags() {
+	flag.String(logLevelFlag, "info", "log level")
+	flag.String(listenAddressFlag, ":9090", "The address to listen on for HTTP requests.")
+	flag.Duration(prodInfRenewalIntervalFlag, 24*time.Hour, "Duration (in go syntax) between renewing the ec2 product info. Example: 2h30m")
+	flag.String(prometheusAddressFlag, "", "http address of a Prometheus instance that has AWS spot price metrics via banzaicloud/spot-price-exporter. If empty, the recommender will use current spot prices queried directly from the AWS API.")
+	flag.String(prometheusQueryFlag, "avg_over_time(aws_spot_current_price{region=\"%s\", product_description=\"Linux/UNIX\"}[1w])", "advanced configuration: change the query used to query spot price info from Prometheus.")
+	flag.Bool(devModeFlag, false, "advanced configuration - development mode, no auth")
+	flag.String(gceProjectIdFlag, "", "GCE project ID to use")
+	flag.String(gceApiKeyFlag, "", "GCE API key to use for getting SKUs")
+	flag.StringSlice(providerFlag, []string{recommender.Ec2, recommender.Gce}, "Providers that will be used with the recommender.")
+	flag.String(tokenSigningKeyFlag, "changeme", "The token signing key for the authentication process")
+	flag.String(vaultAddrFlag, "changeme", "The vault address for authentication token management")
+}
 
-	flag.Var(&providers, "provider", "Providers that will be used with the recommender.")
+// bindFlags binds parsed flags into viper
+func bindFlags() {
 	flag.Parse()
-	parsedLevel, err := log.ParseLevel(*rawLevel)
+	viper.BindPFlags(flag.CommandLine)
+}
+
+// setLogLevel sets the log level
+func setLogLevel() {
+	parsedLevel, err := log.ParseLevel(viper.GetString("log-level"))
 	if err != nil {
 		log.WithError(err).Warnf("Couldn't parse log level, using default: %s", log.GetLevel())
 	} else {
 		log.SetLevel(parsedLevel)
 		log.Debugf("Set log level to %s", parsedLevel)
 	}
-	if len(providers) == 0 {
-		providers = arrayFlags{recommender.Ec2, recommender.Gce}
-	}
+}
+func init() {
+
+	// describe the flags for the application
+	defineFlags()
+
+	// all the flegs should be referenced through viper after this call
+	// flags are available through the entire application via viper
+	bindFlags()
+
+	// handle log level
+	setLogLevel()
 
 	// set configuration defaults
 	viper.SetDefault(cfgAppRole, defaultAppRole)
+	viper.BindEnv(tokenSigningKeyFlag)
 
 }
-
-const (
-	cfgTokenSigningKey = "tokensigningkey"
-	cfgVaultAddr       = "vault_addr"
-	cfgAppRole         = "telescopes_app_role"
-	defaultAppRole     = "telescopes"
-)
-
-var (
-	// env vars required by the application
-	cfgEnvVars = []string{cfgTokenSigningKey, cfgVaultAddr}
-)
 
 // ensureCfg ensures that the application configuration is available
 // currently this only refers to configuration as environment variable
@@ -110,7 +128,7 @@ func main() {
 
 	c := cache.New(24*time.Hour, 24.*time.Hour)
 
-	productInfo, err := productinfo.NewCachingProductInfo(*productInfoRenewalInterval, c, infoers())
+	productInfo, err := productinfo.NewCachingProductInfo(viper.GetDuration(prodInfRenewalIntervalFlag), c, infoers())
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -121,15 +139,15 @@ func main() {
 		log.Fatal(err)
 	}
 
-	routeHandler := api.NewRouteHandler(engine, api.NewValidator(providers))
+	routeHandler := api.NewRouteHandler(engine, api.NewValidator(viper.GetStringSlice(providerFlag)))
 
 	// new default gin engine (recovery, logger middleware)
 	router := gin.Default()
 
 	// enable authentication if not dev-mode
-	if !*devMode {
+	if !viper.GetBool(devModeFlag) {
 		log.Debug("enable authentication")
-		signingKey := viper.GetString(cfgTokenSigningKey)
+		signingKey := viper.GetString(tokenSigningKeyFlag)
 		appRole := viper.GetString(cfgAppRole)
 
 		routeHandler.EnableAuth(router, appRole, signingKey)
@@ -139,10 +157,11 @@ func main() {
 	routeHandler.ConfigureRoutes(router)
 	log.Info("Configured routes")
 
-	router.Run(*addr)
+	router.Run(viper.GetString(listenAddressFlag))
 }
 
 func infoers() map[string]productinfo.ProductInfoer {
+	providers := viper.GetStringSlice(providerFlag)
 	infoers := make(map[string]productinfo.ProductInfoer, len(providers))
 	for _, p := range providers {
 		var infoer productinfo.ProductInfoer
@@ -152,9 +171,10 @@ func infoers() map[string]productinfo.ProductInfoer {
 		}
 		switch p {
 		case recommender.Ec2:
-			infoer, err = ec2.NewEc2Infoer(ec2.NewPricing(ec2.NewConfig()), *prometheusAddress, *promQuery)
+			infoer, err = ec2.NewEc2Infoer(ec2.NewPricing(ec2.NewConfig()), viper.GetString(prometheusAddressFlag),
+				viper.GetString(prometheusQueryFlag))
 		case recommender.Gce:
-			infoer, err = gce.NewGceInfoer(*gceApiKey, *gceProjectId)
+			infoer, err = gce.NewGceInfoer(viper.GetString(gceApiKeyFlag), viper.GetString(gceProjectIdFlag))
 		default:
 			log.Fatalf("provider %s is not supported", p)
 		}
