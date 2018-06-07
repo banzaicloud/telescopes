@@ -109,25 +109,45 @@ func (a *AzureInfoer) Initialize() (map[string]map[string]productinfo.Price, err
 }
 
 func (a *AzureInfoer) GetAttributeValues(attribute string) (productinfo.AttrValues, error) {
-	// TODO
-	// get regions
-	// for range regions
 
-	vmset := make(map[string]interface{})
-	result1, err := a.vmSizesClient.List(context.TODO(), "eastus")
+	log.Debugf("getting %s values", attribute)
+
+	values := make(productinfo.AttrValues, 0)
+	valueSet := make(map[productinfo.AttrValue]interface{})
+
+	regions, err := a.GetRegions()
 	if err != nil {
-		fmt.Println(err)
+		return nil, err
 	}
-	for _, v := range *result1.Value {
-		if strings.Contains(*v.Name, "Standard_M64") {
-			vmset[*v.Name] = ""
-			fmt.Println(*v.Name, *v.NumberOfCores, *v.MemoryInMB)
+
+	for region := range regions {
+		vmSizes, err := a.vmSizesClient.List(context.TODO(), region)
+		if err != nil {
+			log.WithError(err).Warnf("[Azure] couldn't get VM sizes in region %s", region)
+			continue
+		}
+		for _, v := range *vmSizes.Value {
+			switch attribute {
+			case cpu:
+				valueSet[productinfo.AttrValue{
+					Value:    float64(*v.NumberOfCores),
+					StrValue: fmt.Sprintf("%v", *v.NumberOfCores),
+				}] = ""
+			case memory:
+				valueSet[productinfo.AttrValue{
+					Value:    float64(*v.MemoryInMB) / 1000,
+					StrValue: fmt.Sprintf("%v", *v.MemoryInMB),
+				}] = ""
+			}
 		}
 	}
 
-	fmt.Println("ennyi vm van itt:", len(vmset))
-	// aggregate
-	return nil, nil
+	for attr := range valueSet {
+		values = append(values, attr)
+	}
+
+	log.Debugf("found %s values: %v", attribute, values)
+	return values, nil
 }
 
 func (a *AzureInfoer) GetProducts(regionId string, attrKey string, attrValue productinfo.AttrValue) ([]productinfo.VmInfo, error) {

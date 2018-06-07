@@ -153,7 +153,7 @@ func (g *GceInfoer) GetAttributeValues(attribute string) (productinfo.AttrValues
 	log.Debugf("getting %s values", attribute)
 
 	values := make(productinfo.AttrValues, 0)
-	valueSet := make(map[productinfo.AttrValue]struct{})
+	valueSet := make(map[productinfo.AttrValue]interface{})
 
 	err := g.computeSvc.MachineTypes.AggregatedList(g.projectId).Pages(context.TODO(), func(allMts *compute.MachineTypeAggregatedList) error {
 		for _, scope := range allMts.Items {
@@ -163,12 +163,12 @@ func (g *GceInfoer) GetAttributeValues(attribute string) (productinfo.AttrValues
 					valueSet[productinfo.AttrValue{
 						Value:    float64(mt.GuestCpus),
 						StrValue: fmt.Sprintf("%v", mt.GuestCpus),
-					}] = struct{}{}
+					}] = ""
 				case memory:
 					valueSet[productinfo.AttrValue{
 						Value:    float64(mt.MemoryMb) / 1000,
 						StrValue: fmt.Sprintf("%v", mt.MemoryMb),
-					}] = struct{}{}
+					}] = ""
 				}
 			}
 		}
