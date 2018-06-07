@@ -192,38 +192,6 @@ func TestEc2Infoer_GetAttributeValues(t *testing.T) {
 	}
 }
 
-func TestEc2Infoer_GetRegions(t *testing.T) {
-	tests := []struct {
-		name           string
-		pricingService PricingSource
-		check          func(regionId map[string]string)
-	}{
-		{
-			name:           "receive all regions",
-			pricingService: &DummyPricingSource{},
-			check: func(regionId map[string]string) {
-				assert.Equal(t, regionId, map[string]string{"ap-southeast-1": "ap-southeast-1",
-					"ap-south-1": "ap-south-1", "us-west-1": "us-west-1", "us-east-1": "us-east-1", "us-east-2": "us-east-2",
-					"eu-central-1": "eu-central-1", "eu-west-1": "eu-west-1", "ca-central-1": "ca-central-1",
-					"eu-west-3": "eu-west-3", "ap-northeast-2": "ap-northeast-2", "ap-southeast-2": "ap-southeast-2",
-					"sa-east-1": "sa-east-1", "us-west-2": "us-west-2", "ap-northeast-1": "ap-northeast-1",
-					"eu-west-2": "eu-west-2"})
-				assert.Equal(t, 15, len(regionId))
-			},
-		},
-	}
-	for _, test := range tests {
-		t.Run(test.name, func(t *testing.T) {
-			productInfoer, err := NewEc2Infoer(test.pricingService, "", "")
-			if err != nil {
-				t.Fatalf("failed to create productinfoer; [%s]", err.Error())
-			}
-			regions, _ := productInfoer.GetRegions()
-			test.check(regions)
-		})
-	}
-}
-
 func TestEc2Infoer_GetProducts(t *testing.T) {
 	tests := []struct {
 		name           string

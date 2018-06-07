@@ -17,7 +17,6 @@ const (
 	// Azure is the identifier of the MS Azure provider
 	Azure = "azure"
 
-
 	// vm types
 	regular = "regular"
 	spot    = "spot"

@@ -110,6 +110,7 @@ func (a *AzureInfoer) checkRegionID(regionID string, regions map[string]string) 
 	return false
 }
 
+// Initialize downloads and parses the Rate Card API's meter list on Azure
 func (a *AzureInfoer) Initialize() (map[string]map[string]productinfo.Price, error) {
 	log.Debug("initializing Azure price info")
 	allPrices := make(map[string]map[string]productinfo.Price)
@@ -168,6 +169,7 @@ func (a *AzureInfoer) Initialize() (map[string]map[string]productinfo.Price, err
 	return allPrices, nil
 }
 
+// GetAttributeValues gets the AttributeValues for the given attribute name
 func (a *AzureInfoer) GetAttributeValues(attribute string) (productinfo.AttrValues, error) {
 
 	log.Debugf("getting %s values", attribute)
@@ -210,6 +212,7 @@ func (a *AzureInfoer) GetAttributeValues(attribute string) (productinfo.AttrValu
 	return values, nil
 }
 
+// GetProducts retrieves the available virtual machines based on the arguments provided
 func (a *AzureInfoer) GetProducts(regionId string, attrKey string, attrValue productinfo.AttrValue) ([]productinfo.VmInfo, error) {
 	log.Debugf("getting product info [region=%s, %s=%v]", regionId, attrKey, attrValue.Value)
 	var vms []productinfo.VmInfo
@@ -241,10 +244,12 @@ func (a *AzureInfoer) GetProducts(regionId string, attrKey string, attrValue pro
 	return vms, nil
 }
 
+// GetZones returns the availability zones in a region
 func (a *AzureInfoer) GetZones(region string) ([]string, error) {
 	return []string{region}, nil
 }
 
+// GetRegions returns a map with available regions transforms the api representation into a "plain" map
 func (a *AzureInfoer) GetRegions() (map[string]string, error) {
 	regions := make(map[string]string)
 	locations, err := a.subscriptionsClient.ListLocations(context.TODO(), a.subscriptionId)
@@ -257,6 +262,7 @@ func (a *AzureInfoer) GetRegions() (map[string]string, error) {
 	return regions, nil
 }
 
+// HasShortLivedPriceInfo - Azure doesn't have frequently changing prices
 func (a *AzureInfoer) HasShortLivedPriceInfo() bool {
 	return false
 }
@@ -264,6 +270,8 @@ func (a *AzureInfoer) HasShortLivedPriceInfo() bool {
 // TODO: We have some VM types, where we don't have pricing info, e.g.: M64-16ms
 // it's stored as a VM, and when we want to have pricing info for them, it cannot be found in cache
 // -> calls initialize for all vmInfos that's not found -> takes an eternity
+
+// GetCurrentPrices retrieves all the price info in a region
 func (a *AzureInfoer) GetCurrentPrices(region string) (map[string]productinfo.Price, error) {
 	log.Debugf("getting current prices in region %s", region)
 	allPrices, err := a.Initialize()
@@ -274,14 +282,17 @@ func (a *AzureInfoer) GetCurrentPrices(region string) (map[string]productinfo.Pr
 	return allPrices[region], nil
 }
 
+// GetMemoryAttrName returns the provider representation of the memory attribute
 func (a *AzureInfoer) GetMemoryAttrName() string {
 	return memory
 }
 
+// GetCpuAttrName returns the provider representation of the cpu attribute
 func (a *AzureInfoer) GetCpuAttrName() string {
 	return cpu
 }
 
+// GetNetworkPerformanceMapper returns the network performance mappier implementation for this provider
 func (a *AzureInfoer) GetNetworkPerformanceMapper() (productinfo.NetworkPerfMapper, error) {
 	return newAzureNetworkMapper(), nil
 }

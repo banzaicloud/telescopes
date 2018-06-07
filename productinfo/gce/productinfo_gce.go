@@ -224,8 +224,7 @@ func (g *GceInfoer) GetProducts(regionId string, attrKey string, attrValue produ
 	return vms, nil
 }
 
-// GetRegions returns a map with available regions
-// transforms the api representation into a "plain" map
+// GetRegions returns a map with available regions transforms the api representation into a "plain" map
 func (g *GceInfoer) GetRegions() (map[string]string, error) {
 	log.Debugf("getting regions")
 	regionIdMap := make(map[string]string)
