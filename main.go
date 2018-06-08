@@ -14,7 +14,6 @@ package main
 
 import (
 	"context"
-	"fmt"
 	"time"
 
 	"github.com/patrickmn/go-cache"
@@ -42,7 +41,7 @@ const (
 	providerFlag               = "provider"
 	devModeFlag                = "dev-mode"
 	tokenSigningKeyFlag        = "tokensigningkey"
-	vaultAddrFlag              = "vault_addre"
+	vaultAddrFlag              = "vault_addr"
 
 	//temporary flags
 	gceProjectIdFlag = "gce-project-id"
@@ -68,8 +67,8 @@ func defineFlags() {
 	flag.String(gceProjectIdFlag, "", "GCE project ID to use")
 	flag.String(gceApiKeyFlag, "", "GCE API key to use for getting SKUs")
 	flag.StringSlice(providerFlag, []string{recommender.Ec2, recommender.Gce}, "Providers that will be used with the recommender.")
-	flag.String(tokenSigningKeyFlag, "changeme", "The token signing key for the authentication process")
-	flag.String(vaultAddrFlag, "changeme", "The vault address for authentication token management")
+	flag.String(tokenSigningKeyFlag, "", "The token signing key for the authentication process")
+	flag.String(vaultAddrFlag, "", "The vault address for authentication token management")
 }
 
 // bindFlags binds parsed flags into viper
@@ -117,7 +116,8 @@ func ensureCfg() {
 
 		// read the env var value
 		if nil == viper.Get(envVar) {
-			panic(fmt.Sprintf("application is missing configuration: %s", envVar))
+			flag.Usage()
+			log.Fatalf("application is missing configuration: %s \n %s", envVar)
 		}
 	}
 }
