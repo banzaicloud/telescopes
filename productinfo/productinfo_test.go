@@ -1,10 +1,10 @@
 package productinfo
 
 import (
-	"fmt"
 	"testing"
 	"time"
 
+	"errors"
 	"github.com/aws/aws-sdk-go/aws/endpoints"
 	"github.com/patrickmn/go-cache"
 	"github.com/stretchr/testify/assert"
@@ -15,31 +15,38 @@ import (
 type DummyProductInfoer struct {
 	AttrValues AttrValues
 	Vms        []VmInfo
-
+	TcId       int
 	// implement the interface
 	ProductInfoer
 }
 
+const (
+	getProductsError = "invalid region"
+)
+
 func (dpi *DummyProductInfoer) Initialize() (map[string]map[string]Price, error) {
-	return nil, nil
+	if dpi.TcId == 1 {
+		return nil, errors.New("initialization error")
+	}
+	return map[string]map[string]Price{"dummy": {"t2.nano": {OnDemandPrice: 25, SpotPrice: SpotPriceInfo{"testZone2": 43}}}}, nil
 }
 
 func (dpi *DummyProductInfoer) GetAttributeValues(attribute string) (AttrValues, error) {
-	if attribute == "error" {
-		return nil, fmt.Errorf("attribute value error")
+	if attribute == Memory {
+		return nil, errors.New("memory is invalid attribute if we call the GetAttributeValues function")
 	}
 	return dpi.AttrValues, nil
 }
 
 func (dpi *DummyProductInfoer) GetProducts(regionId string, attrKey string, attrValue AttrValue) ([]VmInfo, error) {
-	if regionId == "errorRegion" {
-		return nil, fmt.Errorf("regionId error")
+	if regionId == getProductsError {
+		return nil, errors.New("could not retrieve virtual machines")
 	}
 	return dpi.Vms, nil
 }
 
 func (dpi *DummyProductInfoer) GetZones(region string) ([]string, error) {
-	return nil, nil
+	return []string{"Zone1", "Zone2"}, nil
 }
 
 func (dpi *DummyProductInfoer) GetRegion(id string) *endpoints.Region {
@@ -51,11 +58,18 @@ func (dpi *DummyProductInfoer) GetRegions() (map[string]string, error) {
 }
 
 func (dpi *DummyProductInfoer) HasShortLivedPriceInfo() bool {
+	if dpi.TcId == 2 {
+		return false
+	}
 	return true
 }
 
 func (dpi *DummyProductInfoer) GetCurrentPrices(region string) (map[string]Price, error) {
-	return nil, nil
+	if dpi.TcId == 3 {
+		return nil, errors.New("could not get current prices")
+	}
+
+	return map[string]Price{"t2.nano": {OnDemandPrice: float64(32), SpotPrice: SpotPriceInfo{"testZone1": 32}}}, nil
 }
 
 func (dpi *DummyProductInfoer) GetMemoryAttrName() string {
@@ -66,50 +80,48 @@ func (dpi *DummyProductInfoer) GetCpuAttrName() string {
 	return "vcpu"
 }
 
-func TestNewProductInfo(t *testing.T) {
-	testCases := []struct {
+func TestNewCachingProductInfo(t *testing.T) {
+	tests := []struct {
 		Name          string
 		ProductInfoer map[string]ProductInfoer
-		Assert        func(info *CachingProductInfo, err error)
-		Cache         *cache.Cache
+		checker       func(info *CachingProductInfo, err error)
 	}{
 		{
 			Name: "product info successfully created",
 			ProductInfoer: map[string]ProductInfoer{
 				"dummy": &DummyProductInfoer{},
 			},
-			Cache: cache.New(5*time.Minute, 10*time.Minute),
-			Assert: func(info *CachingProductInfo, err error) {
+			checker: func(info *CachingProductInfo, err error) {
 				assert.Nil(t, err, "should not get error")
+				assert.NotNil(t, info, "the product info should not be nil")
 			},
 		},
 		{
 			Name:          "validation should fail nil values",
 			ProductInfoer: nil,
-			Cache:         cache.New(5*time.Minute, 10*time.Minute),
-			Assert: func(info *CachingProductInfo, err error) {
+			checker: func(info *CachingProductInfo, err error) {
 				assert.Nil(t, info, "the productinfo should be nil in case of error")
-				assert.NotNil(t, err, "should get validation error when nil values provided")
+				assert.EqualError(t, err, "could not create product infoer")
 			},
 		},
 	}
 
-	for _, tc := range testCases {
-		t.Run(tc.Name, func(t *testing.T) {
-			tc.Assert(NewCachingProductInfo(10*time.Second, tc.Cache, tc.ProductInfoer))
+	for _, test := range tests {
+		t.Run(test.Name, func(t *testing.T) {
+			test.checker(NewCachingProductInfo(10*time.Second, cache.New(5*time.Minute, 10*time.Minute), test.ProductInfoer))
 		})
 	}
 
 }
 
-func TestRenewAttributeValues(t *testing.T) {
-	testCases := []struct {
+func TestCachingProductInfo_renewAttrValues(t *testing.T) {
+	tests := []struct {
 		Name          string
 		Provider      string
 		ProductInfoer map[string]ProductInfoer
 		Cache         *cache.Cache
 		Attribute     string
-		Assert        func(cache *cache.Cache, values AttrValues, err error)
+		checker       func(cache *cache.Cache, values AttrValues, err error)
 	}{
 		{
 			Name:     "attribute successfully renewed - empty cache",
@@ -121,9 +133,9 @@ func TestRenewAttributeValues(t *testing.T) {
 			},
 			Cache:     cache.New(5*time.Minute, 10*time.Minute),
 			Attribute: Cpu,
-			Assert: func(cache *cache.Cache, values AttrValues, err error) {
+			checker: func(cache *cache.Cache, values AttrValues, err error) {
 				assert.Nil(t, err, "no error expected")
-				assert.NotNil(t, values, "the retreived attribute slice shouldn't be nil")
+				assert.Equal(t, AttrValues{AttrValue{StrValue: "cpu", Value: 21}}, values)
 				assert.Equal(t, 1, cache.ItemCount(), "there should be exactly one item in the cache")
 				vals, _ := cache.Get("/banzaicloud.com/recommender/dummy/attrValues/cpu")
 
@@ -134,32 +146,48 @@ func TestRenewAttributeValues(t *testing.T) {
 			},
 		},
 		{
-			Name: "attribute error",
+			Name:     "invalid attribute",
+			Provider: "dummy",
 			ProductInfoer: map[string]ProductInfoer{
 				"dummy": &DummyProductInfoer{
 					AttrValues: AttrValues{AttrValue{Value: float64(21), StrValue: Cpu}},
 				},
 			},
 			Cache:     cache.New(5*time.Minute, 10*time.Minute),
-			Attribute: "error",
-			Assert: func(cache *cache.Cache, values AttrValues, err error) {
-				assert.NotNil(t, err, "should receive attribute error")
+			Attribute: Memory,
+			checker: func(cache *cache.Cache, values AttrValues, err error) {
+				assert.EqualError(t, err, "memory is invalid attribute if we call the GetAttributeValues function")
+				assert.Nil(t, values, "no values expected")
+			},
+		},
+		{
+			Name:     "unsupported attribute - error",
+			Provider: "dummy",
+			ProductInfoer: map[string]ProductInfoer{
+				"dummy": &DummyProductInfoer{
+					AttrValues: AttrValues{AttrValue{Value: float64(21), StrValue: Cpu}},
+				},
+			},
+			Cache:     cache.New(5*time.Minute, 10*time.Minute),
+			Attribute: "invalid value",
+			checker: func(cache *cache.Cache, values AttrValues, err error) {
+				assert.EqualError(t, err, "unsupported attribute: invalid value")
 				assert.Nil(t, values, "no values expected")
 			},
 		},
 	}
 
-	for _, tc := range testCases {
-		t.Run(tc.Name, func(t *testing.T) {
-			productInfo, _ := NewCachingProductInfo(10*time.Second, tc.Cache, tc.ProductInfoer)
-			values, err := productInfo.renewAttrValues(tc.Provider, tc.Attribute)
-			tc.Assert(productInfo.vmAttrStore, values, err)
+	for _, test := range tests {
+		t.Run(test.Name, func(t *testing.T) {
+			productInfo, _ := NewCachingProductInfo(10*time.Second, test.Cache, test.ProductInfoer)
+			values, err := productInfo.renewAttrValues(test.Provider, test.Attribute)
+			test.checker(productInfo.vmAttrStore, values, err)
 		})
 	}
 
 }
 
-func TestRenewVmsWithAttr(t *testing.T) {
+func TestCachingProductInfo_renewVmsWithAttr(t *testing.T) {
 	tests := []struct {
 		name          string
 		provider      string
@@ -168,12 +196,12 @@ func TestRenewVmsWithAttr(t *testing.T) {
 		attrValue     AttrValue
 		ProductInfoer map[string]ProductInfoer
 		Cache         *cache.Cache
-		Assert        func(cache *cache.Cache, vms []VmInfo, err error)
+		checker       func(cache *cache.Cache, vms []VmInfo, err error)
 	}{
 		{
 			name:      "vm successfully renewed",
 			provider:  "dummy",
-			regionId:  "testRegion",
+			regionId:  "dummyRegion",
 			attrKey:   Cpu,
 			attrValue: AttrValue{Value: float64(2), StrValue: Cpu},
 			ProductInfoer: map[string]ProductInfoer{
@@ -182,10 +210,10 @@ func TestRenewVmsWithAttr(t *testing.T) {
 				},
 			},
 			Cache: cache.New(5*time.Minute, 10*time.Minute),
-			Assert: func(cache *cache.Cache, vms []VmInfo, err error) {
+			checker: func(cache *cache.Cache, vms []VmInfo, err error) {
 				assert.Nil(t, err, "should not get error on vm renewal")
 				assert.Equal(t, 1, len(vms), "there should be a single entry in values")
-				vals, _ := cache.Get("/banzaicloud.com/recommender/dummy/testRegion/vms/cpu/2.000000")
+				vals, _ := cache.Get("/banzaicloud.com/recommender/dummy/dummyRegion/vms/cpu/2.000000")
 
 				for _, val := range vals.([]VmInfo) {
 					assert.Equal(t, float64(32), val.Mem, "the value in the cache is not as expected")
@@ -194,9 +222,27 @@ func TestRenewVmsWithAttr(t *testing.T) {
 			},
 		},
 		{
-			name:      "region id error",
+			name:      "unsupported attribute - error",
 			provider:  "dummy",
-			regionId:  "errorRegion",
+			regionId:  "dummyRegion",
+			attrKey:   "invalid",
+			attrValue: AttrValue{Value: float64(2), StrValue: Cpu},
+			ProductInfoer: map[string]ProductInfoer{
+				"dummy": &DummyProductInfoer{
+					Vms: []VmInfo{{Cpus: float64(2), Mem: float64(32), OnDemandPrice: float64(0.32)}},
+				},
+			},
+			Cache: cache.New(5*time.Minute, 10*time.Minute),
+			checker: func(cache *cache.Cache, vms []VmInfo, err error) {
+				assert.EqualError(t, err, "unsupported attribute: invalid")
+				assert.Nil(t, vms, "no vms expected")
+
+			},
+		},
+		{
+			name:      "could not retrieve virtual machines - GetProducts error",
+			provider:  "dummy",
+			regionId:  getProductsError,
 			attrKey:   Cpu,
 			attrValue: AttrValue{Value: float64(2), StrValue: Cpu},
 			ProductInfoer: map[string]ProductInfoer{
@@ -205,8 +251,8 @@ func TestRenewVmsWithAttr(t *testing.T) {
 				},
 			},
 			Cache: cache.New(5*time.Minute, 10*time.Minute),
-			Assert: func(cache *cache.Cache, vms []VmInfo, err error) {
-				assert.NotNil(t, err, "should receive error")
+			checker: func(cache *cache.Cache, vms []VmInfo, err error) {
+				assert.EqualError(t, err, "could not retrieve virtual machines")
 				assert.Nil(t, vms, "no vms expected")
 
 			},
@@ -217,115 +263,44 @@ func TestRenewVmsWithAttr(t *testing.T) {
 		t.Run(test.name, func(t *testing.T) {
 			productInfo, _ := NewCachingProductInfo(10*time.Second, test.Cache, test.ProductInfoer)
 			values, err := productInfo.renewVmsWithAttr(test.provider, test.regionId, test.attrKey, test.attrValue)
-			test.Assert(test.Cache, values, err)
+			test.checker(test.Cache, values, err)
 		})
 	}
 }
 
-func TestGetAttrKey(t *testing.T) {
+func TestCachingProductInfo_getAttrValues(t *testing.T) {
 	tests := []struct {
 		name          string
 		provider      string
-		Attribute     string
 		ProductInfoer map[string]ProductInfoer
-		Cache         *cache.Cache
-		Assert        func(values string)
+		Attribute     string
+		checker       func(Attr AttrValues, err error)
 	}{
 		{
-			name:      "print attribute key",
-			provider:  "dummy",
+			name:     "successful - return a slice with the values",
+			provider: "dummy",
+			ProductInfoer: map[string]ProductInfoer{
+				"dummy": &DummyProductInfoer{
+					AttrValues: AttrValues{AttrValue{Value: float64(21), StrValue: "21"}},
+				},
+			},
 			Attribute: Cpu,
-			ProductInfoer: map[string]ProductInfoer{
-				"dummy": &DummyProductInfoer{},
-			},
-			Cache: cache.New(5*time.Minute, 10*time.Minute),
-			Assert: func(values string) {
-				assert.Equal(t, values, "/banzaicloud.com/recommender/dummy/attrValues/cpu")
-			},
-		},
-	}
-
-	for _, test := range tests {
-		t.Run(test.name, func(t *testing.T) {
-			productInfo, _ := NewCachingProductInfo(10*time.Second, test.Cache, test.ProductInfoer)
-			values := productInfo.getAttrKey(test.provider, test.Attribute)
-			test.Assert(values)
-		})
-	}
-}
-
-func TestGetVmKey(t *testing.T) {
-	tests := []struct {
-		name          string
-		provider      string
-		region        string
-		attrKey       string
-		attrValue     float64
-		ProductInfoer map[string]ProductInfoer
-		Cache         *cache.Cache
-		Assert        func(values string)
-	}{
-		{
-			name:      "print vm key",
-			provider:  "dummy",
-			region:    "testRegion",
-			attrKey:   Cpu,
-			attrValue: float64(3),
-			ProductInfoer: map[string]ProductInfoer{
-				"dummy": &DummyProductInfoer{},
-			},
-			Cache: cache.New(5*time.Minute, 10*time.Minute),
-			Assert: func(values string) {
-				assert.Equal(t, values, "/banzaicloud.com/recommender/dummy/testRegion/vms/cpu/3.000000")
-			},
-		},
-	}
-
-	for _, test := range tests {
-		t.Run(test.name, func(t *testing.T) {
-			productInfo, _ := NewCachingProductInfo(10*time.Second, test.Cache, test.ProductInfoer)
-			values := productInfo.getVmKey(test.provider, test.region, test.attrKey, test.attrValue)
-			test.Assert(values)
-		})
-	}
-}
-
-func TestGetAttrValues(t *testing.T) {
-	tests := []struct {
-		name          string
-		provider      string
-		ProductInfoer map[string]ProductInfoer
-		Cache         *cache.Cache
-		Attribute     string
-		Assert        func(Attr AttrValues, err error)
-	}{
-		{
-			name:     "successful",
-			provider: "dummy",
-			ProductInfoer: map[string]ProductInfoer{
-				"dummy": &DummyProductInfoer{
-					AttrValues: AttrValues{AttrValue{Value: float64(21), StrValue: "21"}},
-				},
-			},
-			Cache:     cache.New(5*time.Minute, 10*time.Minute),
-			Attribute: Memory,
-			Assert: func(Attr AttrValues, err error) {
+			checker: func(Attr AttrValues, err error) {
 				assert.Nil(t, err, "the returned error must be nil")
-				assert.Equal(t, Attr, AttrValues{AttrValue{StrValue: "21", Value: 21}})
+				assert.Equal(t, AttrValues{AttrValue{StrValue: "21", Value: 21}}, Attr)
 			},
 		},
 		{
-			name:     "attribute values error",
+			name:     "unsupported attribute - error",
 			provider: "dummy",
 			ProductInfoer: map[string]ProductInfoer{
 				"dummy": &DummyProductInfoer{
 					AttrValues: AttrValues{AttrValue{Value: float64(21), StrValue: "21"}},
 				},
 			},
-			Cache:     cache.New(5*time.Minute, 10*time.Minute),
-			Attribute: "error",
-			Assert: func(Attr AttrValues, err error) {
-				assert.NotNil(t, err, "should receive attribute error")
+			Attribute: "invalid",
+			checker: func(Attr AttrValues, err error) {
+				assert.EqualError(t, err, "unsupported attribute: invalid")
 				assert.Nil(t, Attr, "no attribute values expected")
 			},
 		},
@@ -333,68 +308,64 @@ func TestGetAttrValues(t *testing.T) {
 
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
-			productInfo, _ := NewCachingProductInfo(10*time.Second, test.Cache, test.ProductInfoer)
+			productInfo, _ := NewCachingProductInfo(10*time.Second, cache.New(5*time.Minute, 10*time.Minute), test.ProductInfoer)
 			values, err := productInfo.getAttrValues(test.provider, test.Attribute)
-			test.Assert(values, err)
+			test.checker(values, err)
 		})
 	}
 }
 
-func TestGetAttrValue(t *testing.T) {
+func TestCachingProductInfo_getAttrValue(t *testing.T) {
 	tests := []struct {
 		name          string
 		provider      string
 		attrKey       string
 		AttrValue     float64
 		ProductInfoer map[string]ProductInfoer
-		Cache         *cache.Cache
-		Assert        func(Attr *AttrValue, err error)
+		checker       func(Attr *AttrValue, err error)
 	}{
 		{
-			name:      "could not find attribute value",
+			name:      "invalid StrValue",
 			provider:  "dummy",
 			attrKey:   Cpu,
 			AttrValue: float64(2),
-			Cache:     cache.New(5*time.Minute, 10*time.Minute),
 			ProductInfoer: map[string]ProductInfoer{
 				"dummy": &DummyProductInfoer{
-					AttrValues: AttrValues{AttrValue{Value: float64(21), StrValue: "21"}},
+					AttrValues: AttrValues{AttrValue{Value: float64(21), StrValue: "invalid"}},
 				},
 			},
-			Assert: func(Attr *AttrValue, err error) {
-				assert.NotNil(t, err, "could not find attribute value")
+			checker: func(Attr *AttrValue, err error) {
+				assert.EqualError(t, err, "couldn't find attribute Value")
 				assert.Nil(t, Attr, "the retrieved values should be nil")
 			},
 		},
 		{
-			name:      "successful",
+			name:      "successful - get attribute value",
 			provider:  "dummy",
 			attrKey:   Cpu,
 			AttrValue: float64(21),
-			Cache:     cache.New(5*time.Minute, 10*time.Minute),
 			ProductInfoer: map[string]ProductInfoer{
 				"dummy": &DummyProductInfoer{
 					AttrValues: AttrValues{AttrValue{Value: float64(21), StrValue: "21"}},
 				},
 			},
-			Assert: func(Attr *AttrValue, err error) {
+			checker: func(Attr *AttrValue, err error) {
 				assert.Nil(t, err, "the returned error must be nil")
-				assert.Equal(t, Attr, &AttrValue{StrValue: "21", Value: float64(21)})
+				assert.Equal(t, &AttrValue{StrValue: "21", Value: float64(21)}, Attr)
 			},
 		},
 		{
-			name:      "attribute error",
+			name:      "unsupported attribute - error",
 			provider:  "dummy",
-			attrKey:   "error",
+			attrKey:   "invalid",
 			AttrValue: float64(21),
-			Cache:     cache.New(5*time.Minute, 10*time.Minute),
 			ProductInfoer: map[string]ProductInfoer{
 				"dummy": &DummyProductInfoer{
 					AttrValues: AttrValues{AttrValue{Value: float64(21), StrValue: "21"}},
 				},
 			},
-			Assert: func(Attr *AttrValue, err error) {
-				assert.NotNil(t, err, "should receive attribute error")
+			checker: func(Attr *AttrValue, err error) {
+				assert.EqualError(t, err, "unsupported attribute: invalid")
 				assert.Nil(t, Attr, "the retrieved values should be nil")
 			},
 		},
@@ -402,60 +373,61 @@ func TestGetAttrValue(t *testing.T) {
 
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
-			productInfo, _ := NewCachingProductInfo(10*time.Second, test.Cache, test.ProductInfoer)
+			productInfo, _ := NewCachingProductInfo(10*time.Second, cache.New(5*time.Minute, 10*time.Minute), test.ProductInfoer)
 			value, err := productInfo.getAttrValue(test.provider, test.attrKey, test.AttrValue)
-			test.Assert(value, err)
+			test.checker(value, err)
 		})
 	}
 }
 
-func Test_getAttrValues(t *testing.T) {
+func TestCachingProductInfo_GetAttrValues(t *testing.T) {
 	tests := []struct {
 		name          string
 		provider      string
 		ProductInfoer map[string]ProductInfoer
-		Cache         *cache.Cache
 		Attribute     string
-		Assert        func(float []float64, err error)
+		checker       func(value []float64, err error)
 	}{
 		{
-			name:     "successful",
+			name:     "successful - get attribute values",
 			provider: "dummy",
 			ProductInfoer: map[string]ProductInfoer{
-				"dummy": &DummyProductInfoer{},
+				"dummy": &DummyProductInfoer{
+					AttrValues: AttrValues{AttrValue{Value: float64(21)}, AttrValue{Value: float64(23)}},
+				},
 			},
-			Cache:     cache.New(5*time.Minute, 10*time.Minute),
-			Attribute: Memory,
-			Assert: func(float []float64, err error) {
+			Attribute: Cpu,
+			checker: func(value []float64, err error) {
 				assert.Nil(t, err, "the returned error must be nil")
-				assert.Equal(t, float, []float64{})
+				assert.Equal(t, []float64{0, 0, 21, 23}, value)
 			},
 		},
 		{
-			name:     "attribute error",
+			name:     "unsupported attribute - error",
 			provider: "dummy",
 			ProductInfoer: map[string]ProductInfoer{
-				"dummy": &DummyProductInfoer{},
+				"dummy": &DummyProductInfoer{
+					AttrValues: AttrValues{AttrValue{Value: float64(21)}, AttrValue{Value: float64(23)}},
+				},
 			},
-			Cache:     cache.New(5*time.Minute, 10*time.Minute),
-			Attribute: "error",
-			Assert: func(float []float64, err error) {
-				assert.NotNil(t, err, "should receive attribute error")
-				assert.Nil(t, float, "the retrieved values should be nil")
+			Attribute: "invalid",
+			checker: func(value []float64, err error) {
+				assert.EqualError(t, err, "unsupported attribute: invalid")
+				assert.Nil(t, value, "the retrieved values should be nil")
 			},
 		},
 	}
 
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
-			productInfo, _ := NewCachingProductInfo(10*time.Second, test.Cache, test.ProductInfoer)
+			productInfo, _ := NewCachingProductInfo(10*time.Second, cache.New(5*time.Minute, 10*time.Minute), test.ProductInfoer)
 			values, err := productInfo.GetAttrValues(test.provider, test.Attribute)
-			test.Assert(values, err)
+			test.checker(values, err)
 		})
 	}
 }
 
-func TestGetVmsWithAttrValue(t *testing.T) {
+func TestCachingProductInfo_GetVmsWithAttrValue(t *testing.T) {
 	tests := []struct {
 		name          string
 		provider      string
@@ -464,12 +436,12 @@ func TestGetVmsWithAttrValue(t *testing.T) {
 		value         float64
 		ProductInfoer map[string]ProductInfoer
 		Cache         *cache.Cache
-		Assert        func(vms []VmInfo, err error)
+		checker       func(cache *cache.Cache, vms []VmInfo, err error)
 	}{
 		{
-			name:     "successful",
+			name:     "successful - return a slice with the virtual machines",
 			provider: "dummy",
-			regionId: "testRegion",
+			regionId: "dummyRegion",
 			attrKey:  Cpu,
 			value:    float64(21),
 			ProductInfoer: map[string]ProductInfoer{
@@ -479,15 +451,21 @@ func TestGetVmsWithAttrValue(t *testing.T) {
 				},
 			},
 			Cache: cache.New(5*time.Minute, 10*time.Minute),
-			Assert: func(vms []VmInfo, err error) {
+			checker: func(cache *cache.Cache, vms []VmInfo, err error) {
 				assert.Nil(t, err, "the returned error must be nil")
-				assert.Equal(t, vms, []VmInfo{VmInfo{Type: "", OnDemandPrice: 0.32, Cpus: 2, Mem: 32, Gpus: 0}})
+				assert.Equal(t, []VmInfo{{Type: "", OnDemandPrice: 0.32, Cpus: 2, Mem: 32, Gpus: 0}}, vms)
+				assert.Equal(t, 2, cache.ItemCount(), "there should be exactly one item in the cache")
+				vals, _ := cache.Get("/banzaicloud.com/recommender/dummy/dummyRegion/vms/cpu/21.000000")
+
+				for _, val := range vals.([]VmInfo) {
+					assert.Equal(t, float64(2), val.Cpus)
+				}
 			},
 		},
 		{
-			name:     "vm error",
+			name:     "could not retrieve virtual machines",
 			provider: "dummy",
-			regionId: "errorRegion",
+			regionId: getProductsError,
 			attrKey:  Cpu,
 			value:    float64(21),
 			ProductInfoer: map[string]ProductInfoer{
@@ -497,16 +475,16 @@ func TestGetVmsWithAttrValue(t *testing.T) {
 				},
 			},
 			Cache: cache.New(5*time.Minute, 10*time.Minute),
-			Assert: func(vms []VmInfo, err error) {
-				assert.NotNil(t, err, "should receive error")
+			checker: func(cache *cache.Cache, vms []VmInfo, err error) {
+				assert.EqualError(t, err, "could not retrieve virtual machines")
 				assert.Nil(t, vms, "the retrieved values should be nil")
 			},
 		},
 		{
-			name:     "attribute error",
+			name:     "unsupported attribute - error",
 			provider: "dummy",
-			regionId: "testRegion",
-			attrKey:  "error",
+			regionId: "dummyRegion",
+			attrKey:  "invalid",
 			value:    float64(21),
 			ProductInfoer: map[string]ProductInfoer{
 				"dummy": &DummyProductInfoer{
@@ -515,8 +493,8 @@ func TestGetVmsWithAttrValue(t *testing.T) {
 				},
 			},
 			Cache: cache.New(5*time.Minute, 10*time.Minute),
-			Assert: func(vms []VmInfo, err error) {
-				assert.NotNil(t, err, "should receive attribute error")
+			checker: func(cache *cache.Cache, vms []VmInfo, err error) {
+				assert.EqualError(t, err, "unsupported attribute: invalid")
 				assert.Nil(t, vms, "the retrieved values should be nil")
 			},
 		},
@@ -526,7 +504,261 @@ func TestGetVmsWithAttrValue(t *testing.T) {
 		t.Run(test.name, func(t *testing.T) {
 			productInfo, _ := NewCachingProductInfo(10*time.Second, test.Cache, test.ProductInfoer)
 			values, err := productInfo.GetVmsWithAttrValue(test.provider, test.regionId, test.attrKey, test.value)
-			test.Assert(values, err)
+			test.checker(test.Cache, values, err)
+		})
+	}
+}
+
+func TestCachingProductInfo_toProviderAttribute(t *testing.T) {
+	tests := []struct {
+		name          string
+		provider      string
+		attr          string
+		ProductInfoer map[string]ProductInfoer
+		checker       func(str string, err error)
+	}{
+		{
+			name:     "get cpu",
+			provider: "dummy",
+			attr:     Cpu,
+			ProductInfoer: map[string]ProductInfoer{
+				"dummy": &DummyProductInfoer{},
+			},
+			checker: func(str string, err error) {
+				assert.Equal(t, "vcpu", str)
+				assert.Nil(t, err, "the error should be nil")
+			},
+		},
+		{
+			name:     "get memory",
+			provider: "dummy",
+			attr:     Memory,
+			ProductInfoer: map[string]ProductInfoer{
+				"dummy": &DummyProductInfoer{},
+			},
+			checker: func(str string, err error) {
+				assert.Equal(t, "memory", str)
+				assert.Nil(t, err, "the error should be nil")
+			},
+		},
+		{
+			name:     "invalid attribute",
+			provider: "dummy",
+			attr:     "invalid",
+			ProductInfoer: map[string]ProductInfoer{
+				"dummy": &DummyProductInfoer{},
+			},
+			checker: func(str string, err error) {
+				assert.Equal(t, "", str)
+				assert.EqualError(t, err, "unsupported attribute: invalid")
+			},
+		},
+	}
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			productInfo, _ := NewCachingProductInfo(10*time.Second, cache.New(5*time.Minute, 10*time.Minute), test.ProductInfoer)
+			values, err := productInfo.toProviderAttribute(test.provider, test.attr)
+			test.checker(values, err)
+		})
+	}
+}
+
+func TestCachingProductInfo_GetZones(t *testing.T) {
+	tests := []struct {
+		name          string
+		provider      string
+		region        string
+		ProductInfoer map[string]ProductInfoer
+		checker       func(zones []string, err error)
+	}{
+		{
+			name:     "successful",
+			provider: "dummy",
+			region:   "dummyRegion",
+			ProductInfoer: map[string]ProductInfoer{
+				"dummy": &DummyProductInfoer{},
+			},
+			checker: func(str []string, err error) {
+				assert.Equal(t, []string{"Zone1", "Zone2"}, str)
+				assert.Nil(t, err, "the error should be nil")
+			},
+		},
+	}
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			productInfo, _ := NewCachingProductInfo(10*time.Second, cache.New(5*time.Minute, 10*time.Minute), test.ProductInfoer)
+			values, err := productInfo.GetZones(test.provider, test.region)
+			test.checker(values, err)
+		})
+	}
+}
+
+func TestCachingProductInfo_Initialize(t *testing.T) {
+	tests := []struct {
+		name          string
+		provider      string
+		ProductInfoer map[string]ProductInfoer
+		checker       func(price map[string]map[string]Price, err error)
+	}{
+		{
+			name:     "successful - store the result in cache",
+			provider: "dummy",
+			ProductInfoer: map[string]ProductInfoer{
+				"dummy": &DummyProductInfoer{},
+			},
+			checker: func(price map[string]map[string]Price, err error) {
+				assert.Equal(t, map[string]map[string]Price{"dummy": {"t2.nano": {OnDemandPrice: 25, SpotPrice: SpotPriceInfo{"testZone2": 43}}}}, price)
+				assert.Nil(t, err, "the error should be nil")
+			},
+		},
+		{
+			name:     "could not get the output of the Infoer's Initialize function",
+			provider: "dummy",
+			ProductInfoer: map[string]ProductInfoer{
+				"dummy": &DummyProductInfoer{TcId: 1},
+			},
+			checker: func(price map[string]map[string]Price, err error) {
+				assert.Nil(t, price, "the price should be nil")
+				assert.EqualError(t, err, "initialization error")
+			},
+		},
+	}
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			productInfo, _ := NewCachingProductInfo(10*time.Second, cache.New(5*time.Minute, 10*time.Minute), test.ProductInfoer)
+			values, err := productInfo.Initialize(test.provider)
+			test.checker(values, err)
+		})
+	}
+}
+
+func TestCachingProductInfo_renewShortLivedInfo(t *testing.T) {
+	tests := []struct {
+		name          string
+		provider      string
+		region        string
+		ProductInfoer map[string]ProductInfoer
+		checker       func(price map[string]Price, err error)
+	}{
+		{
+			name:     "successful - retrieve attribute values from the cloud provider",
+			provider: "dummy",
+			region:   "dummyRegion",
+			ProductInfoer: map[string]ProductInfoer{
+				"dummy": &DummyProductInfoer{},
+			},
+			checker: func(price map[string]Price, err error) {
+				assert.Equal(t, map[string]Price{"t2.nano": {OnDemandPrice: 32, SpotPrice: SpotPriceInfo{"testZone1": 32}}}, price)
+				assert.Equal(t, 1, len(price))
+				assert.Nil(t, err, "the error should be nil")
+			},
+		},
+		{
+			name:     "error - could not get current prices",
+			provider: "dummy",
+			region:   "dummyRegion",
+			ProductInfoer: map[string]ProductInfoer{
+				"dummy": &DummyProductInfoer{TcId: 3},
+			},
+			checker: func(price map[string]Price, err error) {
+				assert.Nil(t, price, "the price should be nil")
+				assert.EqualError(t, err, "could not get current prices")
+			},
+		},
+	}
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			productInfo, _ := NewCachingProductInfo(10*time.Second, cache.New(5*time.Minute, 10*time.Minute), test.ProductInfoer)
+			values, err := productInfo.renewShortLivedInfo(test.provider, test.region)
+			test.checker(values, err)
+		})
+	}
+}
+
+func TestCachingProductInfo_GetPrice(t *testing.T) {
+	tests := []struct {
+		name          string
+		provider      string
+		region        string
+		instanceType  string
+		p             Price
+		zones         []string
+		ProductInfoer map[string]ProductInfoer
+		checker       func(i float64, f float64, err error)
+	}{
+		{
+			name:         "successful - return on demand price and averaged spot price",
+			provider:     "dummy",
+			region:       "dummyRegion",
+			instanceType: "t2.nano",
+			zones:        []string{"testZone1", "testZone2"},
+			ProductInfoer: map[string]ProductInfoer{
+				"dummy": &DummyProductInfoer{},
+			},
+			checker: func(i float64, f float64, err error) {
+				assert.Equal(t, float64(32), i)
+				assert.Equal(t, float64(16), f)
+				assert.Nil(t, err, "the error should be nil")
+			},
+		},
+		{
+			name:         "error - could not get current prices",
+			provider:     "dummy",
+			region:       "dummyRegion",
+			instanceType: "t2.nano",
+			zones:        []string{"testZone1", "testZone2"},
+			ProductInfoer: map[string]ProductInfoer{
+				"dummy": &DummyProductInfoer{TcId: 3},
+			},
+			checker: func(i float64, f float64, err error) {
+				assert.Equal(t, float64(0), i)
+				assert.Equal(t, float64(0), f)
+				assert.EqualError(t, err, "could not get current prices")
+			},
+		},
+	}
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			productInfo, _ := NewCachingProductInfo(10*time.Second, cache.New(5*time.Minute, 10*time.Minute), test.ProductInfoer)
+			values, value, err := productInfo.GetPrice(test.provider, test.region, test.instanceType, test.zones)
+			test.checker(values, value, err)
+		})
+	}
+}
+
+func TestCachingProductInfo_HasShortLivedPriceInfo(t *testing.T) {
+	tests := []struct {
+		name          string
+		provider      string
+		ProductInfoer map[string]ProductInfoer
+		checker       func(bool)
+	}{
+		{
+			name:     "return true",
+			provider: "dummy",
+			ProductInfoer: map[string]ProductInfoer{
+				"dummy": &DummyProductInfoer{},
+			},
+			checker: func(b bool) {
+				assert.Equal(t, true, b)
+			},
+		},
+		{
+			name:     "return false",
+			provider: "dummy",
+			ProductInfoer: map[string]ProductInfoer{
+				"dummy": &DummyProductInfoer{TcId: 2},
+			},
+			checker: func(b bool) {
+				assert.Equal(t, false, b)
+			},
+		},
+	}
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			productInfo, _ := NewCachingProductInfo(10*time.Second, cache.New(5*time.Minute, 10*time.Minute), test.ProductInfoer)
+			values := productInfo.HasShortLivedPriceInfo(test.provider)
+			test.checker(values)
 		})
 	}
 }
