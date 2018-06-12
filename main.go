@@ -33,7 +33,6 @@ import (
 const (
 	// the list of flags supported by the application
 	// these constants can be used to retrieve the passed in values or defaults via viper
-
 	logLevelFlag               = "log-level"
 	listenAddressFlag          = "listen-address"
 	prodInfRenewalIntervalFlag = "product-info-renewal-interval"
@@ -41,21 +40,22 @@ const (
 	prometheusQueryFlag        = "prometheus-query"
 	providerFlag               = "provider"
 	devModeFlag                = "dev-mode"
-	tokenSigningKeyFlag        = "tokensigningkey"
-	vaultAddrFlag              = "vault_addr"
+	tokenSigningKeyFlag        = "token-signing-key"
+	vaultAddrAlias             = "vault_addr"
+	vaultAddrFlag              = "vault-address"
 	helpFlag                   = "help"
 
 	//temporary flags
 	gceProjectIdFlag = "gce-project-id"
 	gceApiKeyFlag    = "gce-api-key"
 
-	cfgAppRole     = "telescopes_app_role"
+	cfgAppRole     = "telescopes-app-role"
 	defaultAppRole = "telescopes"
 )
 
 var (
 	// env vars required by the application
-	cfgEnvVars = []string{tokenSigningKeyFlag, vaultAddrFlag}
+	cfgEnvVars = []string{tokenSigningKeyFlag, vaultAddrAlias}
 )
 
 // defineFlags defines supported flags and makes them available for viper
@@ -104,7 +104,9 @@ func init() {
 
 	// set configuration defaults
 	viper.SetDefault(cfgAppRole, defaultAppRole)
-	viper.BindEnv(tokenSigningKeyFlag)
+
+	// set configuration aliases
+	viper.RegisterAlias("vault_addr", vaultAddrFlag)
 
 }
 
