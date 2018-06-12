@@ -27,6 +27,7 @@ import (
 	"github.com/banzaicloud/telescopes/recommender"
 	"github.com/gin-gonic/gin"
 	flag "github.com/spf13/pflag"
+	"os"
 )
 
 const (
@@ -42,6 +43,7 @@ const (
 	devModeFlag                = "dev-mode"
 	tokenSigningKeyFlag        = "tokensigningkey"
 	vaultAddrFlag              = "vault_addr"
+	helpFlag                   = "help"
 
 	//temporary flags
 	gceProjectIdFlag = "gce-project-id"
@@ -69,6 +71,7 @@ func defineFlags() {
 	flag.StringSlice(providerFlag, []string{recommender.Ec2, recommender.Gce}, "Providers that will be used with the recommender.")
 	flag.String(tokenSigningKeyFlag, "", "The token signing key for the authentication process")
 	flag.String(vaultAddrFlag, "", "The vault address for authentication token management")
+	flag.Bool(helpFlag, false, "prints this help")
 }
 
 // bindFlags binds parsed flags into viper
@@ -124,20 +127,22 @@ func ensureCfg() {
 
 func main() {
 
+	if viper.GetBool(helpFlag) {
+		flag.Usage()
+		return
+	}
+
 	ensureCfg()
 
 	c := cache.New(24*time.Hour, 24.*time.Hour)
 
 	productInfo, err := productinfo.NewCachingProductInfo(viper.GetDuration(prodInfRenewalIntervalFlag), c, infoers())
-	if err != nil {
-		log.Fatal(err)
-	}
+	quitOnError("error encountered", err)
+
 	go productInfo.Start(context.Background())
 
 	engine, err := recommender.NewEngine(productInfo)
-	if err != nil {
-		log.Fatal(err)
-	}
+	quitOnError("error encountered", err)
 
 	routeHandler := api.NewRouteHandler(engine, api.NewValidator(viper.GetStringSlice(providerFlag)))
 
@@ -166,23 +171,35 @@ func infoers() map[string]productinfo.ProductInfoer {
 	for _, p := range providers {
 		var infoer productinfo.ProductInfoer
 		var err error
-		if err != nil {
-			log.Fatalf(err.Error())
-		}
+
 		switch p {
 		case recommender.Ec2:
 			infoer, err = ec2.NewEc2Infoer(ec2.NewPricing(ec2.NewConfig()), viper.GetString(prometheusAddressFlag),
 				viper.GetString(prometheusQueryFlag))
+			if err != nil {
+				break
+			}
 		case recommender.Gce:
 			infoer, err = gce.NewGceInfoer(viper.GetString(gceApiKeyFlag), viper.GetString(gceProjectIdFlag))
+			if err != nil {
+				break
+			}
 		default:
 			log.Fatalf("provider %s is not supported", p)
 		}
-		if err != nil {
-			log.Fatalf("could not initialize product info provider: %s", err.Error())
-		}
+
+		quitOnError("could not initialize product info provider", err)
+
 		infoers[p] = infoer
 		log.Infof("Configured '%s' product info provider", p)
 	}
 	return infoers
+}
+
+func quitOnError(msg string, err error) {
+	if err != nil {
+		log.Errorf("%s : %s", msg, err.Error())
+		flag.Usage()
+		os.Exit(-1)
+	}
 }
