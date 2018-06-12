@@ -7,19 +7,32 @@ import (
 	"regexp"
 	"strings"
 
+	"github.com/banzaicloud/telescopes/productinfo"
 	"github.com/gin-gonic/gin"
+	"github.com/gin-gonic/gin/binding"
+	"github.com/sirupsen/logrus"
 	"gopkg.in/go-playground/validator.v8"
 )
 
-// NewValidator returns Validate with custom validations configured
-func NewValidator(providers []string) *validator.Validate {
-	v := validator.New(&validator.Config{TagName: "validate"})
+// ConfigureValidator configures the Gin validator with custom validato functions
+func ConfigureValidator(providers []string, pi *productinfo.CachingProductInfo) {
+	// retrieve the gin validator
+	v := binding.Validator.Engine().(*validator.Validate)
+
+	// register validator for the provider parameter in the request path
 	var providerString = fmt.Sprintf("^%s$", strings.Join(providers, "|"))
-	var passwordRegex = regexp.MustCompile(providerString)
+	var passwordRegexProvider = regexp.MustCompile(providerString)
 	v.RegisterValidation("provider_supported", func(v *validator.Validate, topStruct reflect.Value, currentStruct reflect.Value, field reflect.Value, fieldtype reflect.Type, fieldKind reflect.Kind, param string) bool {
-		return passwordRegex.MatchString(field.String())
+		return passwordRegexProvider.MatchString(field.String())
 	})
-	return v
+
+	// register validator for the region parameter in the request path
+	rd := RegionData{}
+	v.RegisterValidation("region-data", rd.validationFn(pi))
+
+	// register validator for zones
+	v.RegisterValidation("zone", ZoneValidatorFn(pi))
+
 }
 
 // ValidatePathParam is a gin middleware handler function that validates a named path parameter with specific Validate tags
@@ -38,5 +51,87 @@ func ValidatePathParam(name string, validate *validator.Validate, tags ...string
 				return
 			}
 		}
+	}
+}
+
+// ValidateRegionData middleware function to validate region information in the request path.
+// It succeeds if the region is valid for the current provider
+func ValidateRegionData(validate *validator.Validate) gin.HandlerFunc {
+	const (
+		providerParam = "provider"
+		regionParam   = "region"
+	)
+	return func(c *gin.Context) {
+		regionData := newRegionData(c.Param(providerParam), c.Param(regionParam))
+		logrus.Debugf("region data being validated: %s", regionData)
+		err := validate.Struct(regionData)
+		if err != nil {
+			c.Abort()
+			c.JSON(http.StatusBadRequest, map[string]interface{}{
+				"code":    "bad_params",
+				"message": fmt.Sprintf("invalid region in path: %s", regionData),
+				"params":  regionData,
+			})
+			return
+		}
+	}
+
+}
+
+// RegionData struct encapsulating data for region validation in the request path
+type RegionData struct {
+	// Cloud the cloud provider from the request path
+	Cloud string `binding:"required"`
+	// Region the region in the request path
+	Region string `binding:"region-data"`
+}
+
+// String representation of the path data
+func (rd *RegionData) String() string {
+	return fmt.Sprintf("Cloud: %s, Region: %s", rd.Cloud, rd.Region)
+}
+
+// newRegionData constructs a new
+func newRegionData(cloud string, region string) RegionData {
+	return RegionData{Cloud: cloud, Region: region}
+}
+
+// validationFn validation logic for the region data to be registered with the validator
+func (rd *RegionData) validationFn(cpi *productinfo.CachingProductInfo) validator.Func {
+
+	return func(v *validator.Validate, topStruct reflect.Value, currentStruct reflect.Value, field reflect.Value, fieldtype reflect.Type, fieldKind reflect.Kind, param string) bool {
+		currentProvider := currentStruct.FieldByName("Cloud").String()
+		currentRegion := currentStruct.FieldByName("Region").String()
+
+		regions, _ := cpi.GetRegions(currentProvider)
+		for _, reg := range regions {
+			logrus.Infof("validating region: %s", reg)
+			if reg == currentRegion {
+				return true
+			}
+		}
+		return false
+	}
+}
+
+// ZoneValidatorFn validates the zone in the recommendation request.
+// Returns true if the zone is valid on the current cloud provider
+func ZoneValidatorFn(cpi *productinfo.CachingProductInfo) validator.Func {
+	// caching product info may be available here, but the provider is not
+	return func(v *validator.Validate, topStruct reflect.Value, currentStruct reflect.Value, field reflect.Value,
+		fieldtype reflect.Type, fieldKind reflect.Kind, param string) bool {
+
+		// dig out the provider and region from the "topStruct"
+		cloud := reflect.Indirect(topStruct).FieldByName("P").String()
+		region := reflect.Indirect(topStruct).FieldByName("R").String()
+
+		// retrieve the zones
+		zones, _ := cpi.GetZones(cloud, region)
+		for _, zone := range zones {
+			if zone == field.String() {
+				return true
+			}
+		}
+		return false
 	}
 }

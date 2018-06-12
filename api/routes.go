@@ -1,28 +1,30 @@
 package api
 
 import (
-	"fmt"
 	"net/http"
 
+	"fmt"
 	"github.com/banzaicloud/bank-vaults/auth"
+	"github.com/banzaicloud/telescopes/productinfo"
 	"github.com/banzaicloud/telescopes/recommender"
 	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
+	"github.com/gin-gonic/gin/binding"
 	log "github.com/sirupsen/logrus"
 	"gopkg.in/go-playground/validator.v8"
 )
 
 // RouteHandler struct that wraps the recommender engine
 type RouteHandler struct {
-	engine    *recommender.Engine
-	validator *validator.Validate
+	engine *recommender.Engine
+	prod   *productinfo.CachingProductInfo
 }
 
 // NewRouteHandler creates a new RouteHandler and returns a reference to it
-func NewRouteHandler(e *recommender.Engine, v *validator.Validate) *RouteHandler {
+func NewRouteHandler(e *recommender.Engine, p *productinfo.CachingProductInfo) *RouteHandler {
 	return &RouteHandler{
-		engine:    e,
-		validator: v,
+		engine: e,
+		prod:   p,
 	}
 }
 
@@ -44,7 +46,12 @@ func getCorsConfig() cors.Config {
 func (r *RouteHandler) ConfigureRoutes(router *gin.Engine) {
 	log.Info("configuring routes")
 
-	router.Use(ValidatePathParam("provider", r.validator, "provider_supported"))
+	v := binding.Validator.Engine().(*validator.Validate)
+
+	// set validation middlewares for request path parameter validation
+	router.Use(ValidatePathParam("provider", v, "provider_supported"))
+	router.Use(ValidateRegionData(v))
+
 	base := router.Group("/")
 	base.Use(cors.New(getCorsConfig()))
 	{
@@ -85,15 +92,29 @@ func (r *RouteHandler) recommendClusterSetup(c *gin.Context) {
 	log.Info("recommend cluster setup")
 	provider := c.Param("provider")
 	region := c.Param("region")
-	var request recommender.ClusterRecommendationReq
-	if err := c.BindJSON(&request); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+
+	// request decorated with provider and region
+	reqWr := RequestWrapper{P: provider, R: region}
+
+	if err := c.BindJSON(&reqWr); err != nil {
+		c.JSON(http.StatusBadRequest, map[string]string{
+			"code":    "bad_params",
+			"message": "invalid zone",
+			"cause":   err.Error(),
+		})
 		return
 	}
-	// TODO: validation
-	if response, err := r.engine.RecommendCluster(provider, region, request); err != nil {
+
+	if response, err := r.engine.RecommendCluster(provider, region, reqWr.ClusterRecommendationReq); err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"status": http.StatusInternalServerError, "message": fmt.Sprintf("%s", err)})
 	} else {
 		c.JSON(http.StatusOK, *response)
 	}
+}
+
+// RequestWrapper internal struct for passing provider/zone info to the validator
+type RequestWrapper struct {
+	recommender.ClusterRecommendationReq
+	P string
+	R string
 }

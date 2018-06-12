@@ -27,6 +27,12 @@ const (
 
 	// PriceKeyTemplate format for generating price cache keys
 	PriceKeyTemplate = "/banzaicloud.com/recommender/%s/%s/prices/%s"
+
+	// ZoneKeyTemplate format for generating zone cache keys
+	ZoneKeyTemplate = "/banzaicloud.com/recommender/%s/%s/zones/"
+
+	// RegionKeyTemplate format for generating region cache keys
+	RegionKeyTemplate = "/banzaicloud.com/recommender/%s/regions/"
 )
 
 // ProductInfoer gathers operations for retrieving cloud provider information for recommendations
@@ -433,8 +439,16 @@ func (pi *CachingProductInfo) getAttrValue(provider string, attrKey string, attr
 
 // GetZones returns the availability zones in a region
 func (pi *CachingProductInfo) GetZones(provider string, region string) ([]string, error) {
-	// TODO: cache zones
+	ZoneCacheKey := pi.getZonesKey(provider, region)
+	if cachedVal, ok := pi.vmAttrStore.Get(ZoneCacheKey); ok {
+		log.Debugf("Getting available zones from cache. [provider=%s, region=%s]", provider, region)
+		return cachedVal.([]string), nil
+	}
 	return pi.productInfoers[provider].GetZones(region)
+}
+
+func (pi *CachingProductInfo) getZonesKey(provider string, region string) string {
+	return fmt.Sprintf(ZoneKeyTemplate, provider, region)
 }
 
 // GetNetworkPerfMapper returns the provider specific network performance mapper
@@ -443,4 +457,18 @@ func (pi *CachingProductInfo) GetNetworkPerfMapper(provider string) (NetworkPerf
 		return infoer.GetNetworkPerformanceMapper() // this also can return with err!
 	}
 	return nil, fmt.Errorf("could not retrieve network perf mapper for provider: [%s]", provider)
+}
+
+// GetRegions gets the regions for the provided provider
+func (pi *CachingProductInfo) GetRegions(provider string) (map[string]string, error) {
+	RegionCacheKey := pi.getRegionsKey(provider)
+	if cachedVal, ok := pi.vmAttrStore.Get(RegionCacheKey); ok {
+		log.Debugf("Getting available regions from cache. [provider=%s]", provider)
+		return cachedVal.(map[string]string), nil
+	}
+	return pi.productInfoers[provider].GetRegions()
+}
+
+func (pi *CachingProductInfo) getRegionsKey(provider string) string {
+	return fmt.Sprintf(RegionKeyTemplate, provider)
 }

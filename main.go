@@ -146,7 +146,10 @@ func main() {
 	engine, err := recommender.NewEngine(productInfo)
 	quitOnError("error encountered", err)
 
-	routeHandler := api.NewRouteHandler(engine, api.NewValidator(viper.GetStringSlice(providerFlag)))
+	// configure the gin validator
+	api.ConfigureValidator(viper.GetStringSlice(providerFlag), productInfo)
+
+	routeHandler := api.NewRouteHandler(engine, productInfo)
 
 	// new default gin engine (recovery, logger middleware)
 	router := gin.Default()
