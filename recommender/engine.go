@@ -3,11 +3,10 @@ package recommender
 import (
 	"errors"
 	"fmt"
-	"math"
-	"sort"
-
 	"github.com/banzaicloud/telescopes/productinfo"
 	log "github.com/sirupsen/logrus"
+	"math"
+	"sort"
 )
 
 const (
@@ -55,25 +54,25 @@ func NewEngine(pi productinfo.ProductInfo) (*Engine, error) {
 // swagger:parameters recommendClusterSetup
 type ClusterRecommendationReq struct {
 	// Total number of CPUs requested for the cluster
-	SumCpu float64 `json:"sumCpu"`
+	SumCpu float64 `json:"sumCpu" binding:"min=1"`
 	// Total memory requested for the cluster (GB)
-	SumMem float64 `json:"sumMem"`
+	SumMem float64 `json:"sumMem" binding:"min=1"`
 	// Minimum number of nodes in the recommended cluster
-	MinNodes int `json:"minNodes,omitempty"`
+	MinNodes int `json:"minNodes,omitempty" binding:"min=1,ltefield=MaxNodes"`
 	// Maximum number of nodes in the recommended cluster
 	MaxNodes int `json:"maxNodes,omitempty"`
 	// If true, recommended instance types will have a similar size
 	SameSize bool `json:"sameSize,omitempty"`
 	// Percentage of regular (on-demand) nodes in the recommended cluster
-	OnDemandPct int `json:"onDemandPct,omitempty"`
+	OnDemandPct int `json:"onDemandPct,omitempty" binding:"min=1,max=100"`
 	// Availability zones that the cluster should expand to
-	Zones []string `json:"zones,omitempty"`
+	Zones []string `json:"zones,omitempty" binding:"dive,zone"`
 	// Total number of GPUs requested for the cluster
 	SumGpu int `json:"sumGpu,omitempty"`
 	// Are burst instances allowed in recommendation
 	AllowBurst *bool `json:"allowBurst,omitempty"`
 	// NertworkPerf specifies the network performance category
-	NertworkPerf *string `json:"networkPerf,omitempty"`
+	NetworkPerf *string `json:"networkPerf,omitempty"`
 }
 
 // ClusterRecommendationResp encapsulates recommendation result data
@@ -156,10 +155,10 @@ func (e *Engine) minCpuRatioFilter(vm VirtualMachine, req ClusterRecommendationR
 }
 
 func (e *Engine) ntwPerformanceFilter(vm VirtualMachine, req ClusterRecommendationReq) bool {
-	if req.NertworkPerf == nil { //there is no filter set
+	if req.NetworkPerf == nil { //there is no filter set
 		return true
 	}
-	if vm.NetworkPerf == *req.NertworkPerf { //the network performance category matches the vm
+	if vm.NetworkPerf == *req.NetworkPerf { //the network performance category matches the vm
 		return true
 	}
 	return false

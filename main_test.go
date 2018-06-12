@@ -167,6 +167,14 @@ func Test_configurationStringDefaults(t *testing.T) {
 				assert.Equal(t, "", val, fmt.Sprintf("invalid default for %s", vaultAddrFlag))
 			},
 		},
+		{
+			name:     fmt.Sprintf("defaults for: %s - aliased", vaultAddrAlias),
+			viperKey: vaultAddrFlag,
+			args:     []string{"--vault-address", "localhost:8000"}, // no flags provided
+			check: func(val interface{}) {
+				assert.Equal(t, "localhost:8000", val, fmt.Sprintf("invalid default for %s", vaultAddrAlias))
+			},
+		},
 	}
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
@@ -176,6 +184,7 @@ func Test_configurationStringDefaults(t *testing.T) {
 			defineFlags()
 			// mock the input
 			setupInputs(test.args, nil)
+
 			test.check(viper.Get(test.viperKey))
 		})
 	}

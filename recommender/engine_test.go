@@ -1023,7 +1023,7 @@ func TestEngine_ntwPerformanceFilter(t *testing.T) {
 			name:   "vm passes the network performance filter",
 			engine: Engine{},
 			req: ClusterRecommendationReq{
-				NertworkPerf: &productinfo.NTW_LOW,
+				NetworkPerf: &productinfo.NTW_LOW,
 			},
 			vm: VirtualMachine{
 				NetworkPerf: productinfo.NTW_LOW,
@@ -1037,7 +1037,7 @@ func TestEngine_ntwPerformanceFilter(t *testing.T) {
 			name:   "vm doesn't pass the network performance filter",
 			engine: Engine{},
 			req: ClusterRecommendationReq{
-				NertworkPerf: &productinfo.NTW_LOW,
+				NetworkPerf: &productinfo.NTW_LOW,
 			},
 			vm: VirtualMachine{
 				NetworkPerf: productinfo.NTW_HIGH,
