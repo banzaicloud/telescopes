@@ -97,7 +97,8 @@ func (r *RouteHandler) recommendClusterSetup(c *gin.Context) {
 	reqWr := RequestWrapper{P: provider, R: region}
 
 	if err := c.BindJSON(&reqWr); err != nil {
-		c.JSON(http.StatusBadRequest, map[string]string{
+		log.Errorf("failed to bind request body: %s", err.Error())
+		c.JSON(http.StatusBadRequest, gin.H{
 			"code":    "bad_params",
 			"message": "invalid zone",
 			"cause":   err.Error(),
