@@ -7,6 +7,7 @@ import (
 	"regexp"
 	"strings"
 
+	"github.com/banzaicloud/telescopes/productinfo"
 	"github.com/gin-gonic/gin"
 	"gopkg.in/go-playground/validator.v8"
 )
@@ -39,4 +40,36 @@ func ValidatePathParam(name string, validate *validator.Validate, tags ...string
 			}
 		}
 	}
+}
+
+func ValidateRegionData(pi productinfo.ProductInfo) gin.HandlerFunc {
+	return func(c *gin.Context) {
+		provider, region := c.Param("provider"), c.Param("region")
+		allRegions, err := pi.GetRegions(provider)
+		if err != nil {
+			c.Abort()
+			c.JSON(http.StatusBadRequest, map[string]interface{}{
+				"code":    "internal_error",
+				"message": fmt.Sprintf("internal error: %s", err.Error()),
+			})
+			return
+		}
+		if !containsKey(allRegions, region) {
+			c.Abort()
+			c.JSON(http.StatusBadRequest, map[string]interface{}{
+				"code":    "bad_params",
+				"message": fmt.Sprintf("invalid %s parameter", "region"),
+				"params":  map[string]string{"region": region},
+			})
+		}
+	}
+}
+
+func containsKey(m map[string]string, k string) bool {
+	for key := range m {
+		if key == k {
+			return true
+		}
+	}
+	return false
 }

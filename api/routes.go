@@ -5,6 +5,7 @@ import (
 	"net/http"
 
 	"github.com/banzaicloud/bank-vaults/auth"
+	"github.com/banzaicloud/telescopes/productinfo"
 	"github.com/banzaicloud/telescopes/recommender"
 	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
@@ -16,13 +17,15 @@ import (
 type RouteHandler struct {
 	engine    *recommender.Engine
 	validator *validator.Validate
+	pi        productinfo.ProductInfo
 }
 
 // NewRouteHandler creates a new RouteHandler and returns a reference to it
-func NewRouteHandler(e *recommender.Engine, v *validator.Validate) *RouteHandler {
+func NewRouteHandler(e *recommender.Engine, v *validator.Validate, pi productinfo.ProductInfo) *RouteHandler {
 	return &RouteHandler{
 		engine:    e,
 		validator: v,
+		pi: pi,
 	}
 }
 
@@ -45,6 +48,8 @@ func (r *RouteHandler) ConfigureRoutes(router *gin.Engine) {
 	log.Info("configuring routes")
 
 	router.Use(ValidatePathParam("provider", r.validator, "provider_supported"))
+	router.Use(ValidateRegionData(r.pi))
+
 	base := router.Group("/")
 	base.Use(cors.New(getCorsConfig()))
 	{

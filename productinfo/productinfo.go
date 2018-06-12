@@ -27,6 +27,9 @@ const (
 
 	// PriceKeyTemplate format for generating price cache keys
 	PriceKeyTemplate = "/banzaicloud.com/recommender/%s/%s/prices/%s"
+
+	// RegionKeyTemplate format for generating region cache keys
+	RegionKeyTemplate = "/banzaicloud.com/recommender/%s/regions/"
 )
 
 // ProductInfoer gathers operations for retrieving cloud provider information for recommendations
@@ -76,6 +79,9 @@ type ProductInfo interface {
 
 	// GetVmsWithAttrValue returns a slice with all those virtual machines in a region that have the required value for a given attribute
 	GetVmsWithAttrValue(provider string, regionId string, attrKey string, value float64) ([]VmInfo, error)
+
+	// GetRegions retrieves the available regions form the external system
+	GetRegions(provider string) (map[string]string, error)
 
 	// GetZones returns all the availability zones for a region
 	GetZones(provider string, region string) ([]string, error)
@@ -193,14 +199,23 @@ func (pi *CachingProductInfo) Start(ctx context.Context) {
 						log.Errorf("couldn't renew attribute values in cache: %s", err.Error())
 						return
 					}
+					set := make(map[string]interface{})
 					for regionId := range regions {
 						for _, v := range attrValues {
-							_, err := pi.renewVmsWithAttr(p, regionId, attr, v)
+							allVms, err := pi.renewVmsWithAttr(p, regionId, attr, v)
 							if err != nil {
 								log.Errorf("couldn't renew attribute values in cache: %s", err.Error())
 							}
+							for _, vm := range allVms {
+								set[vm.Type] = ""
+							}
 						}
 					}
+					fmt.Println("------------------------------------")
+					for key := range set {
+						fmt.Println(key)
+					}
+					fmt.Println("------------------------------------")
 				}
 			}(provider, infoer)
 		}
@@ -270,6 +285,19 @@ func (pi *CachingProductInfo) Start(ctx context.Context) {
 	}
 }
 
+func (pi *CachingProductInfo) GetRegions(provider string) (map[string]string, error) {
+	RegionCacheKey := pi.getRegionsKey(provider)
+	if cachedVal, ok := pi.vmAttrStore.Get(RegionCacheKey); ok {
+		log.Debugf("Getting available regions from cache. [provider=%s]", provider)
+		return cachedVal.(map[string]string), nil
+	}
+	return pi.productInfoers[provider].GetRegions()
+}
+
+func (pi *CachingProductInfo) getRegionsKey(provider string) string {
+	return fmt.Sprintf(RegionKeyTemplate, provider)
+}
+
 // Initialize stores the result of the Infoer's Initialize output in cache
 func (pi *CachingProductInfo) Initialize(provider string) (map[string]map[string]Price, error) {
 	allPrices, err := pi.productInfoers[provider].Initialize()
@@ -335,14 +363,15 @@ func (pi *CachingProductInfo) HasShortLivedPriceInfo(provider string) bool {
 func (pi *CachingProductInfo) GetPrice(provider string, region string, instanceType string, zones []string) (float64, float64, error) {
 	var p Price
 	if cachedVal, ok := pi.vmAttrStore.Get(pi.getPriceKey(provider, region, instanceType)); ok {
-		log.Debugf("Getting price info from cache [provider=%s, region=%s, type=%s].", provider, region, instanceType)
+		log.Warnf("Getting price info from cache [provider=%s, region=%s, type=%s].", provider, region, instanceType)
 		p = cachedVal.(Price)
 	} else {
-		allPriceInfo, err := pi.renewShortLivedInfo(provider, region)
-		if err != nil {
-			return 0, 0, err
-		}
-		p = allPriceInfo[instanceType]
+		//allPriceInfo, err := pi.renewShortLivedInfo(provider, region)
+		//if err != nil {
+		log.Warnf("Couldn't get from cache [provider=%s, region=%s, type=%s].", provider, region, instanceType)
+		return 1.0, 1.0, nil
+		//}
+		//p = allPriceInfo[instanceType]
 	}
 	var sumPrice float64
 	for _, z := range zones {

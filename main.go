@@ -13,7 +13,6 @@
 package main
 
 import (
-	"context"
 	"time"
 
 	"github.com/patrickmn/go-cache"
@@ -135,14 +134,14 @@ func main() {
 	if err != nil {
 		log.Fatal(err)
 	}
-	go productInfo.Start(context.Background())
+	//go productInfo.Start(context.Background())
 
 	engine, err := recommender.NewEngine(productInfo)
 	if err != nil {
 		log.Fatal(err)
 	}
 
-	routeHandler := api.NewRouteHandler(engine, api.NewValidator(viper.GetStringSlice(providerFlag)))
+	routeHandler := api.NewRouteHandler(engine, api.NewValidator(viper.GetStringSlice(providerFlag)), productInfo)
 
 	// new default gin engine (recovery, logger middleware)
 	router := gin.Default()
