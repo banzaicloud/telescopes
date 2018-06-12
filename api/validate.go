@@ -27,7 +27,7 @@ func ConfigureValidator(providers []string, pi *productinfo.CachingProductInfo) 
 	})
 
 	// register validator for the region parameter in the request path
-	rd := RegionData{}
+	rd := regionData{}
 	v.RegisterValidation("region-data", rd.validationFn(pi))
 
 	// register validator for zones
@@ -42,8 +42,9 @@ func ValidatePathParam(name string, validate *validator.Validate, tags ...string
 		for _, tag := range tags {
 			err := validate.Field(p, tag)
 			if err != nil {
+				logrus.Errorf("validation failed. err: %s", err.Error())
 				c.Abort()
-				c.JSON(http.StatusBadRequest, map[string]interface{}{
+				c.JSON(http.StatusBadRequest, gin.H{
 					"code":    "bad_params",
 					"message": fmt.Sprintf("invalid %s parameter", name),
 					"params":  map[string]string{name: p},
@@ -66,8 +67,9 @@ func ValidateRegionData(validate *validator.Validate) gin.HandlerFunc {
 		logrus.Debugf("region data being validated: %s", regionData)
 		err := validate.Struct(regionData)
 		if err != nil {
+			logrus.Errorf("validation failed. err: %s", err.Error())
 			c.Abort()
-			c.JSON(http.StatusBadRequest, map[string]interface{}{
+			c.JSON(http.StatusBadRequest, gin.H{
 				"code":    "bad_params",
 				"message": fmt.Sprintf("invalid region in path: %s", regionData),
 				"params":  regionData,
@@ -78,8 +80,8 @@ func ValidateRegionData(validate *validator.Validate) gin.HandlerFunc {
 
 }
 
-// RegionData struct encapsulating data for region validation in the request path
-type RegionData struct {
+// regionData struct encapsulating data for region validation in the request path
+type regionData struct {
 	// Cloud the cloud provider from the request path
 	Cloud string `binding:"required"`
 	// Region the region in the request path
@@ -87,17 +89,17 @@ type RegionData struct {
 }
 
 // String representation of the path data
-func (rd *RegionData) String() string {
+func (rd *regionData) String() string {
 	return fmt.Sprintf("Cloud: %s, Region: %s", rd.Cloud, rd.Region)
 }
 
 // newRegionData constructs a new
-func newRegionData(cloud string, region string) RegionData {
-	return RegionData{Cloud: cloud, Region: region}
+func newRegionData(cloud string, region string) regionData {
+	return regionData{Cloud: cloud, Region: region}
 }
 
 // validationFn validation logic for the region data to be registered with the validator
-func (rd *RegionData) validationFn(cpi *productinfo.CachingProductInfo) validator.Func {
+func (rd *regionData) validationFn(cpi *productinfo.CachingProductInfo) validator.Func {
 
 	return func(v *validator.Validate, topStruct reflect.Value, currentStruct reflect.Value, field reflect.Value, fieldtype reflect.Type, fieldKind reflect.Kind, param string) bool {
 		currentProvider := currentStruct.FieldByName("Cloud").String()

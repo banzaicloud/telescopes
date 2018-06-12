@@ -170,9 +170,9 @@ func Test_configurationStringDefaults(t *testing.T) {
 		{
 			name:     fmt.Sprintf("defaults for: %s - aliased", vaultAddrAlias),
 			viperKey: vaultAddrFlag,
-			args:     []string{"--vault-address", "localhost:8000"}, // no flags provided
+			args:     []string{"--vault-address", "localhost:8200"}, // no flags provided
 			check: func(val interface{}) {
-				assert.Equal(t, "localhost:8000", val, fmt.Sprintf("invalid default for %s", vaultAddrAlias))
+				assert.Equal(t, "localhost:8200", val, fmt.Sprintf("invalid default for %s", vaultAddrAlias))
 			},
 		},
 	}
