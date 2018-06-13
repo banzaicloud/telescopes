@@ -44,7 +44,7 @@ type Ec2Infoer struct {
 	ec2Describer Ec2Describer
 }
 
-// Ec2Describer
+// Ec2Describer interface for operations describing EC2 artifacts. (a subset of the Ec2 cli operations iused by this app)
 type Ec2Describer interface {
 	DescribeAvailabilityZones(input *ec2.DescribeAvailabilityZonesInput) (*ec2.DescribeAvailabilityZonesOutput, error)
 	DescribeSpotPriceHistoryPages(input *ec2.DescribeSpotPriceHistoryInput, fn func(*ec2.DescribeSpotPriceHistoryOutput, bool) bool) error
