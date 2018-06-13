@@ -37,14 +37,15 @@ type PricingSource interface {
 
 // Ec2Infoer encapsulates the data and operations needed to access external resources
 type Ec2Infoer struct {
-	pricingSvc PricingSource
-	session    *session.Session
-	prometheus v1.API
-	promQuery  string
-	ec2cli     func(region string) Ec2Info
+	pricingSvc   PricingSource
+	session      *session.Session
+	prometheus   v1.API
+	promQuery    string
+	ec2Describer Ec2Describer
 }
 
-type Ec2Info interface {
+// Ec2Describer
+type Ec2Describer interface {
 	DescribeAvailabilityZones(input *ec2.DescribeAvailabilityZonesInput) (*ec2.DescribeAvailabilityZonesOutput, error)
 	DescribeSpotPriceHistoryPages(input *ec2.DescribeSpotPriceHistoryInput, fn func(*ec2.DescribeSpotPriceHistoryOutput, bool) bool) error
 }
@@ -79,7 +80,7 @@ func NewEc2Infoer(promAddr string, pq string) (*Ec2Infoer, error) {
 		session:    s,
 		prometheus: promApi,
 		promQuery:  pq,
-		ec2cli: func(region string) Ec2Info {
+		ec2Describer: func(region string) Ec2Describer {
 			return ec2.New(s, aws.NewConfig().WithRegion(region))
 		},
 	}, nil
@@ -329,7 +330,7 @@ func (e *Ec2Infoer) GetRegions() (map[string]string, error) {
 func (e *Ec2Infoer) GetZones(region string) ([]string, error) {
 
 	var zones []string
-	azs, err := e.ec2cli(region).DescribeAvailabilityZones(&ec2.DescribeAvailabilityZonesInput{})
+	azs, err := e.ec2Describer(region).DescribeAvailabilityZones(&ec2.DescribeAvailabilityZonesInput{})
 	if err != nil {
 		return nil, err
 	}

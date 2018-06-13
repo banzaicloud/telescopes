@@ -6,10 +6,10 @@ import (
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/endpoints"
+	"github.com/aws/aws-sdk-go/service/ec2"
 	"github.com/aws/aws-sdk-go/service/pricing"
 	"github.com/banzaicloud/telescopes/productinfo"
 	"github.com/stretchr/testify/assert"
-	"github.com/aws/aws-sdk-go/service/ec2"
 )
 
 type DummyPricingSource struct {
@@ -23,18 +23,16 @@ func (dps *DummyPricingSource) DescribeAvailabilityZones(input *ec2.DescribeAvai
 	return &ec2.DescribeAvailabilityZonesOutput{
 		AvailabilityZones: []*ec2.AvailabilityZone{
 			{
-				State:aws.String("available"),
-				Messages:[]*ec2.AvailabilityZoneMessage{{Message:aws.String("")}},
-				RegionName:aws.String("eu-central-1"),
-				ZoneName:aws.String("eu-central-1a"),
-
+				State:      aws.String("available"),
+				Messages:   []*ec2.AvailabilityZoneMessage{{Message: aws.String("")}},
+				RegionName: aws.String("eu-central-1"),
+				ZoneName:   aws.String("eu-central-1a"),
 			},
 			{
-				State:aws.String("available"),
-				Messages:[]*ec2.AvailabilityZoneMessage{{Message:aws.String("")}},
-				RegionName:aws.String("eu-central-1"),
-				ZoneName:aws.String("eu-central-1b"),
-
+				State:      aws.String("available"),
+				Messages:   []*ec2.AvailabilityZoneMessage{{Message: aws.String("")}},
+				RegionName: aws.String("eu-central-1"),
+				ZoneName:   aws.String("eu-central-1b"),
 			},
 		},
 	}, nil
@@ -181,7 +179,7 @@ func TestEc2Infoer_GetAttributeValues(t *testing.T) {
 		name           string
 		pricingService PricingSource
 		attrName       string
-		ec2 Ec2Info
+		ec2CliMock     func(region string) Ec2Describer
 		check          func(values productinfo.AttrValues, err error)
 	}{
 		{
@@ -195,7 +193,9 @@ func TestEc2Infoer_GetAttributeValues(t *testing.T) {
 		{
 			name:           "error - invalid values zeroed out",
 			pricingService: &DummyPricingSource{TcId: 2},
-			ec2: &DummyPricingSource{},
+			ec2CliMock: func(region string) Ec2Describer {
+				return &DummyPricingSource{TcId: 2}
+			},
 			check: func(values productinfo.AttrValues, err error) {
 				assert.Equal(t, values[0].StrValue, "invalid float 256 GiB", "the invalid value is not the first element")
 				assert.Equal(t, values[0].Value, float64(0), "the invalid value is not zeroed out")
@@ -212,7 +212,11 @@ func TestEc2Infoer_GetAttributeValues(t *testing.T) {
 	}
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
-			productInfoer, err := NewEc2Infoer(test.pricingService, "", "", test.ec2)
+			productInfoer, err := NewEc2Infoer("", "")
+			// override pricingSvc
+			productInfoer.pricingSvc = test.pricingService
+			// override ec2cli
+			productInfoer.ec2Describer = test.ec2CliMock
 			if err != nil {
 				t.Fatalf("failed to create productinfoer; [%s]", err.Error())
 			}
@@ -227,13 +231,13 @@ func TestEc2Infoer_GetRegions(t *testing.T) {
 	tests := []struct {
 		name           string
 		pricingService PricingSource
-		ec2 Ec2Info
+		ec2            Ec2Describer
 		check          func(regionId map[string]string)
 	}{
 		{
 			name:           "receive all regions",
 			pricingService: &DummyPricingSource{},
-			ec2: &DummyPricingSource{},
+			ec2:            &DummyPricingSource{},
 			check: func(regionId map[string]string) {
 				assert.Equal(t, regionId, map[string]string{"ap-southeast-1": "ap-southeast-1",
 					"ap-south-1": "ap-south-1", "us-west-1": "us-west-1", "us-east-1": "us-east-1", "us-east-2": "us-east-2",
@@ -247,7 +251,7 @@ func TestEc2Infoer_GetRegions(t *testing.T) {
 	}
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
-			productInfoer, err := NewEc2Infoer(test.pricingService, "", "", test.ec2)
+			productInfoer, err := NewEc2Infoer("", "")
 			if err != nil {
 				t.Fatalf("failed to create productinfoer; [%s]", err.Error())
 			}
@@ -264,7 +268,7 @@ func TestEc2Infoer_GetProducts(t *testing.T) {
 		attrKey        string
 		attrValue      productinfo.AttrValue
 		pricingService PricingSource
-		ec2 Ec2Info
+		ec2            Ec2Describer
 		check          func(vm []productinfo.VmInfo, err error)
 	}{
 		{
@@ -273,7 +277,7 @@ func TestEc2Infoer_GetProducts(t *testing.T) {
 			attrKey:        Cpu,
 			attrValue:      productinfo.AttrValue{Value: float64(2), StrValue: productinfo.Cpu},
 			pricingService: &DummyPricingSource{TcId: 4},
-			ec2: &DummyPricingSource{},
+			ec2:            &DummyPricingSource{},
 			check: func(vm []productinfo.VmInfo, err error) {
 				assert.Nil(t, err, "the error should be nil")
 				assert.Equal(t, []productinfo.VmInfo{{Type: "db.t2.small", OnDemandPrice: 5, SpotPrice: productinfo.SpotPriceInfo(nil), Cpus: 1, Mem: 2, Gpus: 0, NtwPerf: "Low to Moderate"}}, vm)
@@ -285,7 +289,7 @@ func TestEc2Infoer_GetProducts(t *testing.T) {
 			attrKey:        Cpu,
 			attrValue:      productinfo.AttrValue{Value: float64(2), StrValue: productinfo.Cpu},
 			pricingService: &DummyPricingSource{TcId: 5},
-			ec2: &DummyPricingSource{},
+			ec2:            &DummyPricingSource{},
 			check: func(vm []productinfo.VmInfo, err error) {
 				assert.EqualError(t, err, "failed to retrieve values")
 				assert.Nil(t, vm, "the vm should be nil")
@@ -297,7 +301,7 @@ func TestEc2Infoer_GetProducts(t *testing.T) {
 			attrKey:        Cpu,
 			attrValue:      productinfo.AttrValue{Value: float64(2), StrValue: productinfo.Cpu},
 			pricingService: &DummyPricingSource{TcId: 6},
-			ec2: &DummyPricingSource{},
+			ec2:            &DummyPricingSource{},
 			check: func(vm []productinfo.VmInfo, err error) {
 				assert.Nil(t, err, "the error should be nil")
 				assert.Nil(t, vm, "the vm should be nil")
@@ -309,7 +313,7 @@ func TestEc2Infoer_GetProducts(t *testing.T) {
 			attrKey:        Cpu,
 			attrValue:      productinfo.AttrValue{Value: float64(2), StrValue: productinfo.Cpu},
 			pricingService: &DummyPricingSource{TcId: 7},
-			ec2: &DummyPricingSource{},
+			ec2:            &DummyPricingSource{},
 			check: func(vm []productinfo.VmInfo, err error) {
 				assert.Nil(t, err, "the error should be nil")
 				assert.Nil(t, vm, "the vm should be nil")
@@ -321,7 +325,7 @@ func TestEc2Infoer_GetProducts(t *testing.T) {
 			attrKey:        Cpu,
 			attrValue:      productinfo.AttrValue{Value: float64(2), StrValue: productinfo.Cpu},
 			pricingService: &DummyPricingSource{TcId: 8},
-			ec2: &DummyPricingSource{},
+			ec2:            &DummyPricingSource{},
 			check: func(vm []productinfo.VmInfo, err error) {
 				assert.Nil(t, err, "the error should be nil")
 				assert.Nil(t, vm, "the vm should be nil")
@@ -333,7 +337,7 @@ func TestEc2Infoer_GetProducts(t *testing.T) {
 			attrKey:        Cpu,
 			attrValue:      productinfo.AttrValue{Value: float64(2), StrValue: productinfo.Cpu},
 			pricingService: &DummyPricingSource{TcId: 9},
-			ec2: &DummyPricingSource{},
+			ec2:            &DummyPricingSource{},
 			check: func(vm []productinfo.VmInfo, err error) {
 				assert.Nil(t, err, "the error should be nil")
 				assert.Nil(t, vm, "the vm should be nil")
@@ -342,7 +346,7 @@ func TestEc2Infoer_GetProducts(t *testing.T) {
 	}
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
-			productInfoer, err := NewEc2Infoer(test.pricingService, "", "", test.ec2)
+			productInfoer, err := NewEc2Infoer("", "")
 			if err != nil {
 				t.Fatalf("failed to create productinfoer; [%s]", err.Error())
 			}
@@ -357,7 +361,7 @@ func TestEc2Infoer_GetRegion(t *testing.T) {
 		name           string
 		id             string
 		pricingService PricingSource
-		ec2 Ec2Info
+		ec2            Ec2Describer
 		check          func(region *endpoints.Region)
 	}{
 		{
@@ -373,7 +377,7 @@ func TestEc2Infoer_GetRegion(t *testing.T) {
 			name:           "get an unknown region",
 			id:             "unknownRegion",
 			pricingService: &DummyPricingSource{},
-			ec2: &DummyPricingSource{},
+			ec2:            &DummyPricingSource{},
 			check: func(region *endpoints.Region) {
 				assert.Nil(t, region, "the region should be nil")
 			},
@@ -381,7 +385,7 @@ func TestEc2Infoer_GetRegion(t *testing.T) {
 	}
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
-			productInfoer, err := NewEc2Infoer(test.pricingService, "", "", test.ec2)
+			productInfoer, err := NewEc2Infoer("", "")
 			if err != nil {
 				t.Fatalf("failed to create productinfoer; [%s]", err.Error())
 			}
@@ -406,27 +410,6 @@ func TestNewConfig(t *testing.T) {
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
 			test.check(NewConfig())
-		})
-	}
-}
-
-func TestNewPricing(t *testing.T) {
-	tests := []struct {
-		name  string
-		cfg   *aws.Config
-		check func(source PricingSource)
-	}{
-		{
-			name: "success - create a new PricingSource",
-			cfg:  NewConfig(),
-			check: func(source PricingSource) {
-				assert.NotNil(t, source, "the source should not be nil")
-			},
-		},
-	}
-	for _, test := range tests {
-		t.Run(test.name, func(t *testing.T) {
-			test.check(NewPricing(test.cfg))
 		})
 	}
 }
@@ -750,7 +733,7 @@ func TestEc2Infoer_GetZones(t *testing.T) {
 		name           string
 		region         string
 		pricingService PricingSource
-		ec2            Ec2Info
+		ec2            Ec2Describer
 		check          func(zones []string, err error)
 	}{
 		{
@@ -777,13 +760,11 @@ func TestEc2Infoer_GetZones(t *testing.T) {
 	}
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
-			productInfoer, err := NewEc2Infoer(test.pricingService, "PromAPIAddress", "", test.ec2)
+			productInfoer, err := NewEc2Infoer("PromAPIAddress", "")
 			if err != nil {
 				t.Fatalf("failed to create productinfoer; [%s]", err.Error())
 			}
-			productInfoer.ec2cli = test.ec2
 			test.check(productInfoer.GetZones(test.region))
 		})
 	}
 }
-
