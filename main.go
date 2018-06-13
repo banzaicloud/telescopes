@@ -158,9 +158,8 @@ func main() {
 
 	ensureCfg()
 
-	c := cache.New(24*time.Hour, 24.*time.Hour)
-
-	productInfo, err := productinfo.NewCachingProductInfo(viper.GetDuration(prodInfRenewalIntervalFlag), c, infoers())
+	productInfo, err := productinfo.NewCachingProductInfo(viper.GetDuration(prodInfRenewalIntervalFlag),
+		cache.New(24*time.Hour, 24.*time.Hour), infoers())
 	quitOnError("error encountered", err)
 
 	go productInfo.Start(context.Background())

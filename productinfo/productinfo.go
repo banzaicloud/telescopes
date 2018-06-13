@@ -12,107 +12,6 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
-const (
-	// Memory represents the memory attribute for the recommender
-	Memory = "memory"
-
-	// Cpu represents the cpu attribute for the recommender
-	Cpu = "cpu"
-
-	// VmKeyTemplate format for generating vm cache keys
-	VmKeyTemplate = "/banzaicloud.com/recommender/%s/%s/vms/%s/%f"
-
-	// AttrKeyTemplate format for generating attribute cache keys
-	AttrKeyTemplate = "/banzaicloud.com/recommender/%s/attrValues/%s"
-
-	// PriceKeyTemplate format for generating price cache keys
-	PriceKeyTemplate = "/banzaicloud.com/recommender/%s/%s/prices/%s"
-
-	// ZoneKeyTemplate format for generating zone cache keys
-	ZoneKeyTemplate = "/banzaicloud.com/recommender/%s/%s/zones/"
-
-	// RegionKeyTemplate format for generating region cache keys
-	RegionKeyTemplate = "/banzaicloud.com/recommender/%s/regions/"
-)
-
-// ProductInfoer gathers operations for retrieving cloud provider information for recommendations
-// it also decouples provider api specific code from the recommender
-type ProductInfoer interface {
-	// Initialize is called once per product info renewals so it can be used to download a large price descriptor
-	Initialize() (map[string]map[string]Price, error)
-
-	// GetAttributeValues gets the attribute values for the given attribute from the external system
-	GetAttributeValues(attribute string) (AttrValues, error)
-
-	// GetProducts gets product information based on the given arguments from an external system
-	GetProducts(regionId string, attrKey string, attrValue AttrValue) ([]VmInfo, error)
-
-	// GetZones returns the availability zones in a region
-	GetZones(region string) ([]string, error)
-
-	// GetRegions retrieves the available regions form the external system
-	GetRegions() (map[string]string, error)
-
-	// HasShortLivedPriceInfo signals if a product info provider has frequently changing price info
-	HasShortLivedPriceInfo() bool
-
-	// GetCurrentPrices retrieves all the spot prices in a region
-	GetCurrentPrices(region string) (map[string]Price, error)
-
-	// GetMemoryAttrName returns the provider representation of the memory attribute
-	GetMemoryAttrName() string
-
-	// GetCpuAttrName returns the provider representation of the cpu attribute
-	GetCpuAttrName() string
-
-	// GetNetworkPerformanceMapper returns the provider specific network performance mapper
-	GetNetworkPerformanceMapper() (NetworkPerfMapper, error)
-}
-
-// ProductInfo is the main entry point for retrieving vm type characteristics and pricing information on different cloud providers
-type ProductInfo interface {
-	// Start starts the product information retrieval in a new goroutine
-	Start(ctx context.Context)
-
-	// Initialize is called once per product info renewals so it can be used to download a large price descriptor
-	Initialize(provider string) (map[string]map[string]Price, error)
-
-	// GetAttrValues returns a slice with the possible values for a given attribute on a specific provider
-	GetAttrValues(provider string, attribute string) ([]float64, error)
-
-	// GetVmsWithAttrValue returns a slice with all those virtual machines in a region that have the required value for a given attribute
-	GetVmsWithAttrValue(provider string, regionId string, attrKey string, value float64) ([]VmInfo, error)
-
-	// GetZones returns all the availability zones for a region
-	GetZones(provider string, region string) ([]string, error)
-
-	// HasShortLivedPriceInfo signals if a product info provider has frequently changing price info
-	HasShortLivedPriceInfo(provider string) bool
-
-	// GetPrice returns the on demand price and the zone averaged computed spot price for a given instance type in a given region
-	GetPrice(provider string, region string, instanceType string, zones []string) (float64, float64, error)
-
-	// GetNetworkPerfMapper retrieves the network performance mapper implementation
-	GetNetworkPerfMapper(provider string) (NetworkPerfMapper, error)
-}
-
-// CachingProductInfo is the module struct, holds configuration and cache
-// It's the entry point for the product info retrieval and management subsystem
-type CachingProductInfo struct {
-	productInfoers  map[string]ProductInfoer `validate:"required"`
-	renewalInterval time.Duration
-	vmAttrStore     *cache.Cache
-}
-
-// AttrValue represents an attribute value
-type AttrValue struct {
-	StrValue string
-	Value    float64
-}
-
-// AttrValues a slice of AttrValues
-type AttrValues []AttrValue
-
 func (v AttrValues) floatValues() []float64 {
 	floatValues := make([]float64, len(v))
 	for _, av := range v {
@@ -439,12 +338,24 @@ func (pi *CachingProductInfo) getAttrValue(provider string, attrKey string, attr
 
 // GetZones returns the availability zones in a region
 func (pi *CachingProductInfo) GetZones(provider string, region string) ([]string, error) {
-	ZoneCacheKey := pi.getZonesKey(provider, region)
-	if cachedVal, ok := pi.vmAttrStore.Get(ZoneCacheKey); ok {
+	zoneCacheKey := pi.getZonesKey(provider, region)
+
+	// check the cache
+	if cachedVal, ok := pi.vmAttrStore.Get(zoneCacheKey); ok {
 		log.Debugf("Getting available zones from cache. [provider=%s, region=%s]", provider, region)
 		return cachedVal.([]string), nil
 	}
-	return pi.productInfoers[provider].GetZones(region)
+
+	// retrieve zones from the provider
+	zones, err := pi.productInfoers[provider].GetZones(region)
+	if err != nil {
+		log.Errorf("error while retrieving zones. provider: %s, region: %s", provider, region)
+		return nil, err
+	}
+
+	// cache the results / use the cahce default expiry
+	pi.vmAttrStore.Set(zoneCacheKey, zones, 0)
+	return zones, nil
 }
 
 func (pi *CachingProductInfo) getZonesKey(provider string, region string) string {
@@ -461,12 +372,24 @@ func (pi *CachingProductInfo) GetNetworkPerfMapper(provider string) (NetworkPerf
 
 // GetRegions gets the regions for the provided provider
 func (pi *CachingProductInfo) GetRegions(provider string) (map[string]string, error) {
-	RegionCacheKey := pi.getRegionsKey(provider)
-	if cachedVal, ok := pi.vmAttrStore.Get(RegionCacheKey); ok {
+	regionCacheKey := pi.getRegionsKey(provider)
+
+	// check the cache
+	if cachedVal, ok := pi.vmAttrStore.Get(regionCacheKey); ok {
 		log.Debugf("Getting available regions from cache. [provider=%s]", provider)
 		return cachedVal.(map[string]string), nil
 	}
-	return pi.productInfoers[provider].GetRegions()
+
+	// retrieve zones from the provider
+	regions, err := pi.productInfoers[provider].GetRegions()
+	if err != nil {
+		log.Errorf("could not retrieve regions. provider: %s", provider)
+		return nil, err
+	}
+
+	// cache the results / use the cahce default expiry
+	pi.vmAttrStore.Set(regionCacheKey, regions, 0)
+	return regions, nil
 }
 
 func (pi *CachingProductInfo) getRegionsKey(provider string) string {
