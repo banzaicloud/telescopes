@@ -37,26 +37,33 @@ type PricingSource interface {
 
 // Ec2Infoer encapsulates the data and operations needed to access external resources
 type Ec2Infoer struct {
-	pricing    PricingSource
+	pricingSvc PricingSource
 	session    *session.Session
 	prometheus v1.API
 	promQuery  string
+	ec2cli     func(region string) Ec2Info
+}
+
+type Ec2Info interface {
+	DescribeAvailabilityZones(input *ec2.DescribeAvailabilityZonesInput) (*ec2.DescribeAvailabilityZonesOutput, error)
+	DescribeSpotPriceHistoryPages(input *ec2.DescribeSpotPriceHistoryInput, fn func(*ec2.DescribeSpotPriceHistoryOutput, bool) bool) error
 }
 
 // NewEc2Infoer creates a new instance of the infoer
-func NewEc2Infoer(pricing PricingSource, prom string, pq string) (*Ec2Infoer, error) {
+func NewEc2Infoer(promAddr string, pq string) (*Ec2Infoer, error) {
 	s, err := session.NewSession()
+
 	if err != nil {
 		log.WithError(err).Error("Error creating AWS session")
 		return nil, err
 	}
 	var promApi v1.API
-	if prom == "" {
+	if promAddr == "" {
 		log.Warn("Prometheus API address is not set, fallback to direct API access.")
 		promApi = nil
 	} else {
 		promClient, err := api.NewClient(api.Config{
-			Address: prom,
+			Address: promAddr,
 		})
 		if err != nil {
 			log.WithError(err).Warn("Error creating Prometheus client, fallback to direct API access.")
@@ -66,29 +73,21 @@ func NewEc2Infoer(pricing PricingSource, prom string, pq string) (*Ec2Infoer, er
 		}
 	}
 
+	const defaultPricingRegion = "us-east-1"
 	return &Ec2Infoer{
-		pricing:    pricing,
+		pricingSvc: pricing.New(s, aws.NewConfig().WithRegion(defaultPricingRegion)),
 		session:    s,
 		prometheus: promApi,
 		promQuery:  pq,
+		ec2cli: func(region string) Ec2Info {
+			return ec2.New(s, aws.NewConfig().WithRegion(region))
+		},
 	}, nil
-}
-
-// NewPricing creates a new PricingSource with the given configuration
-func NewPricing(cfg *aws.Config) PricingSource {
-
-	s, err := session.NewSession(cfg)
-	if err != nil {
-		log.Fatalf("could not create session. error: [%s]", err.Error())
-	}
-
-	pr := pricing.New(s, cfg)
-	return pr
 }
 
 // NewConfig creates a new  Config instance and returns a pointer to it
 func NewConfig() *aws.Config {
-	return &aws.Config{Region: aws.String("us-east-1")}
+	return aws.NewConfig()
 }
 
 // Initialize is not needed on EC2 because price info is changing frequently
@@ -99,7 +98,7 @@ func (e *Ec2Infoer) Initialize() (map[string]map[string]productinfo.Price, error
 // GetAttributeValues gets the AttributeValues for the given attribute name
 // Delegates to the underlying PricingSource instance and unifies (transforms) the response
 func (e *Ec2Infoer) GetAttributeValues(attribute string) (productinfo.AttrValues, error) {
-	apiValues, err := e.pricing.GetAttributeValues(e.newAttributeValuesInput(attribute))
+	apiValues, err := e.pricingSvc.GetAttributeValues(e.newAttributeValuesInput(attribute))
 	if err != nil {
 		return nil, err
 	}
@@ -126,7 +125,7 @@ func (e *Ec2Infoer) GetProducts(regionId string, attrKey string, attrValue produ
 	var vms []productinfo.VmInfo
 	log.Debugf("Getting available instance types from AWS API. [region=%s, %s=%s]", regionId, attrKey, attrValue.StrValue)
 
-	products, err := e.pricing.GetProducts(e.newGetProductsInput(regionId, attrKey, attrValue))
+	products, err := e.pricingSvc.GetProducts(e.newGetProductsInput(regionId, attrKey, attrValue))
 
 	if err != nil {
 		return nil, err
@@ -328,14 +327,14 @@ func (e *Ec2Infoer) GetRegions() (map[string]string, error) {
 
 // GetZones returns the availability zones in a region
 func (e *Ec2Infoer) GetZones(region string) ([]string, error) {
+
 	var zones []string
-	ec2Svc := ec2.New(e.session, &aws.Config{Region: aws.String(region)})
-	azs, err := ec2Svc.DescribeAvailabilityZones(&ec2.DescribeAvailabilityZonesInput{})
+	azs, err := e.ec2cli(region).DescribeAvailabilityZones(&ec2.DescribeAvailabilityZonesInput{})
 	if err != nil {
 		return nil, err
 	}
 	for _, az := range azs.AvailabilityZones {
-		if *az.State == "available" {
+		if *az.State == ec2.AvailabilityZoneStateAvailable {
 			zones = append(zones, *az.ZoneName)
 		}
 	}
