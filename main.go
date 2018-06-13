@@ -28,6 +28,7 @@ import (
 	"github.com/gin-gonic/gin"
 	flag "github.com/spf13/pflag"
 	"os"
+	"strings"
 )
 
 const (
@@ -41,6 +42,7 @@ const (
 	providerFlag               = "provider"
 	devModeFlag                = "dev-mode"
 	tokenSigningKeyFlag        = "token-signing-key"
+	tokenSigningKeyAlias       = "tokensigningkey"
 	vaultAddrAlias             = "vault_addr"
 	vaultAddrFlag              = "vault-address"
 	helpFlag                   = "help"
@@ -55,23 +57,25 @@ const (
 
 var (
 	// env vars required by the application
-	cfgEnvVars = []string{tokenSigningKeyFlag, vaultAddrAlias}
+	cfgEnvVars = []string{tokenSigningKeyFlag, vaultAddrFlag}
 )
 
 // defineFlags defines supported flags and makes them available for viper
 func defineFlags() {
 	flag.String(logLevelFlag, "info", "log level")
-	flag.String(listenAddressFlag, ":9090", "The address to listen on for HTTP requests.")
-	flag.Duration(prodInfRenewalIntervalFlag, 24*time.Hour, "Duration (in go syntax) between renewing the ec2 product info. Example: 2h30m")
-	flag.String(prometheusAddressFlag, "", "http address of a Prometheus instance that has AWS spot price metrics via banzaicloud/spot-price-exporter. If empty, the recommender will use current spot prices queried directly from the AWS API.")
-	flag.String(prometheusQueryFlag, "avg_over_time(aws_spot_current_price{region=\"%s\", product_description=\"Linux/UNIX\"}[1w])", "advanced configuration: change the query used to query spot price info from Prometheus.")
-	flag.Bool(devModeFlag, false, "advanced configuration - development mode, no auth")
+	flag.String(listenAddressFlag, ":9090", "the address the telescope listens to HTTP requests.")
+	flag.Duration(prodInfRenewalIntervalFlag, 24*time.Hour, "duration (in go syntax) between renewing the product information. Example: 2h30m")
+	flag.String(prometheusAddressFlag, "", "http address of a Prometheus instance that has AWS spot "+
+		"price metrics via banzaicloud/spot-price-exporter. If empty, the recommender will use current spot prices queried directly from the AWS API.")
+	flag.String(prometheusQueryFlag, "avg_over_time(aws_spot_current_price{region=\"%s\", product_description=\"Linux/UNIX\"}[1w])",
+		"advanced configuration: change the query used to query spot price info from Prometheus.")
+	flag.Bool(devModeFlag, false, "development mode, if true token based authentication is disabled, false by default")
 	flag.String(gceProjectIdFlag, "", "GCE project ID to use")
 	flag.String(gceApiKeyFlag, "", "GCE API key to use for getting SKUs")
-	flag.StringSlice(providerFlag, []string{recommender.Ec2, recommender.Gce}, "Providers that will be used with the recommender.")
-	flag.String(tokenSigningKeyFlag, "", "The token signing key for the authentication process")
-	flag.String(vaultAddrFlag, "", "The vault address for authentication token management")
-	flag.Bool(helpFlag, false, "prints this help")
+	flag.StringSlice(providerFlag, []string{recommender.Ec2, recommender.Gce}, "cloud providers to be used for recommendation")
+	flag.String(tokenSigningKeyFlag, "", "string representing a shared secret with the token emitter component")
+	flag.String(vaultAddrFlag, "", "the vault address for authentication token management, not used in development mode")
+	flag.Bool(helpFlag, false, "print usage")
 }
 
 // bindFlags binds parsed flags into viper
@@ -105,9 +109,6 @@ func init() {
 	// set configuration defaults
 	viper.SetDefault(cfgAppRole, defaultAppRole)
 
-	// set configuration aliases
-	viper.RegisterAlias("vault_addr", vaultAddrFlag)
-
 }
 
 // ensureCfg ensures that the application configuration is available
@@ -122,9 +123,27 @@ func ensureCfg() {
 		// read the env var value
 		if nil == viper.Get(envVar) {
 			flag.Usage()
-			log.Fatalf("application is missing configuration: %s \n %s", envVar)
+			log.Fatalf("application is missing configuration: %s", envVar)
 		}
 	}
+
+	// translating flags to aliases for supporting legacy env vars
+	sitchFlagsToAliases()
+
+}
+
+// sitchFlagsToAliases sets the environment variables required by legacy components from application flags
+// todo investigate if there's a better way for this
+func sitchFlagsToAliases() {
+	// vault signing token hack / need to support legacy components (vault, auth)
+	os.Setenv(strings.ToUpper(vaultAddrAlias), viper.GetString(vaultAddrFlag))
+	os.Setenv(strings.ToUpper(tokenSigningKeyAlias), viper.GetString(tokenSigningKeyFlag))
+	viper.BindEnv(vaultAddrAlias)
+	viper.BindEnv(tokenSigningKeyAlias)
+	log.Debugf("%s : %s", vaultAddrFlag, viper.Get(vaultAddrFlag))
+	log.Debugf("%s : %s", tokenSigningKeyFlag, viper.Get(tokenSigningKeyFlag))
+	log.Debugf("%s : %s", vaultAddrAlias, viper.Get(vaultAddrAlias))
+	log.Debugf("%s : %s", tokenSigningKeyAlias, viper.Get(tokenSigningKeyAlias))
 }
 
 func main() {
@@ -157,7 +176,7 @@ func main() {
 	// enable authentication if not dev-mode
 	if !viper.GetBool(devModeFlag) {
 		log.Debug("enable authentication")
-		signingKey := viper.GetString(tokenSigningKeyFlag)
+		signingKey := viper.GetString(tokenSigningKeyAlias)
 		appRole := viper.GetString(cfgAppRole)
 
 		routeHandler.EnableAuth(router, appRole, signingKey)
