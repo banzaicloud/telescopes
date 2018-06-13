@@ -153,7 +153,7 @@ func (g *GceInfoer) GetAttributeValues(attribute string) (productinfo.AttrValues
 	log.Debugf("getting %s values", attribute)
 
 	values := make(productinfo.AttrValues, 0)
-	valueSet := make(map[productinfo.AttrValue]struct{})
+	valueSet := make(map[productinfo.AttrValue]interface{})
 
 	err := g.computeSvc.MachineTypes.AggregatedList(g.projectId).Pages(context.TODO(), func(allMts *compute.MachineTypeAggregatedList) error {
 		for _, scope := range allMts.Items {
@@ -163,12 +163,12 @@ func (g *GceInfoer) GetAttributeValues(attribute string) (productinfo.AttrValues
 					valueSet[productinfo.AttrValue{
 						Value:    float64(mt.GuestCpus),
 						StrValue: fmt.Sprintf("%v", mt.GuestCpus),
-					}] = struct{}{}
+					}] = ""
 				case memory:
 					valueSet[productinfo.AttrValue{
 						Value:    float64(mt.MemoryMb) / 1000,
 						StrValue: fmt.Sprintf("%v", mt.MemoryMb),
-					}] = struct{}{}
+					}] = ""
 				}
 			}
 		}
@@ -199,11 +199,11 @@ func (g *GceInfoer) GetProducts(regionId string, attrKey string, attrValue produ
 	err = g.computeSvc.MachineTypes.List(g.projectId, zones[0]).Pages(context.TODO(), func(allMts *compute.MachineTypeList) error {
 		for _, mt := range allMts.Items {
 			switch attrKey {
-			case "cpu":
+			case cpu:
 				if mt.GuestCpus != int64(attrValue.Value) {
 					continue
 				}
-			case "memory":
+			case memory:
 				if mt.MemoryMb != int64(attrValue.Value*1000) {
 					continue
 				}
@@ -224,8 +224,7 @@ func (g *GceInfoer) GetProducts(regionId string, attrKey string, attrValue produ
 	return vms, nil
 }
 
-// GetRegions returns a map with available regions
-// transforms the api representation into a "plain" map
+// GetRegions returns a map with available regions transforms the api representation into a "plain" map
 func (g *GceInfoer) GetRegions() (map[string]string, error) {
 	log.Debugf("getting regions")
 	regionIdMap := make(map[string]string)
@@ -234,7 +233,8 @@ func (g *GceInfoer) GetRegions() (map[string]string, error) {
 		return nil, err
 	}
 	for _, region := range regionList.Items {
-		regionIdMap[region.Name] = region.Name
+		regionIdMap[region.Name] = region.Description
+
 	}
 	log.Debugf("regions found: %v", regionIdMap)
 	return regionIdMap, nil

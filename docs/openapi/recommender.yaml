@@ -87,7 +87,7 @@ paths:
           in: query
           schema:
             type: boolean
-        - x-go-name: NertworkPerf
+        - x-go-name: NetworkPerf
           description: NertworkPerf specifies the network performance category
           name: networkPerf
           in: query

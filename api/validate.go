@@ -106,7 +106,7 @@ func (rd *regionData) validationFn(cpi *productinfo.CachingProductInfo) validato
 		currentRegion := currentStruct.FieldByName("Region").String()
 
 		regions, _ := cpi.GetRegions(currentProvider)
-		for _, reg := range regions {
+		for reg := range regions {
 			logrus.Infof("validating region: %s", reg)
 			if reg == currentRegion {
 				return true

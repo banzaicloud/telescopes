@@ -14,6 +14,8 @@ const (
 	Gce = "gce"
 	// Ec2 is the identifier of the Google Cloud Engine provider
 	Ec2 = "ec2"
+	// Azure is the identifier of the MS Azure provider
+	Azure = "azure"
 
 	// vm types
 	regular = "regular"
@@ -400,7 +402,8 @@ func (e *Engine) findVmsWithAttrValues(provider string, region string, zones []s
 			}
 			odPrice, spotPrice, err := e.productInfo.GetPrice(provider, region, vmInfo.Type, zones)
 			if err != nil {
-				return nil, err
+				log.WithError(err).Warnf("couldn't get price for instance type %s, provider=%s, region=%s, zones=%s", vmInfo.Type, provider, region, zones)
+				continue
 			}
 			if odPrice > 0 {
 				vm.OnDemandPrice = odPrice
