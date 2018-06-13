@@ -26,20 +26,27 @@ The following options can be configured when starting the exporter (with default
 ```
 ./telescopes --help
 Usage of ./telescopes:
-  -listen-address string
-        The address to listen on for HTTP requests. (default ":9090")
-  -log-level string
-        log level (default "info")
-  -product-info-renewal-interval duration
-        Duration (in go syntax) between renewing the ec2 product info. Example: 2h30m (default 24h0m0s)
-  -prometheus-address string
-        http address of a Prometheus instance that has AWS spot price metrics via banzaicloud/spot-price-exporter. If empty, the recommender will use current spot prices queried directly from the AWS API.
-
+      --dev-mode                                 development mode, if true token based authentication is disabled, false by default
+      --gce-api-key string                       GCE API key to use for getting SKUs
+      --gce-project-id string                    GCE project ID to use
+      --help                                     print usage
+      --listen-address string                    the address the telescope listens to HTTP requests. (default ":9090")
+      --log-level string                         log level (default "info")
+      --product-info-renewal-interval duration   duration (in go syntax) between renewing the product information. Example: 2h30m (default 24h0m0s)
+      --prometheus-address string                http address of a Prometheus instance that has AWS spot price metrics via banzaicloud/spot-price-exporter. If empty, the recommender will use current spot prices queried directly from the AWS API.
+      --prometheus-query string                  advanced configuration: change the query used to query spot price info from Prometheus. (default "avg_over_time(aws_spot_current_price{region=\"%s\", product_description=\"Linux/UNIX\"}[1w])")
+      --provider strings                         cloud providers to be used for recommendation (default [ec2,gce])
+      --token-signing-key string                 string representing a shared secret with the token emitter component
+      --vault-address string                     the vault address for authentication token management, not used in development mode
 ```
  
 ## API calls
 
 *For a complete OpenAPI 3.0 documentation, check out this [URL](https://editor.swagger.io/?url=https://raw.githubusercontent.com/banzaicloud/telescopes/master/docs/openapi/recommender.yaml).*
+
+> We have recently added Oauth2 (bearer) token based authentication to the `telescope` which is enabled by default. In order for this to work, the application needs to be connected to a component (eg.: http://github.com/banzaicloud/pipeline) capable to emit the `bearer token` The connection is made through a `vault` instance (which' address must be specified by the --vault-address flag) The --token-signing-key also must be specified in this case (this is a string secret that is shared with the token emitter component)
+
+*The authentication can be switched off by starting the application in development mode (--dev-mode flag) - please note that other functionality can also be affected!*
 
 #### `POST: api/v1/recommender/:provider/:region/cluster`
 
@@ -67,7 +74,7 @@ This endpoint returns a recommended cluster layout on a specific provider in a s
 **`cURL` example**
 
 ```
-curl -sX POST -d '{"sumCpu": 100, "sumMem":200, "sumGpu":0, "minNodes":10, "maxNodes":30, "sameSize":true, "onDemandPct":30, "zones":[]}' "localhost:9092/api/v1/recommender/ec2/eu-west-1/cluster" | jq .
+curl -sX -H 'Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJhdWQiOiJodHRwczovL3BpcGVsaW5lLmJhbnphaWNsb3VkLmNvbSIsImp0aSI6IjUxMWE1ODQyLWYxMmUtNDk1NC04YTg2LTVjNmUyOWRmZTg5YiIsImlhdCI6MTUyODE5MTM0MSwiaXNzIjoiaHR0cHM6Ly9iYW56YWljbG91ZC5jb20vIiwic3ViIjoiMSIsInNjb3BlIjoiYXBpOmludm9rZSIsInR5cGUiOiJ1c2VyIiwidGV4dCI6ImxwdXNrYXMifQ.azhx0MbuLp7vQ1XmwPYrOqFG5vWZVh-hkzmHig8nnvs' \POST -d '{"sumCpu": 100, "sumMem":200, "sumGpu":0, "minNodes":10, "maxNodes":30, "sameSize":true, "onDemandPct":30, "zones":[]}' "localhost:9092/api/v1/recommender/ec2/eu-west-1/cluster" | jq .
 ```
 **Sample response:**
 ```
