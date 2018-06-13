@@ -23,10 +23,6 @@ jobs:
           command:
               make check-fmt
       - run:
-          name: Run golint
-          command:
-              make lint
-      - run:
           name: Run misspell
           command:
               make check-misspell
