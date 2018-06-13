@@ -74,7 +74,7 @@ This endpoint returns a recommended cluster layout on a specific provider in a s
 **`cURL` example**
 
 ```
-curl -sX -H 'Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJhdWQiOiJodHRwczovL3BpcGVsaW5lLmJhbnphaWNsb3VkLmNvbSIsImp0aSI6IjUxMWE1ODQyLWYxMmUtNDk1NC04YTg2LTVjNmUyOWRmZTg5YiIsImlhdCI6MTUyODE5MTM0MSwiaXNzIjoiaHR0cHM6Ly9iYW56YWljbG91ZC5jb20vIiwic3ViIjoiMSIsInNjb3BlIjoiYXBpOmludm9rZSIsInR5cGUiOiJ1c2VyIiwidGV4dCI6ImxwdXNrYXMifQ.azhx0MbuLp7vQ1XmwPYrOqFG5vWZVh-hkzmHig8nnvs' \POST -d '{"sumCpu": 100, "sumMem":200, "sumGpu":0, "minNodes":10, "maxNodes":30, "sameSize":true, "onDemandPct":30, "zones":[]}' "localhost:9092/api/v1/recommender/ec2/eu-west-1/cluster" | jq .
+curl -sX -H 'Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ8.eyJhdWQiOiJodHRwczovL3BpcGVsaW5lLmJhbnphaWNsb3VkLmNvbSIsImp0aSI6IjUxMWE1ODQyLWYxMmUtNDk1NC04YTg2LTVjNmUyOWRmZTg5YiIsImlhdCI6MTUyODE5MTM0MSwiaXNzIjoiaHR0cHM6Ly9iYW56YWljbG91ZC5jb20vIiwic3ViIjoiMSIsInNjb3BlIjoiYXBpOmludm9rZSIsInR5cGUiOiJ1c2VyIiwidGV4dCI6ImxwdXNrYXMifQ.azhx0MbuLp7vQ1XmwPYrOqFG5vWZVh-hkzmHig8nnvs' \POST -d '{"sumCpu": 100, "sumMem":200, "sumGpu":0, "minNodes":10, "maxNodes":30, "sameSize":true, "onDemandPct":30, "zones":[]}' "localhost:9092/api/v1/recommender/ec2/eu-west-1/cluster" | jq .
 ```
 **Sample response:**
 ```
