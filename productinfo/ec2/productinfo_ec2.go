@@ -41,7 +41,7 @@ type Ec2Infoer struct {
 	session      *session.Session
 	prometheus   v1.API
 	promQuery    string
-	ec2Describer Ec2Describer
+	ec2Describer func(region string) Ec2Describer
 }
 
 // Ec2Describer interface for operations describing EC2 artifacts. (a subset of the Ec2 cli operations iused by this app)
