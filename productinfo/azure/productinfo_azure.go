@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"regexp"
 	"strconv"
 	"strings"
 
@@ -21,19 +22,32 @@ const (
 	memory = "memory"
 )
 
-var regionCodeMappings = map[string]string{
-	"ap": "asia",
-	"au": "australia",
-	"br": "brazil",
-	"ca": "canada",
-	"eu": "europe",
-	"fr": "france",
-	"in": "india",
-	"ja": "japan",
-	"kr": "korea",
-	"uk": "uk",
-	"us": "us",
-}
+var (
+	regionCodeMappings = map[string]string{
+		"ap": "asia",
+		"au": "australia",
+		"br": "brazil",
+		"ca": "canada",
+		"eu": "europe",
+		"fr": "france",
+		"in": "india",
+		"ja": "japan",
+		"kr": "korea",
+		"uk": "uk",
+		"us": "us",
+	}
+
+	mtBasic, _     = regexp.Compile("^BASIC.A\\d+[_Promo]*$")
+	mtStandardA, _ = regexp.Compile("^A\\d+[_Promo]*$")
+	mtStandardB, _ = regexp.Compile("^Standard_B\\d+m?[_v\\d]*[_Promo]*$")
+	mtStandardD, _ = regexp.Compile("^Standard_D\\d[_v\\d]*[_Promo]*$")
+	mtStandardE, _ = regexp.Compile("^Standard_E\\d+i?[_v\\d]*[_Promo]*$")
+	mtStandardF, _ = regexp.Compile("^Standard_F\\d+[_v\\d]*[_Promo]*$")
+	mtStandardG, _ = regexp.Compile("^Standard_G\\d+[_v\\d]*[_Promo]*$")
+	mtStandardL, _ = regexp.Compile("^Standard_L\\d+[_v\\d]*[_Promo]*$")
+	mtStandardM, _ = regexp.Compile("^Standard_M\\d+[m|t|l]*s[_v\\d]*[_Promo]*$")
+	mtStandardN, _ = regexp.Compile("^Standard_N[C|D|V]\\d+r?[_v\\d]*[_Promo]*$")
+)
 
 // AzureInfoer encapsulates the data and operations needed to access external Azure resources
 type AzureInfoer struct {
@@ -98,7 +112,7 @@ func (a *AzureInfoer) toRegionID(meterRegion string, regions map[string]string) 
 			return regionID, nil
 		}
 	}
-	return "", errors.New("couldn't find region")
+	return "", fmt.Errorf("couldn't find region: %s", meterRegion)
 }
 
 func (a *AzureInfoer) checkRegionID(regionID string, regions map[string]string) bool {
@@ -132,13 +146,26 @@ func (a *AzureInfoer) Initialize() (map[string]map[string]productinfo.Price, err
 			if !strings.Contains(*v.MeterSubCategory, "(Windows)") {
 				region, err := a.toRegionID(*v.MeterRegion, regions)
 				if err != nil {
-					log.Debugf("region not found among Azure reported locations")
+					log.Debugf(err.Error())
+					continue
 				}
-				instanceType := strings.Split(*v.MeterSubCategory, " ")[0]
-				if instanceType == "" {
+				var instanceType string
+				category := strings.Split(*v.MeterSubCategory, " ")
+				if len(category) < 2 {
+					log.Debugf("couldn't parse meter sub category: %s, region=%s", *v.MeterSubCategory, *v.MeterRegion)
+					continue
+				}
+				switch category[1] {
+				case "VM":
+					instanceType = category[0]
+				case "VM_Promo":
+					instanceType = category[0] + "_Promo"
+				default:
 					log.Debugf("instance type is empty: %s, region=%s", *v.MeterSubCategory, *v.MeterRegion)
 					continue
 				}
+				instanceType = a.transformMachineType(instanceType)
+
 				var priceInUsd float64
 
 				if len(v.MeterRates) < 1 {
@@ -159,14 +186,92 @@ func (a *AzureInfoer) Initialize() (map[string]map[string]productinfo.Price, err
 					spotPrice[region] = priceInUsd
 					price.SpotPrice = spotPrice
 				}
+
 				allPrices[region][instanceType] = price
 				log.Debugf("price info added: [region=%s, machinetype=%s, price=%v]", region, instanceType, price)
+				mts := a.getMachineTypeVariants(instanceType)
+				for _, mt := range mts {
+					allPrices[region][mt] = price
+					log.Debugf("price info added: [region=%s, machinetype=%s, price=%v]", region, mt, price)
+				}
 			}
 		}
 	}
 
 	log.Debug("finished initializing Azure price info")
 	return allPrices, nil
+}
+
+func (a *AzureInfoer) transformMachineType(mt string) string {
+	switch {
+	case mtBasic.MatchString(mt):
+		parts := strings.Split(mt, ".")
+		return strings.Title(strings.ToLower(parts[0])) + "_" + parts[1]
+	case mtStandardA.MatchString(mt):
+		return "Standard_" + mt
+	}
+	return mt
+}
+
+func (a *AzureInfoer) getMachineTypeVariants(mt string) []string {
+	switch {
+	case mtStandardB.MatchString(mt):
+		return []string{mt + "s"}
+	case mtStandardD.MatchString(mt):
+		result := make([]string, 6)
+		result[0] = a.addSuffix(mt, "s")[0]
+		dsType := strings.Replace(mt, "Standard_D", "Standard_DS", -1)
+		result[1] = dsType
+		for i, s := range a.addSuffix(dsType, "-1", "-2", "-4", "-8") {
+			result[i+2] = s
+		}
+		return result
+	case mtStandardE.MatchString(mt):
+		result := make([]string, 6)
+		for i, s := range a.addSuffix(mt, "s", "-2s", "-4s", "-8s", "-16s", "-32s") {
+			result[i] = s
+		}
+		return result
+	case mtStandardF.MatchString(mt):
+		return a.addSuffix(mt, "s")
+	case mtStandardG.MatchString(mt):
+		result := make([]string, 4)
+		gsType := strings.Replace(mt, "Standard_G", "Standard_GS", -1)
+		result[0] = gsType
+		for i, s := range a.addSuffix(gsType, "-4", "-8", "-16") {
+			result[i+1] = s
+		}
+		return result
+	case mtStandardL.MatchString(mt):
+		return a.addSuffix(mt, "s")
+	case mtStandardM.MatchString(mt) && strings.HasSuffix(mt, "ms"):
+		base := strings.TrimSuffix(mt, "ms")
+		return a.addSuffix(base, "-2ms", "-4ms", "-8ms", "-16ms", "-32ms")
+	case mtStandardM.MatchString(mt) && (strings.HasSuffix(mt, "ls") || strings.HasSuffix(mt, "ts")):
+		return []string{}
+	case mtStandardM.MatchString(mt) && strings.HasSuffix(mt, "s"):
+		base := strings.TrimSuffix(mt, "s")
+		return a.addSuffix(base, "", "m")
+	case mtStandardN.MatchString(mt):
+		return a.addSuffix(mt, "s")
+	}
+
+	return []string{}
+}
+
+func (a *AzureInfoer) addSuffix(mt string, suffixes ...string) []string {
+	result := make([]string, len(suffixes))
+	var suffix string
+	parts := strings.Split(mt, "_")
+	if len(parts) > 2 {
+		for _, p := range parts[2:] {
+			suffix += "_" + p
+		}
+	}
+	for i, s := range suffixes {
+		result[i] = parts[0] + "_" + parts[1] + s + suffix
+	}
+	return result
 }
 
 // GetAttributeValues gets the AttributeValues for the given attribute name
@@ -267,19 +372,9 @@ func (a *AzureInfoer) HasShortLivedPriceInfo() bool {
 	return false
 }
 
-// TODO: We have some VM types, where we don't have pricing info, e.g.: M64-16ms
-// it's stored as a VM, and when we want to have pricing info for them, it cannot be found in cache
-// -> calls initialize for all vmInfos that's not found -> takes an eternity
-
 // GetCurrentPrices retrieves all the price info in a region
 func (a *AzureInfoer) GetCurrentPrices(region string) (map[string]productinfo.Price, error) {
-	log.Debugf("getting current prices in region %s", region)
-	allPrices, err := a.Initialize()
-	if err != nil {
-		return nil, err
-	}
-	log.Debugf("found prices in region %s", region)
-	return allPrices[region], nil
+	return nil, errors.New("azure prices cannot be queried on the fly")
 }
 
 // GetMemoryAttrName returns the provider representation of the memory attribute
