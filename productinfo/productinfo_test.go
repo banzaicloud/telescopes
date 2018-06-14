@@ -569,18 +569,22 @@ func TestCachingProductInfo_GetZones(t *testing.T) {
 		provider      string
 		region        string
 		ProductInfoer map[string]ProductInfoer
-		checker       func(zones []string, err error)
+		checker       func(cpi *CachingProductInfo, zones []string, err error)
 	}{
 		{
-			name:     "successful",
+			name:     "zones retrieved and cached",
 			provider: "dummy",
 			region:   "dummyRegion",
 			ProductInfoer: map[string]ProductInfoer{
 				"dummy": &DummyProductInfoer{},
 			},
-			checker: func(str []string, err error) {
+			checker: func(cpi *CachingProductInfo, str []string, err error) {
 				assert.Equal(t, []string{"Zone1", "Zone2"}, str)
 				assert.Nil(t, err, "the error should be nil")
+
+				// get the values from the cache
+				cachedZones, _ := cpi.vmAttrStore.Get(cpi.getZonesKey("dummy", "dummyRegion"))
+				assert.EqualValues(t, []string{"Zone1", "Zone2"}, cachedZones, "zones not cached")
 			},
 		},
 	}
@@ -588,7 +592,7 @@ func TestCachingProductInfo_GetZones(t *testing.T) {
 		t.Run(test.name, func(t *testing.T) {
 			productInfo, _ := NewCachingProductInfo(10*time.Second, cache.New(5*time.Minute, 10*time.Minute), test.ProductInfoer)
 			values, err := productInfo.GetZones(test.provider, test.region)
-			test.checker(values, err)
+			test.checker(productInfo, values, err)
 		})
 	}
 }
