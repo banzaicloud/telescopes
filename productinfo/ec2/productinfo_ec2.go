@@ -342,6 +342,8 @@ func (e *Ec2Infoer) GetZones(region string) ([]string, error) {
 	return zones, nil
 }
 
+
+
 // HasShortLivedPriceInfo - Spot Prices are changing continuously on EC2
 func (e *Ec2Infoer) HasShortLivedPriceInfo() bool {
 	return true
@@ -377,8 +379,7 @@ func (e *Ec2Infoer) getSpotPricesFromPrometheus(region string) (map[string]produ
 
 func (e *Ec2Infoer) getCurrentSpotPrices(region string) (map[string]productinfo.SpotPriceInfo, error) {
 	priceInfo := make(map[string]productinfo.SpotPriceInfo)
-	ec2Svc := ec2.New(e.session, &aws.Config{Region: aws.String(region)})
-	err := ec2Svc.DescribeSpotPriceHistoryPages(&ec2.DescribeSpotPriceHistoryInput{
+	err := e.ec2Describer(region).DescribeSpotPriceHistoryPages(&ec2.DescribeSpotPriceHistoryInput{
 		StartTime:           aws.Time(time.Now()),
 		ProductDescriptions: []*string{aws.String("Linux/UNIX")},
 	}, func(history *ec2.DescribeSpotPriceHistoryOutput, lastPage bool) bool {
