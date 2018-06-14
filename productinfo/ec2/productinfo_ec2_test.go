@@ -156,7 +156,7 @@ func (dps *testStruct) DescribeAvailabilityZones(input *ec2.DescribeAvailability
 	return &ec2.DescribeAvailabilityZonesOutput{
 		AvailabilityZones: []*ec2.AvailabilityZone{
 			{
-				State:      aws.String("available"),
+				State:      aws.String(ec2.AvailabilityZoneStateAvailable),
 				RegionName: aws.String("eu-central-1"),
 				ZoneName:   aws.String("eu-central-1a"),
 			},
