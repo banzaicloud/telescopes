@@ -12,11 +12,12 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-type dummy struct {
+//testStruct helps to mock external calls
+type testStruct struct {
 	TcId int
 }
 
-func (dps *dummy) GetAttributeValues(input *pricing.GetAttributeValuesInput) (*pricing.GetAttributeValuesOutput, error) {
+func (dps *testStruct) GetAttributeValues(input *pricing.GetAttributeValuesInput) (*pricing.GetAttributeValuesOutput, error) {
 
 	// example json sequence
 	//{
@@ -64,7 +65,7 @@ func (dps *dummy) GetAttributeValues(input *pricing.GetAttributeValuesInput) (*p
 
 	return nil, nil
 }
-func (dps *dummy) GetProducts(input *pricing.GetProductsInput) (*pricing.GetProductsOutput, error) {
+func (dps *testStruct) GetProducts(input *pricing.GetProductsInput) (*pricing.GetProductsOutput, error) {
 	switch dps.TcId {
 	case 4:
 		return &pricing.GetProductsOutput{
@@ -144,11 +145,11 @@ func (dps *dummy) GetProducts(input *pricing.GetProductsInput) (*pricing.GetProd
 }
 
 // strPointer gets the pointer to the passed string
-func (dps *dummy) strPointer(str string) *string {
+func (dps *testStruct) strPointer(str string) *string {
 	return &str
 }
 
-func (dps *dummy) DescribeAvailabilityZones(input *ec2.DescribeAvailabilityZonesInput) (*ec2.DescribeAvailabilityZonesOutput, error) {
+func (dps *testStruct) DescribeAvailabilityZones(input *ec2.DescribeAvailabilityZonesInput) (*ec2.DescribeAvailabilityZonesOutput, error) {
 	if dps.TcId == 10 {
 		return nil, errors.New("could not get information about zones")
 	}
@@ -168,7 +169,7 @@ func (dps *dummy) DescribeAvailabilityZones(input *ec2.DescribeAvailabilityZones
 	}, nil
 }
 
-func (dps *dummy) DescribeSpotPriceHistoryPages(input *ec2.DescribeSpotPriceHistoryInput, fn func(*ec2.DescribeSpotPriceHistoryOutput, bool) bool) error {
+func (dps *testStruct) DescribeSpotPriceHistoryPages(input *ec2.DescribeSpotPriceHistoryInput, fn func(*ec2.DescribeSpotPriceHistoryOutput, bool) bool) error {
 	if dps.TcId == 11 {
 		return errors.New("invalid")
 	}
@@ -214,7 +215,7 @@ func TestEc2Infoer_GetAttributeValues(t *testing.T) {
 	}{
 		{
 			name:           "successfully retrieve attributes",
-			pricingService: &dummy{TcId: 1},
+			pricingService: &testStruct{TcId: 1},
 			check: func(values productinfo.AttrValues, err error) {
 				assert.Equal(t, 3, len(values), "invalid number of values returned")
 				assert.Nil(t, err, "should not get error")
@@ -222,7 +223,7 @@ func TestEc2Infoer_GetAttributeValues(t *testing.T) {
 		},
 		{
 			name:           "error - invalid values zeroed out",
-			pricingService: &dummy{TcId: 2},
+			pricingService: &testStruct{TcId: 2},
 			check: func(values productinfo.AttrValues, err error) {
 				assert.Equal(t, values[0].StrValue, "invalid float 256 GiB", "the invalid value is not the first element")
 				assert.Equal(t, values[0].Value, float64(0), "the invalid value is not zeroed out")
@@ -231,7 +232,7 @@ func TestEc2Infoer_GetAttributeValues(t *testing.T) {
 		},
 		{
 			name:           "error - error when retrieving values",
-			pricingService: &dummy{TcId: 3},
+			pricingService: &testStruct{TcId: 3},
 			check: func(values productinfo.AttrValues, err error) {
 				assert.Equal(t, "failed to retrieve values", err.Error())
 			},
@@ -291,7 +292,7 @@ func TestEc2Infoer_GetProducts(t *testing.T) {
 			regionId:       "eu-central-1",
 			attrKey:        Cpu,
 			attrValue:      productinfo.AttrValue{Value: float64(2), StrValue: productinfo.Cpu},
-			pricingService: &dummy{TcId: 4},
+			pricingService: &testStruct{TcId: 4},
 			check: func(vm []productinfo.VmInfo, err error) {
 				assert.Nil(t, err, "the error should be nil")
 				assert.Equal(t, []productinfo.VmInfo{{Type: "t2.small", OnDemandPrice: 5, SpotPrice: productinfo.SpotPriceInfo(nil), Cpus: 1, Mem: 2, Gpus: 0, NtwPerf: "Low to Moderate"}}, vm)
@@ -302,7 +303,7 @@ func TestEc2Infoer_GetProducts(t *testing.T) {
 			regionId:       "eu-central-1",
 			attrKey:        Cpu,
 			attrValue:      productinfo.AttrValue{Value: float64(2), StrValue: productinfo.Cpu},
-			pricingService: &dummy{TcId: 5},
+			pricingService: &testStruct{TcId: 5},
 			check: func(vm []productinfo.VmInfo, err error) {
 				assert.EqualError(t, err, "failed to retrieve values")
 				assert.Nil(t, vm, "the vm should be nil")
@@ -313,7 +314,7 @@ func TestEc2Infoer_GetProducts(t *testing.T) {
 			regionId:       "eu-central-1",
 			attrKey:        Cpu,
 			attrValue:      productinfo.AttrValue{Value: float64(2), StrValue: productinfo.Cpu},
-			pricingService: &dummy{TcId: 6},
+			pricingService: &testStruct{TcId: 6},
 			check: func(vm []productinfo.VmInfo, err error) {
 				assert.Nil(t, err, "the error should be nil")
 				assert.Nil(t, vm, "the vm should be nil")
@@ -324,7 +325,7 @@ func TestEc2Infoer_GetProducts(t *testing.T) {
 			regionId:       "eu-central-1",
 			attrKey:        Cpu,
 			attrValue:      productinfo.AttrValue{Value: float64(2), StrValue: productinfo.Cpu},
-			pricingService: &dummy{TcId: 7},
+			pricingService: &testStruct{TcId: 7},
 			check: func(vm []productinfo.VmInfo, err error) {
 				assert.Nil(t, err, "the error should be nil")
 				assert.Nil(t, vm, "the vm should be nil")
@@ -335,7 +336,7 @@ func TestEc2Infoer_GetProducts(t *testing.T) {
 			regionId:       "eu-central-1",
 			attrKey:        Cpu,
 			attrValue:      productinfo.AttrValue{Value: float64(2), StrValue: productinfo.Cpu},
-			pricingService: &dummy{TcId: 8},
+			pricingService: &testStruct{TcId: 8},
 			check: func(vm []productinfo.VmInfo, err error) {
 				assert.Nil(t, err, "the error should be nil")
 				assert.Nil(t, vm, "the vm should be nil")
@@ -346,7 +347,7 @@ func TestEc2Infoer_GetProducts(t *testing.T) {
 			regionId:       "eu-central-1",
 			attrKey:        Cpu,
 			attrValue:      productinfo.AttrValue{Value: float64(2), StrValue: productinfo.Cpu},
-			pricingService: &dummy{TcId: 9},
+			pricingService: &testStruct{TcId: 9},
 			check: func(vm []productinfo.VmInfo, err error) {
 				assert.Nil(t, err, "the error should be nil")
 				assert.Nil(t, vm, "the vm should be nil")
@@ -377,7 +378,7 @@ func TestEc2Infoer_GetRegion(t *testing.T) {
 		{
 			name:           "returns data of a known region",
 			id:             "eu-west-3",
-			pricingService: &dummy{},
+			pricingService: &testStruct{},
 			check: func(region *endpoints.Region) {
 				assert.Equal(t, region.Description(), "EU (Paris)")
 				assert.Equal(t, region.ID(), "eu-west-3")
@@ -386,7 +387,7 @@ func TestEc2Infoer_GetRegion(t *testing.T) {
 		{
 			name:           "get an unknown region",
 			id:             "unknownRegion",
-			pricingService: &dummy{},
+			pricingService: &testStruct{},
 			check: func(region *endpoints.Region) {
 				assert.Nil(t, region, "the region should be nil")
 			},
@@ -412,10 +413,10 @@ func TestEc2Infoer_getCurrentSpotPrices(t *testing.T) {
 		check      func(data map[string]productinfo.SpotPriceInfo, err error)
 	}{
 		{
-			name:   "successful - get current sport prices",
+			name:   "successful - get current spot prices",
 			region: "dummyRegion",
 			ec2CliMock: func(region string) Ec2Describer {
-				return &dummy{}
+				return &testStruct{}
 			},
 			check: func(data map[string]productinfo.SpotPriceInfo, err error) {
 				assert.Equal(t, map[string]productinfo.SpotPriceInfo{}, data)
@@ -426,7 +427,7 @@ func TestEc2Infoer_getCurrentSpotPrices(t *testing.T) {
 			name:   "error - could not get spot price history pages",
 			region: "dummyRegion",
 			ec2CliMock: func(region string) Ec2Describer {
-				return &dummy{11}
+				return &testStruct{11}
 			},
 			check: func(data map[string]productinfo.SpotPriceInfo, err error) {
 				assert.Nil(t, data, "the data should be nil")
@@ -459,7 +460,7 @@ func TestEc2Infoer_GetCurrentPrices(t *testing.T) {
 			name:   "success - known region",
 			region: "eu-central-1",
 			ec2CliMock: func(region string) Ec2Describer {
-				return &dummy{}
+				return &testStruct{}
 			},
 			check: func(price map[string]productinfo.Price, err error) {
 				assert.Nil(t, err, "the error should be nil")
@@ -470,7 +471,7 @@ func TestEc2Infoer_GetCurrentPrices(t *testing.T) {
 			name:   "error - unknown region",
 			region: "dummyRegion",
 			ec2CliMock: func(region string) Ec2Describer {
-				return &dummy{11}
+				return &testStruct{11}
 			},
 			check: func(price map[string]productinfo.Price, err error) {
 				assert.Nil(t, price, "the zones should be nil")
@@ -503,7 +504,7 @@ func TestEc2Infoer_GetZones(t *testing.T) {
 			name:   "success - known region",
 			region: "eu-central-1",
 			ec2CliMock: func(region string) Ec2Describer {
-				return &dummy{}
+				return &testStruct{}
 			},
 			check: func(zones []string, err error) {
 				assert.Nil(t, err, "the error should be nil")
@@ -515,7 +516,7 @@ func TestEc2Infoer_GetZones(t *testing.T) {
 			name:   "error - unknown region",
 			region: "dummyRegion",
 			ec2CliMock: func(region string) Ec2Describer {
-				return &dummy{TcId: 10}
+				return &testStruct{TcId: 10}
 			},
 			check: func(zones []string, err error) {
 				assert.Nil(t, zones, "the zones should be nil")
