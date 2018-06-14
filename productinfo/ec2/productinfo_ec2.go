@@ -342,8 +342,6 @@ func (e *Ec2Infoer) GetZones(region string) ([]string, error) {
 	return zones, nil
 }
 
-
-
 // HasShortLivedPriceInfo - Spot Prices are changing continuously on EC2
 func (e *Ec2Infoer) HasShortLivedPriceInfo() bool {
 	return true
