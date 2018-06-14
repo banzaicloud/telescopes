@@ -200,7 +200,7 @@ func infoers() map[string]productinfo.ProductInfoer {
 
 		switch p {
 		case recommender.Ec2:
-			infoer, err = ec2.NewEc2Infoer(ec2.NewPricing(ec2.NewConfig()), viper.GetString(prometheusAddressFlag), viper.GetString(prometheusQueryFlag))
+			infoer, err = ec2.NewEc2Infoer(viper.GetString(prometheusAddressFlag), viper.GetString(prometheusQueryFlag))
 		case recommender.Gce:
 			infoer, err = gce.NewGceInfoer(viper.GetString(gceApiKeyFlag), viper.GetString(gceProjectIdFlag))
 		case recommender.Azure:
