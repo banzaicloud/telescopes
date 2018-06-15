@@ -88,23 +88,21 @@ func (pi *CachingProductInfo) Start(ctx context.Context) {
 				}
 				attributes := []string{Cpu, Memory}
 				for _, attr := range attributes {
-					attrValues, err := pi.renewAttrValues(p, attr)
+					_, err := pi.renewAttrValues(p, attr)
 					if err != nil {
 						log.Errorf("couldn't renew attribute values in cache: %s", err.Error())
 						return
 					}
-					regions, err := i.GetRegions()
+				}
+				regions, err := i.GetRegions()
+				if err != nil {
+					log.Errorf("couldn't renew attribute values in cache: %s", err.Error())
+					return
+				}
+				for regionId := range regions {
+					_, err := pi.renewVms(p, regionId)
 					if err != nil {
 						log.Errorf("couldn't renew attribute values in cache: %s", err.Error())
-						return
-					}
-					for regionId := range regions {
-						for _, v := range attrValues {
-							_, err := pi.renewVmsWithAttr(p, regionId, attr, v)
-							if err != nil {
-								log.Errorf("couldn't renew attribute values in cache: %s", err.Error())
-							}
-						}
 					}
 				}
 			}(provider, infoer)
@@ -290,36 +288,47 @@ func (pi *CachingProductInfo) toProviderAttribute(provider string, attr string) 
 func (pi *CachingProductInfo) GetVmsWithAttrValue(provider string, regionId string, attrKey string, value float64) ([]VmInfo, error) {
 
 	log.Debugf("Getting instance types and on demand prices. [regionId=%s, %s=%v]", regionId, attrKey, value)
-	vmCacheKey := pi.getVmKey(provider, regionId, attrKey, value)
+	vmCacheKey := pi.getVmKey(provider, regionId)
+	var vms []VmInfo
+	var err error
 	if cachedVal, ok := pi.vmAttrStore.Get(vmCacheKey); ok {
 		log.Debugf("Getting available instance types from cache. [regionId=%s, %s=%v]", regionId, attrKey, value)
-		return cachedVal.([]VmInfo), nil
+		vms = cachedVal.([]VmInfo)
+	} else {
+		vms, err = pi.renewVms(provider, regionId)
+		if err != nil {
+			return nil, err
+		}
 	}
-	attrValue, err := pi.getAttrValue(provider, attrKey, value)
-	if err != nil {
-		return nil, err
+	var filteredVms []VmInfo
+	for _, vm := range vms {
+		switch attrKey {
+		case Cpu:
+			if vm.Cpus != value {
+				continue
+			}
+		case Memory:
+			if vm.Mem != value {
+				continue
+			}
+		default:
+			return nil, fmt.Errorf("unsupported attribute: %s", attrKey)
+		}
+		filteredVms = append(filteredVms, vm)
 	}
-	vms, err := pi.renewVmsWithAttr(provider, regionId, attrKey, *attrValue)
-	if err != nil {
-		return nil, err
-	}
-	return vms, nil
+	return filteredVms, nil
 }
 
-func (pi *CachingProductInfo) getVmKey(provider string, region string, attrKey string, attrValue float64) string {
-	return fmt.Sprintf(VmKeyTemplate, provider, region, attrKey, attrValue)
+func (pi *CachingProductInfo) getVmKey(provider string, region string) string {
+	return fmt.Sprintf(VmKeyTemplate, provider, region)
 }
 
-func (pi *CachingProductInfo) renewVmsWithAttr(provider string, regionId string, attrKey string, attrValue AttrValue) ([]VmInfo, error) {
-	attr, err := pi.toProviderAttribute(provider, attrKey)
+func (pi *CachingProductInfo) renewVms(provider string, regionId string) ([]VmInfo, error) {
+	values, err := pi.productInfoers[provider].GetProducts(regionId)
 	if err != nil {
 		return nil, err
 	}
-	values, err := pi.productInfoers[provider].GetProducts(regionId, attr, attrValue)
-	if err != nil {
-		return nil, err
-	}
-	pi.vmAttrStore.Set(pi.getVmKey(provider, regionId, attrKey, attrValue.Value), values, pi.renewalInterval)
+	pi.vmAttrStore.Set(pi.getVmKey(provider, regionId), values, pi.renewalInterval)
 	return values, nil
 }
 

@@ -188,8 +188,8 @@ func (g *GceInfoer) GetAttributeValues(attribute string) (productinfo.AttrValues
 
 // GetProducts retrieves the available virtual machines based on the arguments provided
 // Queries the Google Cloud Compute API's machine type list endpoint and CloudBilling's sku list endpoint
-func (g *GceInfoer) GetProducts(regionId string, attrKey string, attrValue productinfo.AttrValue) ([]productinfo.VmInfo, error) {
-	log.Debugf("getting product info [region=%s, %s=%v]", regionId, attrKey, attrValue.Value)
+func (g *GceInfoer) GetProducts(regionId string) ([]productinfo.VmInfo, error) {
+	log.Debugf("getting product info [region=%s]", regionId)
 	var vms []productinfo.VmInfo
 	zones, err := g.GetZones(regionId)
 	if err != nil {
@@ -198,16 +198,6 @@ func (g *GceInfoer) GetProducts(regionId string, attrKey string, attrValue produ
 	// TODO: check if all machine types are available in every regions??
 	err = g.computeSvc.MachineTypes.List(g.projectId, zones[0]).Pages(context.TODO(), func(allMts *compute.MachineTypeList) error {
 		for _, mt := range allMts.Items {
-			switch attrKey {
-			case cpu:
-				if mt.GuestCpus != int64(attrValue.Value) {
-					continue
-				}
-			case memory:
-				if mt.MemoryMb != int64(attrValue.Value*1000) {
-					continue
-				}
-			}
 			vms = append(vms, productinfo.VmInfo{
 				Type: mt.Name,
 				Cpus: float64(mt.GuestCpus),
@@ -220,7 +210,7 @@ func (g *GceInfoer) GetProducts(regionId string, attrKey string, attrValue produ
 	if err != nil {
 		return nil, err
 	}
-	log.Debugf("found vms [%s=%v]: %#v", attrKey, attrValue.Value, vms)
+	log.Debugf("found vms: %#v", vms)
 	return vms, nil
 }
 

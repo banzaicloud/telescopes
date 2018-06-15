@@ -282,16 +282,12 @@ func TestEc2Infoer_GetProducts(t *testing.T) {
 	tests := []struct {
 		name           string
 		regionId       string
-		attrKey        string
-		attrValue      productinfo.AttrValue
 		pricingService PricingSource
 		check          func(vm []productinfo.VmInfo, err error)
 	}{
 		{
 			name:           "successful - retrieves the available virtual machines",
 			regionId:       "eu-central-1",
-			attrKey:        Cpu,
-			attrValue:      productinfo.AttrValue{Value: float64(2), StrValue: productinfo.Cpu},
 			pricingService: &testStruct{TcId: 4},
 			check: func(vm []productinfo.VmInfo, err error) {
 				assert.Nil(t, err, "the error should be nil")
@@ -301,8 +297,6 @@ func TestEc2Infoer_GetProducts(t *testing.T) {
 		{
 			name:           "error - GetProducts",
 			regionId:       "eu-central-1",
-			attrKey:        Cpu,
-			attrValue:      productinfo.AttrValue{Value: float64(2), StrValue: productinfo.Cpu},
 			pricingService: &testStruct{TcId: 5},
 			check: func(vm []productinfo.VmInfo, err error) {
 				assert.EqualError(t, err, "failed to retrieve values")
@@ -312,8 +306,6 @@ func TestEc2Infoer_GetProducts(t *testing.T) {
 		{
 			name:           "error - on demand price",
 			regionId:       "eu-central-1",
-			attrKey:        Cpu,
-			attrValue:      productinfo.AttrValue{Value: float64(2), StrValue: productinfo.Cpu},
 			pricingService: &testStruct{TcId: 6},
 			check: func(vm []productinfo.VmInfo, err error) {
 				assert.Nil(t, err, "the error should be nil")
@@ -323,8 +315,6 @@ func TestEc2Infoer_GetProducts(t *testing.T) {
 		{
 			name:           "error - memory",
 			regionId:       "eu-central-1",
-			attrKey:        Cpu,
-			attrValue:      productinfo.AttrValue{Value: float64(2), StrValue: productinfo.Cpu},
 			pricingService: &testStruct{TcId: 7},
 			check: func(vm []productinfo.VmInfo, err error) {
 				assert.Nil(t, err, "the error should be nil")
@@ -334,8 +324,6 @@ func TestEc2Infoer_GetProducts(t *testing.T) {
 		{
 			name:           "error - cpu",
 			regionId:       "eu-central-1",
-			attrKey:        Cpu,
-			attrValue:      productinfo.AttrValue{Value: float64(2), StrValue: productinfo.Cpu},
 			pricingService: &testStruct{TcId: 8},
 			check: func(vm []productinfo.VmInfo, err error) {
 				assert.Nil(t, err, "the error should be nil")
@@ -345,8 +333,6 @@ func TestEc2Infoer_GetProducts(t *testing.T) {
 		{
 			name:           "error - instance type",
 			regionId:       "eu-central-1",
-			attrKey:        Cpu,
-			attrValue:      productinfo.AttrValue{Value: float64(2), StrValue: productinfo.Cpu},
 			pricingService: &testStruct{TcId: 9},
 			check: func(vm []productinfo.VmInfo, err error) {
 				assert.Nil(t, err, "the error should be nil")
@@ -363,7 +349,7 @@ func TestEc2Infoer_GetProducts(t *testing.T) {
 				t.Fatalf("failed to create productinfoer; [%s]", err.Error())
 			}
 
-			test.check(productInfoer.GetProducts(test.regionId, test.attrKey, test.attrValue))
+			test.check(productInfoer.GetProducts(test.regionId))
 		})
 	}
 }
