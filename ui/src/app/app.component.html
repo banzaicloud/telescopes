@@ -1,19 +1,27 @@
-<!--The content below is only a placeholder and can be replaced.-->
-<div style="text-align:center">
-  <h1>
-    Welcome to {{ title }}!
-  </h1>
-</div>
-<h2>Here are some links to help you start: </h2>
-<ul>
-  <li>
-    <h2><a target="_blank" rel="noopener" href="https://angular.io/tutorial">Tour of Heroes</a></h2>
-  </li>
-  <li>
-    <h2><a target="_blank" rel="noopener" href="https://github.com/angular/angular-cli/wiki">CLI Documentation</a></h2>
-  </li>
-  <li>
-    <h2><a target="_blank" rel="noopener" href="https://blog.angular.io/">Angular blog</a></h2>
-  </li>
-</ul>
+<header>
+  <mat-toolbar color="primary">{{title}}</mat-toolbar>
+</header>
 
+<div class="container">
+  <mat-table [dataSource]="myDataArray">
+    <ng-container matColumnDef="machineType">
+      <mat-header-cell *matHeaderCellDef> Machine Type</mat-header-cell>
+      <mat-cell *matCellDef="let machine"> {{machine.type}} </mat-cell>
+    </ng-container>
+
+    <ng-container matColumnDef="cpu">
+      <mat-header-cell *matHeaderCellDef> CPUs</mat-header-cell>
+      <mat-cell *matCellDef="let machine"> {{machine.cpus}} </mat-cell>
+    </ng-container>
+
+    <ng-container matColumnDef="mem">
+      <mat-header-cell *matHeaderCellDef> Memory</mat-header-cell>
+      <mat-cell *matCellDef="let machine"> {{machine.memory}} </mat-cell>
+    </ng-container>
+
+    <mat-header-row *matHeaderRowDef="columnsToDisplay"></mat-header-row>
+    <mat-row *matRowDef="let myRowData; columns: columnsToDisplay"></mat-row>
+  </mat-table>
+</div>
+
+<footer></footer>
