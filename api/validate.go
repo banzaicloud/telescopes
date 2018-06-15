@@ -12,7 +12,6 @@ import (
 	"github.com/gin-gonic/gin/binding"
 	"github.com/sirupsen/logrus"
 	"gopkg.in/go-playground/validator.v8"
-	"github.com/banzaicloud/telescopes/productinfo/ec2"
 )
 
 // ConfigureValidator configures the Gin validator with custom validator functions
@@ -29,13 +28,13 @@ func ConfigureValidator(providers []string, pi *productinfo.CachingProductInfo) 
 
 	// register validator for the region parameter in the request path
 	rd := regionData{}
-	v.RegisterValidation("region-data", rd.validationFn(pi))
+	v.RegisterValidation("region", rd.validationFn(pi))
 
 	// register validator for zones
 	v.RegisterValidation("zone", ZoneValidatorFn(pi))
 
 	// register validator for network performance
-	v.RegisterValidation("networkperf", NetworkPerfValidatorFn(pi))
+	v.RegisterValidation("network", NetworkPerfValidatorFn(pi))
 
 }
 
@@ -89,7 +88,7 @@ type regionData struct {
 	// Cloud the cloud provider from the request path
 	Cloud string `binding:"required"`
 	// Region the region in the request path
-	Region string `binding:"region-data"`
+	Region string `binding:"region"`
 }
 
 // String representation of the path data
@@ -142,7 +141,6 @@ func ZoneValidatorFn(cpi *productinfo.CachingProductInfo) validator.Func {
 	}
 }
 
-
 // Returns true if the network performance is valid on the current cloud provider
 func NetworkPerfValidatorFn(cpi *productinfo.CachingProductInfo) validator.Func {
 	// caching product info may be available here, but the provider is not
@@ -152,15 +150,19 @@ func NetworkPerfValidatorFn(cpi *productinfo.CachingProductInfo) validator.Func 
 		// dig out the provider from the "topStruct"
 		cloud := reflect.Indirect(topStruct).FieldByName("P").String()
 
-		networkperfs, _ := cpi.GetNetworkPerfMapper(cloud)
-		for _, strval := range ec2.NtwPerfMap{
-			for _, str := range strval{
-				networkperf, _ := networkperfs.MapNetworkPerf(productinfo.VmInfo{NtwPerf: str})
-				if networkperf == field.String(){
-					return true
-				}
+		if perfMapper, err := cpi.GetNetworkPerfMapper(cloud); err == nil {
+
+			// the requested network performance is "valid" if it can be mapped to a telescope "category"
+			if perfCat, err := perfMapper.MapNetworkPerf(productinfo.VmInfo{NtwPerf: field.String()}); err == nil {
+				logrus.Debugf("validation succeeded. provider: %s : %s is mapped to %s", cloud, field.String(), perfCat)
+				return true
+			} else {
+				logrus.Debugf("validation failed for: %s", field.String())
+				return false
 			}
+
 		}
+		logrus.Errorf("could not retrieve network mapper for provider: %s", cloud)
 		return false
 	}
 }
