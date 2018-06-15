@@ -14,13 +14,13 @@ export const PRODUCTS: Product[] = [
 })
 export class ProductService {
 
-  private productsUrl = 'api/v1/products/ec2/eu-west-1';
+  private productsUrlBase = 'api/v1/products/';
 
   constructor(private http: HttpClient) {
   }
 
-  getProducts(): Observable<Product[]> {
-    return this.http.get<Products>(this.productsUrl).pipe(
+  getProducts(provider, region): Observable<Product[]> {
+    return this.http.get<Products>(this.productsUrlBase + provider + "/" + region).pipe(
       map(res => {
         return res.products
       })

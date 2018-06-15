@@ -10,6 +10,9 @@ import {Product} from "../product";
 export class ProductsComponent implements OnInit {
 
   columnsToDisplay = ['machineType', 'cpu', 'mem'];
+
+  provider: string = "gce";
+  region: string = "eu-west-1";
   products: Product[];
 
   constructor(private productService: ProductService) {
@@ -20,7 +23,7 @@ export class ProductsComponent implements OnInit {
   }
 
   getProducts(): void {
-    this.productService.getProducts()
+    this.productService.getProducts(this.provider, "eu-west-1")
       .subscribe(products => this.products = products);
   }
 

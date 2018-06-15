@@ -252,42 +252,84 @@ func (e *Engine) RecommendCluster(provider string, region string, req ClusterRec
 }
 
 func (e *Engine) GetProducts(provider string, region string) (*ProductsResp, error) {
-	response := &ProductsResp{
-		Provider: provider,
-		Products: []VirtualMachine{
-			{
-				Type:          "m4.xlarge",
-				Mem:           8,
-				Cpus:          4,
-				Gpus:          0,
-				OnDemandPrice: 0.2,
-				Burst:         false,
-				AvgPrice:      0.02,
-				NetworkPerf:   "high",
+	fmt.Println("*****", provider, region)
+	switch provider {
+	case "gce":
+		response := &ProductsResp{
+			Provider: provider,
+			Products: []VirtualMachine{
+				{
+					Type:          "n1-standard-4",
+					Mem:           8,
+					Cpus:          4,
+					Gpus:          0,
+					OnDemandPrice: 0.2,
+					Burst:         false,
+					AvgPrice:      0.02,
+					NetworkPerf:   "high",
+				},
+				{
+					Type:          "n1-standard-8",
+					Mem:           16,
+					Cpus:          8,
+					Gpus:          0,
+					OnDemandPrice: 0.38,
+					Burst:         false,
+					AvgPrice:      0.04,
+					NetworkPerf:   "high",
+				},
+				{
+					Type:          "n1-standard-16",
+					Mem:           32,
+					Cpus:          16,
+					Gpus:          0,
+					OnDemandPrice: 0.75,
+					Burst:         false,
+					AvgPrice:      0.089,
+					NetworkPerf:   "high",
+				},
 			},
-			{
-				Type:          "m4.2xlarge",
-				Mem:           16,
-				Cpus:          8,
-				Gpus:          0,
-				OnDemandPrice: 0.38,
-				Burst:         false,
-				AvgPrice:      0.04,
-				NetworkPerf:   "high",
+		}
+		return response, nil
+	case "ec2":
+		response := &ProductsResp{
+			Provider: provider,
+			Products: []VirtualMachine{
+				{
+					Type:          "m4.xlarge",
+					Mem:           8,
+					Cpus:          4,
+					Gpus:          0,
+					OnDemandPrice: 0.2,
+					Burst:         false,
+					AvgPrice:      0.02,
+					NetworkPerf:   "high",
+				},
+				{
+					Type:          "m4.2xlarge",
+					Mem:           16,
+					Cpus:          8,
+					Gpus:          0,
+					OnDemandPrice: 0.38,
+					Burst:         false,
+					AvgPrice:      0.04,
+					NetworkPerf:   "high",
+				},
+				{
+					Type:          "m4.4xlarge",
+					Mem:           32,
+					Cpus:          16,
+					Gpus:          0,
+					OnDemandPrice: 0.75,
+					Burst:         false,
+					AvgPrice:      0.089,
+					NetworkPerf:   "high",
+				},
 			},
-			{
-				Type:          "m4.4xlarge",
-				Mem:           32,
-				Cpus:          16,
-				Gpus:          0,
-				OnDemandPrice: 0.75,
-				Burst:         false,
-				AvgPrice:      0.089,
-				NetworkPerf:   "high",
-			},
-		},
+		}
+		return response, nil
 	}
-	return response, nil
+	return nil, nil
 }
 
 // findCheapestNodePoolSet looks up the "cheapest" node pool set from the provided map
