@@ -31,6 +31,14 @@ jobs:
           command:
               make check-misspell
       - run:
+          name: Run ineffassign
+          command:
+              make ineffassign
+      - run:
+          name: Run gocyclo
+          command:
+              make gocyclo
+      - run:
           name: Run tests
           command:
               make test
