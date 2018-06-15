@@ -1,13 +1,14 @@
 package api
 
 import (
+	"fmt"
 	"net/http"
 
-	"fmt"
 	"github.com/banzaicloud/bank-vaults/auth"
 	"github.com/banzaicloud/telescopes/productinfo"
 	"github.com/banzaicloud/telescopes/recommender"
 	"github.com/gin-contrib/cors"
+	"github.com/gin-contrib/static"
 	"github.com/gin-gonic/gin"
 	"github.com/gin-gonic/gin/binding"
 	log "github.com/sirupsen/logrus"
@@ -53,10 +54,11 @@ func (r *RouteHandler) ConfigureRoutes(router *gin.Engine) {
 
 	v := binding.Validator.Engine().(*validator.Validate)
 
+	router.Use(static.Serve("/", static.LocalFile("./ui/dist/ui", true)))
 	base := router.Group("/")
-	base.Use(cors.New(getCorsConfig()))
 	{
 		base.GET("/status", r.signalStatus)
+		base.Use(cors.New(getCorsConfig()))
 	}
 
 	// the v1 api group
