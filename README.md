@@ -227,7 +227,7 @@ Because spot prices can be different across availability zones, in this case the
 
 **13. Is there a Google Cloud implementation?**
 
-Yes, Google Cloud recommendations work as well, you shoud provide your GCE project id and the GCE api key as application flags to use it.
+Yes, Google Cloud recommendations work as well, you should provide your GCE project id and the GCE api key as application flags to use it.
 
 **14. There's no bid pricing on Google Cloud, what will the recommender take into account there?**
 
