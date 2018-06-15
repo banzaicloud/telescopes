@@ -267,10 +267,7 @@ See the answer above for more information.
 
 **19. Is this project production ready?**
 
-Not yet. To make this project production ready, we need at least the following things:
- - cover the code base with unit tests
- - authentication on the API
- - API validations
+Almost there. We are using this already internally and plan to GA it soon.
 
 **20. What is on the project roadmap for the near future?**
 
