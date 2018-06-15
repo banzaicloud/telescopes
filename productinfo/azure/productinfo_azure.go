@@ -318,25 +318,14 @@ func (a *AzureInfoer) GetAttributeValues(attribute string) (productinfo.AttrValu
 }
 
 // GetProducts retrieves the available virtual machines based on the arguments provided
-func (a *AzureInfoer) GetProducts(regionId string, attrKey string, attrValue productinfo.AttrValue) ([]productinfo.VmInfo, error) {
-	log.Debugf("getting product info [region=%s, %s=%v]", regionId, attrKey, attrValue.Value)
+func (a *AzureInfoer) GetProducts(regionId string) ([]productinfo.VmInfo, error) {
+	log.Debugf("getting product info [region=%s, %s=%v]", regionId)
 	var vms []productinfo.VmInfo
-
 	vmSizes, err := a.vmSizesClient.List(context.TODO(), regionId)
 	if err != nil {
 		return nil, err
 	}
 	for _, v := range *vmSizes.Value {
-		switch attrKey {
-		case cpu:
-			if *v.NumberOfCores != int32(attrValue.Value) {
-				continue
-			}
-		case memory:
-			if *v.MemoryInMB != int32(attrValue.Value*1000) {
-				continue
-			}
-		}
 		vms = append(vms, productinfo.VmInfo{
 			Type: *v.Name,
 			Cpus: float64(*v.NumberOfCores),
@@ -345,7 +334,7 @@ func (a *AzureInfoer) GetProducts(regionId string, attrKey string, attrValue pro
 		})
 	}
 
-	log.Debugf("found vms [%s=%v]: %#v", attrKey, attrValue.Value, vms)
+	log.Debugf("found vms: %#v", vms)
 	return vms, nil
 }
 

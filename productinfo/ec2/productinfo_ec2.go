@@ -121,12 +121,12 @@ func (e *Ec2Infoer) GetAttributeValues(attribute string) (productinfo.AttrValues
 
 // GetProducts retrieves the available virtual machines based on the arguments provided
 // Delegates to the underlying PricingSource instance and performs transformations
-func (e *Ec2Infoer) GetProducts(regionId string, attrKey string, attrValue productinfo.AttrValue) ([]productinfo.VmInfo, error) {
+func (e *Ec2Infoer) GetProducts(regionId string) ([]productinfo.VmInfo, error) {
 
 	var vms []productinfo.VmInfo
-	log.Debugf("Getting available instance types from AWS API. [region=%s, %s=%s]", regionId, attrKey, attrValue.StrValue)
+	log.Debugf("Getting available instance types from AWS API. [region=%s]", regionId)
 
-	products, err := e.pricingSvc.GetProducts(e.newGetProductsInput(regionId, attrKey, attrValue))
+	products, err := e.pricingSvc.GetProducts(e.newGetProductsInput(regionId))
 
 	if err != nil {
 		return nil, err
@@ -185,7 +185,7 @@ func (e *Ec2Infoer) GetProducts(regionId string, attrKey string, attrValue produ
 	if vms == nil {
 		log.Debugf("couldn't find any virtual machines to recommend")
 	}
-	log.Debugf("found vms [%s=%s]: %#v", attrKey, attrValue.StrValue, vms)
+	log.Debugf("found vms: %#v", vms)
 	return vms, nil
 }
 
@@ -282,7 +282,7 @@ func (e *Ec2Infoer) newAttributeValuesInput(attr string) *pricing.GetAttributeVa
 }
 
 // newAttributeValuesInput assembles a GetAttributeValuesInput instance for querying the provider
-func (e *Ec2Infoer) newGetProductsInput(regionId string, attrKey string, attrValue productinfo.AttrValue) *pricing.GetProductsInput {
+func (e *Ec2Infoer) newGetProductsInput(regionId string) *pricing.GetProductsInput {
 	return &pricing.GetProductsInput{
 
 		ServiceCode: aws.String("AmazonEC2"),
@@ -306,11 +306,6 @@ func (e *Ec2Infoer) newGetProductsInput(regionId string, attrKey string, attrVal
 				Type:  aws.String("TERM_MATCH"),
 				Field: aws.String("preInstalledSw"),
 				Value: aws.String("NA"),
-			},
-			{
-				Type:  aws.String("TERM_MATCH"),
-				Field: aws.String(attrKey),
-				Value: aws.String(attrValue.StrValue),
 			},
 		},
 	}

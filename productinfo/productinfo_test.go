@@ -1,10 +1,10 @@
 package productinfo
 
 import (
+	"errors"
 	"testing"
 	"time"
 
-	"errors"
 	"github.com/aws/aws-sdk-go/aws/endpoints"
 	"github.com/patrickmn/go-cache"
 	"github.com/stretchr/testify/assert"
@@ -38,7 +38,7 @@ func (dpi *DummyProductInfoer) GetAttributeValues(attribute string) (AttrValues,
 	return dpi.AttrValues, nil
 }
 
-func (dpi *DummyProductInfoer) GetProducts(regionId string, attrKey string, attrValue AttrValue) ([]VmInfo, error) {
+func (dpi *DummyProductInfoer) GetProducts(regionId string) ([]VmInfo, error) {
 	if regionId == getProductsError {
 		return nil, errors.New("could not retrieve virtual machines")
 	}
@@ -187,7 +187,7 @@ func TestCachingProductInfo_renewAttrValues(t *testing.T) {
 
 }
 
-func TestCachingProductInfo_renewVmsWithAttr(t *testing.T) {
+func TestCachingProductInfo_renewVms(t *testing.T) {
 	tests := []struct {
 		name          string
 		provider      string
@@ -213,29 +213,11 @@ func TestCachingProductInfo_renewVmsWithAttr(t *testing.T) {
 			checker: func(cache *cache.Cache, vms []VmInfo, err error) {
 				assert.Nil(t, err, "should not get error on vm renewal")
 				assert.Equal(t, 1, len(vms), "there should be a single entry in values")
-				vals, _ := cache.Get("/banzaicloud.com/recommender/dummy/dummyRegion/vms/cpu/2.000000")
+				vals, _ := cache.Get("/banzaicloud.com/recommender/dummy/dummyRegion/vms")
 
 				for _, val := range vals.([]VmInfo) {
 					assert.Equal(t, float64(32), val.Mem, "the value in the cache is not as expected")
 				}
-
-			},
-		},
-		{
-			name:      "unsupported attribute - error",
-			provider:  "dummy",
-			regionId:  "dummyRegion",
-			attrKey:   "invalid",
-			attrValue: AttrValue{Value: float64(2), StrValue: Cpu},
-			ProductInfoer: map[string]ProductInfoer{
-				"dummy": &DummyProductInfoer{
-					Vms: []VmInfo{{Cpus: float64(2), Mem: float64(32), OnDemandPrice: float64(0.32)}},
-				},
-			},
-			Cache: cache.New(5*time.Minute, 10*time.Minute),
-			checker: func(cache *cache.Cache, vms []VmInfo, err error) {
-				assert.EqualError(t, err, "unsupported attribute: invalid")
-				assert.Nil(t, vms, "no vms expected")
 
 			},
 		},
@@ -262,7 +244,7 @@ func TestCachingProductInfo_renewVmsWithAttr(t *testing.T) {
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
 			productInfo, _ := NewCachingProductInfo(10*time.Second, test.Cache, test.ProductInfoer)
-			values, err := productInfo.renewVmsWithAttr(test.provider, test.regionId, test.attrKey, test.attrValue)
+			values, err := productInfo.renewVms(test.provider, test.regionId)
 			test.checker(test.Cache, values, err)
 		})
 	}
@@ -443,10 +425,10 @@ func TestCachingProductInfo_GetVmsWithAttrValue(t *testing.T) {
 			provider: "dummy",
 			regionId: "dummyRegion",
 			attrKey:  Cpu,
-			value:    float64(21),
+			value:    2,
 			ProductInfoer: map[string]ProductInfoer{
 				"dummy": &DummyProductInfoer{
-					Vms:        []VmInfo{{Cpus: float64(2), Mem: float64(32), OnDemandPrice: float64(0.32)}},
+					Vms:        []VmInfo{{Cpus: 2, Mem: 32, OnDemandPrice: 0.32}},
 					AttrValues: AttrValues{AttrValue{Value: float64(21), StrValue: "21"}},
 				},
 			},
@@ -454,9 +436,8 @@ func TestCachingProductInfo_GetVmsWithAttrValue(t *testing.T) {
 			checker: func(cache *cache.Cache, vms []VmInfo, err error) {
 				assert.Nil(t, err, "the returned error must be nil")
 				assert.Equal(t, []VmInfo{{Type: "", OnDemandPrice: 0.32, Cpus: 2, Mem: 32, Gpus: 0}}, vms)
-				assert.Equal(t, 2, cache.ItemCount(), "there should be exactly one item in the cache")
-				vals, _ := cache.Get("/banzaicloud.com/recommender/dummy/dummyRegion/vms/cpu/21.000000")
-
+				assert.Equal(t, 1, cache.ItemCount(), "there should be exactly one item in the cache")
+				vals, _ := cache.Get("/banzaicloud.com/recommender/dummy/dummyRegion/vms")
 				for _, val := range vals.([]VmInfo) {
 					assert.Equal(t, float64(2), val.Cpus)
 				}
@@ -467,10 +448,10 @@ func TestCachingProductInfo_GetVmsWithAttrValue(t *testing.T) {
 			provider: "dummy",
 			regionId: getProductsError,
 			attrKey:  Cpu,
-			value:    float64(21),
+			value:    21,
 			ProductInfoer: map[string]ProductInfoer{
 				"dummy": &DummyProductInfoer{
-					Vms:        []VmInfo{{Cpus: float64(2), Mem: float64(32), OnDemandPrice: float64(0.32)}},
+					Vms:        []VmInfo{{Cpus: 2, Mem: 32, OnDemandPrice: 0.32}},
 					AttrValues: AttrValues{AttrValue{Value: float64(21), StrValue: "21"}},
 				},
 			},

@@ -2,8 +2,9 @@ package productinfo
 
 import (
 	"context"
-	"github.com/patrickmn/go-cache"
 	"time"
+
+	"github.com/patrickmn/go-cache"
 )
 
 const (
@@ -14,7 +15,7 @@ const (
 	Cpu = "cpu"
 
 	// VmKeyTemplate format for generating vm cache keys
-	VmKeyTemplate = "/banzaicloud.com/recommender/%s/%s/vms/%s/%f"
+	VmKeyTemplate = "/banzaicloud.com/recommender/%s/%s/vms"
 
 	// AttrKeyTemplate format for generating attribute cache keys
 	AttrKeyTemplate = "/banzaicloud.com/recommender/%s/attrValues/%s"
@@ -39,7 +40,7 @@ type ProductInfoer interface {
 	GetAttributeValues(attribute string) (AttrValues, error)
 
 	// GetProducts gets product information based on the given arguments from an external system
-	GetProducts(regionId string, attrKey string, attrValue AttrValue) ([]VmInfo, error)
+	GetProducts(regionId string) ([]VmInfo, error)
 
 	// GetZones returns the availability zones in a region
 	GetZones(region string) ([]string, error)
