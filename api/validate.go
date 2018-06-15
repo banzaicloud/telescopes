@@ -108,9 +108,14 @@ func (rd *regionData) validationFn(cpi *productinfo.CachingProductInfo) validato
 		currentProvider := currentStruct.FieldByName("Cloud").String()
 		currentRegion := currentStruct.FieldByName("Region").String()
 
-		regions, _ := cpi.GetRegions(currentProvider)
+		regions, err := cpi.GetRegions(currentProvider)
+		if err != nil {
+			logrus.Errorf("could not get regions for provider: %s, err: %s", currentProvider, err.Error())
+		}
+		
+		logrus.Debugf("current region: %s, regions: %#v", currentRegion, regions)
 		for reg := range regions {
-			logrus.Infof("validating region: %s", reg)
+
 			if reg == currentRegion {
 				return true
 			}

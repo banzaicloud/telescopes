@@ -14,6 +14,11 @@ import (
 	"gopkg.in/go-playground/validator.v8"
 )
 
+const (
+	providerParam = "provider"
+	regionParam   = "region"
+)
+
 // RouteHandler struct that wraps the recommender engine
 type RouteHandler struct {
 	engine *recommender.Engine
@@ -49,7 +54,7 @@ func (r *RouteHandler) ConfigureRoutes(router *gin.Engine) {
 	v := binding.Validator.Engine().(*validator.Validate)
 
 	// set validation middlewares for request path parameter validation
-	router.Use(ValidatePathParam("provider", v, "provider_supported"))
+	router.Use(ValidatePathParam(providerParam, v, "provider_supported"))
 	router.Use(ValidateRegionData(v))
 
 	base := router.Group("/")
@@ -57,10 +62,22 @@ func (r *RouteHandler) ConfigureRoutes(router *gin.Engine) {
 	{
 		base.GET("/status", r.signalStatus)
 	}
-	v1 := router.Group("/api/v1/")
+
+	// the v1 api group
+	v1 := router.Group("/api/v1")
+
+	// recommender api group
+	recGroup := v1.Group("/recommender/")
 	{
-		v1.POST("/recommender/:provider/:region/cluster", r.recommendClusterSetup)
+		recGroup.POST("/:provider/:region/cluster/", r.recommendClusterSetup)
 	}
+
+	// product api group
+	piGroup := v1.Group("/products/")
+	{
+		piGroup.GET("/:provider/:region/", r.getProductInfo)
+	}
+
 }
 
 // EnableAuth enables authentication middleware
@@ -90,8 +107,8 @@ func (r *RouteHandler) signalStatus(c *gin.Context) {
 //       200: recommendationResp
 func (r *RouteHandler) recommendClusterSetup(c *gin.Context) {
 	log.Info("recommend cluster setup")
-	provider := c.Param("provider")
-	region := c.Param("region")
+	provider := c.Param(providerParam)
+	region := c.Param(regionParam)
 
 	// request decorated with provider and region
 	reqWr := RequestWrapper{P: provider, R: region}
@@ -111,6 +128,15 @@ func (r *RouteHandler) recommendClusterSetup(c *gin.Context) {
 	} else {
 		c.JSON(http.StatusOK, *response)
 	}
+}
+
+func (r *RouteHandler) getProductInfo(c *gin.Context) {
+	cProv := c.GetString(providerParam)
+	regIon := c.GetString(regionParam)
+
+	log.Infof("getting product info for provider: %s, region: %s", cProv, regIon)
+	c.JSON(http.StatusOK, "")
+
 }
 
 // RequestWrapper internal struct for passing provider/zone info to the validator
