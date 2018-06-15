@@ -1,5 +1,11 @@
+export class Products {
+  provider: string;
+  products: Product[];
+}
+
 export class Product {
   type: string;
-  cpus: number;
-  mem: number;
+  cpusPerVm: number;
+  memPerVm: number;
 }
+

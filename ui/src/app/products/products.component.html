@@ -7,12 +7,12 @@
 
     <ng-container matColumnDef="cpu">
       <mat-header-cell *matHeaderCellDef> CPUs</mat-header-cell>
-      <mat-cell *matCellDef="let machine"> {{machine.cpus}} vCPUs </mat-cell>
+      <mat-cell *matCellDef="let machine"> {{machine.cpusPerVm}} vCPUs</mat-cell>
     </ng-container>
 
     <ng-container matColumnDef="mem">
       <mat-header-cell *matHeaderCellDef> Memory</mat-header-cell>
-      <mat-cell *matCellDef="let machine"> {{machine.mem}} GB </mat-cell>
+      <mat-cell *matCellDef="let machine"> {{machine.memPerVm}} GB</mat-cell>
     </ng-container>
 
     <mat-header-row *matHeaderRowDef="columnsToDisplay"></mat-header-row>
