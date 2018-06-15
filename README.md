@@ -227,7 +227,7 @@ Because spot prices can be different across availability zones, in this case the
 
 **13. Is there a Google Cloud implementation?**
 
-Not yet, but we're planning to release it in the near future.
+Yes, Google Cloud recommendations work as well, you shoud provide your GCE project id and the GCE api key as application flags to use it.
 
 **14. There's no bid pricing on Google Cloud, what will the recommender take into account there?**
 
@@ -242,7 +242,17 @@ Pipeline is able to start clusters with multiple node pools. This API is used in
 a user to start a properly diversified spot instance based cluster. The recommender itself is not starting instances, it is the responsibility of Pipeline.
 The recommendation can also be customized on the UI and CLI before sending the cluster create request to Pipeline.
 
-**16. How is this project related to [Hollowtrees](https://github.com/banzaicloud/hollowtrees)**
+Pipeline also provides the bearer token to be used when accessing the telescope API. (TBD)
+
+**16. Can the authentication be disabled from the telescopes API?**
+
+Authentication is enabled by default on the API. It *is* however possible to disable it by starting the application in development mode. (just start the app with the `--dev-mode` flag)
+
+Beware that (unrelated) behavior of the application may be affected in this mode (logging for example)
+It's not recommended to use the application in production with this flag!
+
+
+**17. How is this project related to [Hollowtrees](https://github.com/banzaicloud/hollowtrees)**
 
 This project is only capable of recommending a static cluster layout that can be used to start a properly diversified spot cluster.
 But that is only one part of the whole picture: after the cluster is started it is still needed to be managed.
@@ -250,19 +260,19 @@ Spot instances can be taken away by the cloud provider or their price can change
 This maintenance work is done by Hollowtrees, that project is keeping the spot instance based cluster stable during its whole lifecycle.
 When some spot instances are taken away, Hollowtrees can ask the recommender to find substitutes based on the current layout.
 
-**17. What happens when the spot price of one of the instance types is rising after my cluster is running?**
+**18. What happens when the spot price of one of the instance types is rising after my cluster is running?**
 
 It is out of the scope of this project, but [Hollowtrees](https://github.com/banzaicloud/hollowtrees) will be able to handle that situtation.
 See the answer above for more information.
 
-**18. Is this project production ready?**
+**19. Is this project production ready?**
 
 Not yet. To make this project production ready, we need at least the following things:
  - cover the code base with unit tests
  - authentication on the API
  - API validations
 
-**19. What is on the project roadmap for the near future?**
+**20. What is on the project roadmap for the near future?**
 
 The first priority is to stabilize the API and to make it production ready (see above).
 Other than that, these are the things we are planning to add soon:
