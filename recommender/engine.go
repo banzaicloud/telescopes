@@ -275,6 +275,16 @@ func (e *Engine) GetProducts(provider string, region string) (*ProductsResp, err
 				AvgPrice:      0.04,
 				NetworkPerf:   "high",
 			},
+			{
+				Type:          "m4.4xlarge",
+				Mem:           32,
+				Cpus:          16,
+				Gpus:          0,
+				OnDemandPrice: 0.75,
+				Burst:         false,
+				AvgPrice:      0.089,
+				NetworkPerf:   "high",
+			},
 		},
 	}
 	return response, nil
