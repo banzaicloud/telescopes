@@ -1,6 +1,7 @@
 import {Injectable} from '@angular/core';
 import {Product} from './product';
-import {Observable, of} from 'rxjs';
+import {Observable} from 'rxjs';
+import {HttpClient} from '@angular/common/http';
 
 export const PRODUCTS: Product[] = [
   {type: "m5.large", cpus: 4, mem: 8,},
@@ -12,10 +13,12 @@ export const PRODUCTS: Product[] = [
 })
 export class ProductService {
 
-  constructor() {
+  private productsUrl = 'api/v1/products/ec2/eu-west-1';
+
+  constructor(private http: HttpClient,) {
   }
 
   getProducts(): Observable<Product[]> {
-    return of(PRODUCTS);
+    return this.http.get<Product[]>(this.productsUrl)
   }
 }

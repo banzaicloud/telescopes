@@ -3,10 +3,11 @@ package recommender
 import (
 	"errors"
 	"fmt"
-	"github.com/banzaicloud/telescopes/productinfo"
-	log "github.com/sirupsen/logrus"
 	"math"
 	"sort"
+
+	"github.com/banzaicloud/telescopes/productinfo"
+	log "github.com/sirupsen/logrus"
 )
 
 const (
@@ -86,6 +87,14 @@ type ClusterRecommendationResp struct {
 	Zones []string `json:"zones,omitempty"`
 	// Recommended node pools
 	NodePools []NodePool `json:"nodePools"`
+}
+
+// ProductsResp holds the list of available machine types in a region
+// swagger:response recommendationResp
+type ProductsResp struct {
+	// The cloud provider
+	Provider string           `json:"provider"`
+	Products []VirtualMachine `json:"products,omitempty"`
 }
 
 // NodePool represents a set of instances with a specific vm type
@@ -240,6 +249,35 @@ func (e *Engine) RecommendCluster(provider string, region string, req ClusterRec
 		Zones:     req.Zones,
 		NodePools: cheapestNodePoolSet,
 	}, nil
+}
+
+func (e *Engine) GetProducts(provider string, region string) (*ProductsResp, error) {
+	response := &ProductsResp{
+		Provider: provider,
+		Products: []VirtualMachine{
+			{
+				Type:          "m4.xlarge",
+				Mem:           8,
+				Cpus:          4,
+				Gpus:          0,
+				OnDemandPrice: 0.2,
+				Burst:         false,
+				AvgPrice:      0.02,
+				NetworkPerf:   "high",
+			},
+			{
+				Type:          "m4.2xlarge",
+				Mem:           16,
+				Cpus:          8,
+				Gpus:          0,
+				OnDemandPrice: 0.38,
+				Burst:         false,
+				AvgPrice:      0.04,
+				NetworkPerf:   "high",
+			},
+		},
+	}
+	return response, nil
 }
 
 // findCheapestNodePoolSet looks up the "cheapest" node pool set from the provided map

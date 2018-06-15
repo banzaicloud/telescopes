@@ -145,7 +145,6 @@ func (r *RouteHandler) getProductDetails(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusInternalServerError, gin.H{"status": http.StatusInternalServerError, "message": fmt.Sprintf("%s", err)})
-
 }
 
 // RequestWrapper internal struct for passing provider/zone info to the validator
