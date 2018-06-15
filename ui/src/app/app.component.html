@@ -1,27 +1,5 @@
 <header>
   <mat-toolbar color="primary">{{title}}</mat-toolbar>
 </header>
-
-<div class="container">
-  <mat-table [dataSource]="myDataArray">
-    <ng-container matColumnDef="machineType">
-      <mat-header-cell *matHeaderCellDef> Machine Type</mat-header-cell>
-      <mat-cell *matCellDef="let machine"> {{machine.type}} </mat-cell>
-    </ng-container>
-
-    <ng-container matColumnDef="cpu">
-      <mat-header-cell *matHeaderCellDef> CPUs</mat-header-cell>
-      <mat-cell *matCellDef="let machine"> {{machine.cpus}} </mat-cell>
-    </ng-container>
-
-    <ng-container matColumnDef="mem">
-      <mat-header-cell *matHeaderCellDef> Memory</mat-header-cell>
-      <mat-cell *matCellDef="let machine"> {{machine.memory}} </mat-cell>
-    </ng-container>
-
-    <mat-header-row *matHeaderRowDef="columnsToDisplay"></mat-header-row>
-    <mat-row *matRowDef="let myRowData; columns: columnsToDisplay"></mat-row>
-  </mat-table>
-</div>
-
+<app-products></app-products>
 <footer></footer>

@@ -1,0 +1,21 @@
+<div class="container">
+  <mat-table [dataSource]="products">
+    <ng-container matColumnDef="machineType">
+      <mat-header-cell *matHeaderCellDef> Machine Type</mat-header-cell>
+      <mat-cell *matCellDef="let machine"> {{machine.type}} </mat-cell>
+    </ng-container>
+
+    <ng-container matColumnDef="cpu">
+      <mat-header-cell *matHeaderCellDef> CPUs</mat-header-cell>
+      <mat-cell *matCellDef="let machine"> {{machine.cpus}} </mat-cell>
+    </ng-container>
+
+    <ng-container matColumnDef="mem">
+      <mat-header-cell *matHeaderCellDef> Memory</mat-header-cell>
+      <mat-cell *matCellDef="let machine"> {{machine.mem}} </mat-cell>
+    </ng-container>
+
+    <mat-header-row *matHeaderRowDef="columnsToDisplay"></mat-header-row>
+    <mat-row *matRowDef="let machineHeader; columns: columnsToDisplay"></mat-row>
+  </mat-table>
+</div>
