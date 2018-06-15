@@ -6,7 +6,7 @@ import (
 )
 
 var (
-	ntwPerfMap = map[string][]string{
+	NtwPerfMap = map[string][]string{
 		// available categories
 		//"10 Gigabit"
 		//"20 Gigabit"
@@ -26,7 +26,7 @@ var (
 	}
 )
 
-// Ec2NetworkMapper module object for handling amazon sopecific VM to Networking capabilities mapping
+// Ec2NetworkMapper module object for handling amazon specific VM to Networking capabilities mapping
 type Ec2NetworkMapper struct {
 }
 
@@ -37,7 +37,7 @@ func newEc2NetworkMapper() Ec2NetworkMapper {
 
 // MapNetworkPerf maps the network performance of the ec2 to the category supported ny telescope
 func (nm *Ec2NetworkMapper) MapNetworkPerf(vm productinfo.VmInfo) (string, error) {
-	for perfCat, strVals := range ntwPerfMap {
+	for perfCat, strVals := range NtwPerfMap {
 		if contains(strVals, vm.NtwPerf) {
 			return perfCat, nil
 		}

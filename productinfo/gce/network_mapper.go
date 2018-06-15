@@ -6,7 +6,7 @@ import (
 
 var (
 	// TODO
-	ntwPerfMap = map[string][]string{
+	NtwPerfMap = map[string][]string{
 		productinfo.NTW_LOW:    {"Low"},
 		productinfo.NTW_MEDIUM: {"Moderate"},
 		productinfo.NTW_HIGH:   {""},
@@ -24,5 +24,5 @@ func newGceNetworkMapper() *GceNetworkMapper {
 
 // MapNetworkPerf maps the network performance of the gce instance to the category supported by telescopes
 func (nm *GceNetworkMapper) MapNetworkPerf(vm productinfo.VmInfo) (string, error) {
-	return ntwPerfMap[productinfo.NTW_MEDIUM][0], nil
+	return NtwPerfMap[productinfo.NTW_MEDIUM][0], nil
 }

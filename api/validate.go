@@ -12,9 +12,10 @@ import (
 	"github.com/gin-gonic/gin/binding"
 	"github.com/sirupsen/logrus"
 	"gopkg.in/go-playground/validator.v8"
+	"github.com/banzaicloud/telescopes/productinfo/ec2"
 )
 
-// ConfigureValidator configures the Gin validator with custom validato functions
+// ConfigureValidator configures the Gin validator with custom validator functions
 func ConfigureValidator(providers []string, pi *productinfo.CachingProductInfo) {
 	// retrieve the gin validator
 	v := binding.Validator.Engine().(*validator.Validate)
@@ -32,6 +33,9 @@ func ConfigureValidator(providers []string, pi *productinfo.CachingProductInfo) 
 
 	// register validator for zones
 	v.RegisterValidation("zone", ZoneValidatorFn(pi))
+
+	// register validator for network performance
+	v.RegisterValidation("networkperf", NetworkPerfValidatorFn(pi))
 
 }
 
@@ -132,6 +136,29 @@ func ZoneValidatorFn(cpi *productinfo.CachingProductInfo) validator.Func {
 		for _, zone := range zones {
 			if zone == field.String() {
 				return true
+			}
+		}
+		return false
+	}
+}
+
+
+// Returns true if the network performance is valid on the current cloud provider
+func NetworkPerfValidatorFn(cpi *productinfo.CachingProductInfo) validator.Func {
+	// caching product info may be available here, but the provider is not
+	return func(v *validator.Validate, topStruct reflect.Value, currentStruct reflect.Value, field reflect.Value,
+		fieldtype reflect.Type, fieldKind reflect.Kind, param string) bool {
+
+		// dig out the provider from the "topStruct"
+		cloud := reflect.Indirect(topStruct).FieldByName("P").String()
+
+		networkperfs, _ := cpi.GetNetworkPerfMapper(cloud)
+		for _, strval := range ec2.NtwPerfMap{
+			for _, str := range strval{
+				networkperf, _ := networkperfs.MapNetworkPerf(productinfo.VmInfo{NtwPerf: str})
+				if networkperf == field.String(){
+					return true
+				}
 			}
 		}
 		return false

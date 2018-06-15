@@ -74,7 +74,9 @@ type ClusterRecommendationReq struct {
 	// Are burst instances allowed in recommendation
 	AllowBurst *bool `json:"allowBurst,omitempty"`
 	// NertworkPerf specifies the network performance category
-	NetworkPerf *string `json:"networkPerf,omitempty"`
+	NetworkPerf *string `json:"networkPerf,omitempty" binding:"networkperf"`
+	//NetworkPerf *string `json:"networkPerf,omitempty"`
+
 }
 
 // ClusterRecommendationResp encapsulates recommendation result data
