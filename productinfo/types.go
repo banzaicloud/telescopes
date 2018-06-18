@@ -62,9 +62,6 @@ type ProductInfoer interface {
 
 	// GetNetworkPerformanceMapper returns the provider specific network performance mapper
 	GetNetworkPerformanceMapper() (NetworkPerfMapper, error)
-
-	// GetNtwPerfMap returns the provider specific network performance map
-	GetNtwPerfMap() map[string][]string
 }
 
 // ProductInfo is the main entry point for retrieving vm type characteristics and pricing information on different cloud providers
