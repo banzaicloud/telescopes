@@ -1,42 +1,57 @@
-<div class="container">
-  <div class="row">
-    <div class="col-12 mt-5">
-      <mat-form-field class="mr-5">
-        <mat-select [(value)]="provider" placeholder="Cloud Provider" (selectionChange)="getProducts()">
-          <mat-option value="ec2">Amazon EC2</mat-option>
-          <mat-option value="azure">Microsoft Azure</mat-option>
-          <mat-option value="gce">Google Cloud</mat-option>
-        </mat-select>
-      </mat-form-field>
-      <mat-form-field>
-        <mat-select [(value)]="region" placeholder="Region">
-          <mat-option value="eu-west-1">EU West 1</mat-option>
-          <mat-option value="eu-central-1">EU Central 1</mat-option>
-        </mat-select>
-      </mat-form-field>
-    </div>
+<div class="row">
+  <div class="col-1">
   </div>
-  <div class="row">
-    <div class="col-12">
-      <mat-table [dataSource]="products">
-        <ng-container matColumnDef="machineType">
-          <mat-header-cell *matHeaderCellDef> Machine Type</mat-header-cell>
-          <mat-cell *matCellDef="let machine"> {{machine.type}} </mat-cell>
-        </ng-container>
+  <div class="col-6 mt-5">
+    <mat-form-field class="mr-5">
+      <mat-select [(value)]="provider" placeholder="Cloud Provider" (selectionChange)="updateProducts()">
+        <mat-option value="ec2">Amazon EC2</mat-option>
+        <mat-option value="azure">Microsoft Azure</mat-option>
+        <mat-option value="gce">Google Cloud</mat-option>
+      </mat-select>
+    </mat-form-field>
+    <mat-form-field>
+      <mat-select [(value)]="region" placeholder="Region" (selectionChange)="getProducts()">
+        <mat-option *ngFor="let region of regions" value="{{region.id}}">{{region.name}}</mat-option>
+      </mat-select>
+    </mat-form-field>
+  </div>
+  <div class="col-4 mt-5">
+    <mat-form-field class="float-right">
+      <input matInput (keyup)="applyFilter($event.target.value)" placeholder="Filter">
+    </mat-form-field>
+  </div>
+  <div class="col-1">
+  </div>
+</div>
+<div class="row">
+  <div class="col-1">
+  </div>
+  <div class="col-10">
+    <mat-table [dataSource]="products">
+      <ng-container matColumnDef="machineType">
+        <mat-header-cell *matHeaderCellDef> Machine Type</mat-header-cell>
+        <mat-cell *matCellDef="let machine"> {{machine.type}} </mat-cell>
+      </ng-container>
 
-        <ng-container matColumnDef="cpu">
-          <mat-header-cell *matHeaderCellDef> CPUs</mat-header-cell>
-          <mat-cell *matCellDef="let machine"> {{machine.cpusPerVm}} vCPUs</mat-cell>
-        </ng-container>
+      <ng-container matColumnDef="cpu">
+        <mat-header-cell *matHeaderCellDef> CPUs</mat-header-cell>
+        <mat-cell *matCellDef="let machine"> {{machine.cpus}}</mat-cell>
+      </ng-container>
 
-        <ng-container matColumnDef="mem">
-          <mat-header-cell *matHeaderCellDef> Memory</mat-header-cell>
-          <mat-cell *matCellDef="let machine"> {{machine.memPerVm}} GB</mat-cell>
-        </ng-container>
+      <ng-container matColumnDef="mem">
+        <mat-header-cell *matHeaderCellDef> Memory</mat-header-cell>
+        <mat-cell *matCellDef="let machine"> {{machine.mem}}</mat-cell>
+      </ng-container>
 
-        <mat-header-row *matHeaderRowDef="columnsToDisplay"></mat-header-row>
-        <mat-row *matRowDef="let machineHeader; columns: columnsToDisplay"></mat-row>
-      </mat-table>
-    </div>
+      <ng-container matColumnDef="regularPrice">
+        <mat-header-cell *matHeaderCellDef> On Demand Price</mat-header-cell>
+        <mat-cell *matCellDef="let machine"> {{machine.regularPrice}}</mat-cell>
+      </ng-container>
+
+      <mat-header-row *matHeaderRowDef="columnsToDisplay"></mat-header-row>
+      <mat-row *matRowDef="let machineHeader; columns: columnsToDisplay"></mat-row>
+    </mat-table>
+  </div>
+  <div class="col-1">
   </div>
 </div>

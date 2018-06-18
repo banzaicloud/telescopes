@@ -4,6 +4,7 @@ import {BrowserAnimationsModule} from '@angular/platform-browser/animations';
 import {MatToolbarModule} from '@angular/material/toolbar';
 import {MatTableModule} from '@angular/material/table';
 import {MatSelectModule} from '@angular/material/select';
+import {MatInputModule} from '@angular/material/input';
 import {HttpClientModule} from '@angular/common/http';
 
 import {AppComponent} from './app.component';
@@ -20,6 +21,7 @@ import {ProductsComponent} from './products/products.component';
     MatToolbarModule,
     MatTableModule,
     MatSelectModule,
+    MatInputModule,
     HttpClientModule
   ],
   providers: [],

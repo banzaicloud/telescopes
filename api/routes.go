@@ -79,6 +79,11 @@ func (r *RouteHandler) ConfigureRoutes(router *gin.Engine) {
 		piGroup.GET("/:provider/:region/", r.getProductDetails)
 	}
 
+	metaGroup := v1.Group("/regions")
+	{
+		metaGroup.GET("/:provider", r.getRegions)
+	}
+
 }
 
 // EnableAuth enables authentication middleware
@@ -145,6 +150,29 @@ func (r *RouteHandler) getProductDetails(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusInternalServerError, gin.H{"status": http.StatusInternalServerError, "message": fmt.Sprintf("%s", err)})
+}
+
+func (r *RouteHandler) getRegions(c *gin.Context) {
+	provider := c.Param("provider")
+
+	//// request decorated with provider and region
+	//reqWr := RequestWrapper{P: provider, R: region}
+	//
+	//if err := c.BindJSON(&reqWr); err != nil {
+	//	log.Errorf("failed to bind request body: %s", err.Error())
+	//	c.JSON(http.StatusBadRequest, gin.H{
+	//		"code":    "bad_params",
+	//		"message": "invalid zone",
+	//		"cause":   err.Error(),
+	//	})
+	//	return
+	//}
+
+	if response, err := r.engine.GetRegions(provider); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"status": http.StatusInternalServerError, "message": fmt.Sprintf("%s", err)})
+	} else {
+		c.JSON(http.StatusOK, response)
+	}
 }
 
 // RequestWrapper internal struct for passing provider/zone info to the validator
