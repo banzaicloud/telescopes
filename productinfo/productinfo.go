@@ -66,8 +66,6 @@ func NewCachingProductInfo(ri time.Duration, cache *cache.Cache, infoers map[str
 		vmAttrStore:     cache,
 		renewalInterval: ri,
 	}
-
-	// todo add validator here
 	return &pi, nil
 }
 
@@ -403,4 +401,39 @@ func (pi *CachingProductInfo) GetRegions(provider string) (map[string]string, er
 
 func (pi *CachingProductInfo) getRegionsKey(provider string) string {
 	return fmt.Sprintf(RegionKeyTemplate, provider)
+}
+
+// GetProductDetails retrieves product details form the given provider and region
+func (pi *CachingProductInfo) GetProductDetails(cloud string, region string) (*ProductDetailsResponse, error) {
+	log.Debugf("getting product details for provider: %s, region: %s", cloud, region)
+
+	cachedVms, ok := pi.vmAttrStore.Get(pi.getVmKey(cloud, region))
+	if !ok {
+		return nil, fmt.Errorf("vms not yet cached for the key: %s", pi.getVmKey(cloud, region))
+	}
+
+	vms := cachedVms.([]VmInfo)
+	details := make([]ProductDetails, len(vms))
+
+	var pr Price
+	for _, vm := range vms {
+
+		pd := newProductDetails(vm)
+
+		if cachedVal, ok := pi.vmAttrStore.Get(pi.getPriceKey(cloud, region, vm.Type)); ok {
+			pr = cachedVal.(Price)
+		} else {
+			log.Debugf("price info not yet cached for key: %s", pi.getPriceKey(cloud, region, vm.Type))
+		}
+
+		for zone, price := range pr.SpotPrice {
+			pd.SpotInfo = append(pd.SpotInfo, *newZonePrice(zone, price))
+		}
+
+		details = append(details, *pd)
+	}
+
+	return &ProductDetailsResponse{
+		Products: details,
+	}, nil
 }

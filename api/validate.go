@@ -112,10 +112,9 @@ func (rd *regionData) validationFn(cpi *productinfo.CachingProductInfo) validato
 		if err != nil {
 			logrus.Errorf("could not get regions for provider: %s, err: %s", currentProvider, err.Error())
 		}
-		
+
 		logrus.Debugf("current region: %s, regions: %#v", currentRegion, regions)
 		for reg := range regions {
-
 			if reg == currentRegion {
 				return true
 			}
