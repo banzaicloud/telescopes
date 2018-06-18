@@ -53,7 +53,3 @@ func contains(slice []string, val string) bool {
 	}
 	return false
 }
-
-func (e *Ec2Infoer) GetNtwPerfMap() map[string][]string {
-	return ntwPerfMap
-}

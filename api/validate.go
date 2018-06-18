@@ -141,6 +141,7 @@ func ZoneValidatorFn(cpi *productinfo.CachingProductInfo) validator.Func {
 	}
 }
 
+// NetworkPerfValidatorFn validates the network performance in the recommandation request.
 // Returns true if the network performance is valid
 func NetworkPerfValidatorFn() validator.Func {
 	return func(v *validator.Validate, topStruct reflect.Value, currentStruct reflect.Value, field reflect.Value,

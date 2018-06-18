@@ -26,7 +26,3 @@ func newGceNetworkMapper() *GceNetworkMapper {
 func (nm *GceNetworkMapper) MapNetworkPerf(vm productinfo.VmInfo) (string, error) {
 	return ntwPerfMap[productinfo.NTW_MEDIUM][0], nil
 }
-
-func (g *GceInfoer) GetNtwPerfMap() map[string][]string {
-	return ntwPerfMap
-}

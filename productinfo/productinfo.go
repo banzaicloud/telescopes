@@ -404,7 +404,3 @@ func (pi *CachingProductInfo) GetRegions(provider string) (map[string]string, er
 func (pi *CachingProductInfo) getRegionsKey(provider string) string {
 	return fmt.Sprintf(RegionKeyTemplate, provider)
 }
-
-func (pi *CachingProductInfo) GetNtwPerfMap(provider string) map[string][]string {
-	return pi.productInfoers[provider].GetNtwPerfMap()
-}

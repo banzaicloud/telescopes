@@ -26,7 +26,3 @@ func newAzureNetworkMapper() *AzureNetworkMapper {
 func (nm *AzureNetworkMapper) MapNetworkPerf(vm productinfo.VmInfo) (string, error) {
 	return ntwPerfMap[productinfo.NTW_MEDIUM][0], nil
 }
-
-func (a *AzureInfoer) GetNtwPerfMap() map[string][]string {
-	return ntwPerfMap
-}
