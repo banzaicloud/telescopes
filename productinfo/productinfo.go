@@ -234,7 +234,7 @@ func (pi *CachingProductInfo) HasShortLivedPriceInfo(provider string) bool {
 	return pi.productInfoers[provider].HasShortLivedPriceInfo()
 }
 
-// GetPrice returns the ondemand price and zone averaged computed spot price for a given instance type in a given region
+// GetPrice returns the on demand price and zone averaged computed spot price for a given instance type in a given region
 func (pi *CachingProductInfo) GetPrice(provider string, region string, instanceType string, zones []string) (float64, float64, error) {
 	var p Price
 	if cachedVal, ok := pi.vmAttrStore.Get(pi.getPriceKey(provider, region, instanceType)); ok {
@@ -362,7 +362,7 @@ func (pi *CachingProductInfo) GetZones(provider string, region string) ([]string
 		return nil, err
 	}
 
-	// cache the results / use the cahce default expiry
+	// cache the results / use the cache default expiry
 	pi.vmAttrStore.Set(zoneCacheKey, zones, 0)
 	return zones, nil
 }
@@ -396,7 +396,7 @@ func (pi *CachingProductInfo) GetRegions(provider string) (map[string]string, er
 		return nil, err
 	}
 
-	// cache the results / use the cahce default expiry
+	// cache the results / use the cache default expiry
 	pi.vmAttrStore.Set(regionCacheKey, regions, 0)
 	return regions, nil
 }

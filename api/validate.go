@@ -14,7 +14,7 @@ import (
 	"gopkg.in/go-playground/validator.v8"
 )
 
-// ConfigureValidator configures the Gin validator with custom validato functions
+// ConfigureValidator configures the Gin validator with custom validator functions
 func ConfigureValidator(providers []string, pi *productinfo.CachingProductInfo) {
 	// retrieve the gin validator
 	v := binding.Validator.Engine().(*validator.Validate)
@@ -28,10 +28,13 @@ func ConfigureValidator(providers []string, pi *productinfo.CachingProductInfo) 
 
 	// register validator for the region parameter in the request path
 	rd := regionData{}
-	v.RegisterValidation("region-data", rd.validationFn(pi))
+	v.RegisterValidation("region", rd.validationFn(pi))
 
 	// register validator for zones
 	v.RegisterValidation("zone", ZoneValidatorFn(pi))
+
+	// register validator for network performance
+	v.RegisterValidation("network", NetworkPerfValidatorFn())
 
 }
 
@@ -85,7 +88,7 @@ type regionData struct {
 	// Cloud the cloud provider from the request path
 	Cloud string `binding:"required"`
 	// Region the region in the request path
-	Region string `binding:"region-data"`
+	Region string `binding:"region"`
 }
 
 // String representation of the path data
@@ -135,5 +138,27 @@ func ZoneValidatorFn(cpi *productinfo.CachingProductInfo) validator.Func {
 			}
 		}
 		return false
+	}
+}
+
+// NetworkPerfValidatorFn validates the network performance in the recommendation request.
+// Returns true if the network performance is valid
+func NetworkPerfValidatorFn() validator.Func {
+	return func(v *validator.Validate, topStruct reflect.Value, currentStruct reflect.Value, field reflect.Value,
+		fieldtype reflect.Type, fieldKind reflect.Kind, param string) bool {
+
+		switch field.String() {
+		case productinfo.NTW_LOW:
+			return true
+		case productinfo.NTW_MEDIUM:
+			return true
+		case productinfo.NTW_HIGH:
+			return true
+		case productinfo.NTW_EXTRA:
+			return true
+		default:
+			logrus.Errorf("could not retrieve network mapper")
+			return false
+		}
 	}
 }

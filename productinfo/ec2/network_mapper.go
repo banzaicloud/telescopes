@@ -26,7 +26,7 @@ var (
 	}
 )
 
-// Ec2NetworkMapper module object for handling amazon sopecific VM to Networking capabilities mapping
+// Ec2NetworkMapper module object for handling amazon specific VM to Networking capabilities mapping
 type Ec2NetworkMapper struct {
 }
 
