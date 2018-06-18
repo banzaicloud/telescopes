@@ -4,6 +4,7 @@ import (
 	"context"
 	"time"
 
+	"fmt"
 	"github.com/patrickmn/go-cache"
 )
 
@@ -94,7 +95,7 @@ type ProductInfo interface {
 // CachingProductInfo is the module struct, holds configuration and cache
 // It's the entry point for the product info retrieval and management subsystem
 type CachingProductInfo struct {
-	productInfoers  map[string]ProductInfoer `validate:"required"`
+	productInfoers  map[string]ProductInfoer
 	renewalInterval time.Duration
 	vmAttrStore     *cache.Cache
 }
@@ -125,4 +126,52 @@ var (
 type NetworkPerfMapper interface {
 	// MapNetworkPerf gets the network performance category for the given
 	MapNetworkPerf(vm VmInfo) (string, error)
+}
+
+// ZonePrice struct for displaying proce information per zone
+type ZonePrice struct {
+	Zone  string `json:"zone"`
+	Price string `json:"price"`
+}
+
+// newZonePrice creates a new zone price struct and returns its pointer
+func newZonePrice(zone string, price float64) *ZonePrice {
+	return &ZonePrice{
+		Zone:  zone,
+		Price: fmt.Sprintf("%f", price)}
+}
+
+// ProductDetails extended view of the virtual machine details.
+// apart of the VmInfo it may hold derived or additional information
+type ProductDetails struct {
+	// Embedded struct!
+	VmInfo
+
+	// Burst this is derived for now
+	Burst bool `json:"burst,omitempty"`
+
+	// ZonePrice holds spot price information per zone
+	SpotInfo []ZonePrice `json:"spotPrice"`
+
+	// add other info here if necessary
+}
+
+// ProductDetailsResponse Api object to be mapped to product info response
+type ProductDetailsResponse struct {
+	// Products represents a slice of products for a given provider (VMs with attributes and process)
+	Products []ProductDetails
+}
+
+// ProductDetailSource product details related set of operations
+type ProductDetailSource interface {
+	// GetProductDetails gathers the product details information known by telescope
+	GetProductDetails(cloud string, region string) (*ProductDetailsResponse, error)
+}
+
+// newProductDetails creates a new ProductDetails struct and returns a pointer to it
+func newProductDetails(vm VmInfo) *ProductDetails {
+	pd := ProductDetails{}
+	pd.VmInfo = vm
+	pd.Burst = vm.IsBurst()
+	return &pd
 }

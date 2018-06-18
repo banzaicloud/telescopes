@@ -53,10 +53,6 @@ func (r *RouteHandler) ConfigureRoutes(router *gin.Engine) {
 
 	v := binding.Validator.Engine().(*validator.Validate)
 
-	// set validation middlewares for request path parameter validation
-	router.Use(ValidatePathParam(providerParam, v, "provider_supported"))
-	router.Use(ValidateRegionData(v))
-
 	base := router.Group("/")
 	base.Use(cors.New(getCorsConfig()))
 	{
@@ -65,17 +61,20 @@ func (r *RouteHandler) ConfigureRoutes(router *gin.Engine) {
 
 	// the v1 api group
 	v1 := router.Group("/api/v1")
+	// set validation middlewares for request path parameter validation
+	v1.Use(ValidatePathParam(providerParam, v, "provider_supported"))
+	v1.Use(ValidateRegionData(v))
 
 	// recommender api group
-	recGroup := v1.Group("/recommender/")
+	recGroup := v1.Group("/recommender")
 	{
 		recGroup.POST("/:provider/:region/cluster/", r.recommendClusterSetup)
 	}
 
 	// product api group
-	piGroup := v1.Group("/products/")
+	piGroup := v1.Group("/products")
 	{
-		piGroup.GET("/:provider/:region/", r.getProductInfo)
+		piGroup.GET("/:provider/:region/", r.getProductDetails)
 	}
 
 }
@@ -130,12 +129,19 @@ func (r *RouteHandler) recommendClusterSetup(c *gin.Context) {
 	}
 }
 
-func (r *RouteHandler) getProductInfo(c *gin.Context) {
-	cProv := c.GetString(providerParam)
-	regIon := c.GetString(regionParam)
+func (r *RouteHandler) getProductDetails(c *gin.Context) {
+	cProv := c.Param(providerParam)
+	regIon := c.Param(regionParam)
 
-	log.Infof("getting product info for provider: %s, region: %s", cProv, regIon)
-	c.JSON(http.StatusOK, "")
+	log.Infof("getting product details for provider: %s, region: %s", cProv, regIon)
+
+	var err error
+	if details, err := r.prod.GetProductDetails(cProv, regIon); err == nil {
+		log.Debugf("successfully retrieved product details:  %s, region: %s", cProv, regIon)
+		c.JSON(http.StatusOK, *details)
+	}
+
+	c.JSON(http.StatusInternalServerError, gin.H{"status": http.StatusInternalServerError, "message": fmt.Sprintf("%s", err)})
 
 }
 
