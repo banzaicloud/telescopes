@@ -34,7 +34,7 @@ func ConfigureValidator(providers []string, pi *productinfo.CachingProductInfo) 
 	v.RegisterValidation("zone", ZoneValidatorFn(pi))
 
 	// register validator for network performance
-	v.RegisterValidation("network", NetworkPerfValidatorFn(pi))
+	v.RegisterValidation("network", NetworkPerfValidatorFn())
 
 }
 
@@ -141,9 +141,8 @@ func ZoneValidatorFn(cpi *productinfo.CachingProductInfo) validator.Func {
 	}
 }
 
-// Returns true if the network performance is valid on the current cloud provider
-func NetworkPerfValidatorFn(cpi *productinfo.CachingProductInfo) validator.Func {
-	// caching product info may be available here, but the provider is not
+// Returns true if the network performance is valid
+func NetworkPerfValidatorFn() validator.Func {
 	return func(v *validator.Validate, topStruct reflect.Value, currentStruct reflect.Value, field reflect.Value,
 		fieldtype reflect.Type, fieldKind reflect.Kind, param string) bool {
 
