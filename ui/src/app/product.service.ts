@@ -28,7 +28,8 @@ export class ProductService {
               res.type,
               res.cpusPerVm + " vCPUs",
               res.memPerVm + " GB",
-              "$" + res.onDemandPrice)
+              "$" + res.onDemandPrice,
+              "$")
           })
       })
     )

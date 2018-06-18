@@ -17,8 +17,17 @@
   </div>
   <div class="col-4 mt-5">
     <mat-form-field class="float-right">
-      <input matInput (keyup)="applyFilter($event.target.value)" placeholder="Filter">
+      <input matInput (keyup)="applyFilter($event.target.value)" placeholder="Search">
     </mat-form-field>
+  </div>
+  <div class="col-1">
+  </div>
+</div>
+<div class="row">
+  <div class="col-1">
+  </div>
+  <div class="col-10">
+    <span class="mr-3">Get the same result with cURL:</span><code>curl -X GET 'localhost:9092/api/v1/products/{{provider}}/{{region}}'</code>
   </div>
   <div class="col-1">
   </div>
@@ -44,8 +53,13 @@
       </ng-container>
 
       <ng-container matColumnDef="regularPrice">
-        <mat-header-cell *matHeaderCellDef> On Demand Price</mat-header-cell>
+        <mat-header-cell *matHeaderCellDef> On Demand Price (Linux)</mat-header-cell>
         <mat-cell *matCellDef="let machine"> {{machine.regularPrice}}</mat-cell>
+      </ng-container>
+
+      <ng-container matColumnDef="spotPrice">
+        <mat-header-cell *matHeaderCellDef> Average Spot Price</mat-header-cell>
+        <mat-cell *matCellDef="let machine"> {{machine.spotPrice}}</mat-cell>
       </ng-container>
 
       <mat-header-row *matHeaderRowDef="columnsToDisplay"></mat-header-row>
