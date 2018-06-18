@@ -82,6 +82,9 @@ type ProductInfo interface {
 	// GetZones returns all the availability zones for a region
 	GetZones(provider string, region string) ([]string, error)
 
+	// GetRegions returns all the regions for a cloud provider
+	GetRegions(provider string) (map[string]string, error)
+
 	// HasShortLivedPriceInfo signals if a product info provider has frequently changing price info
 	HasShortLivedPriceInfo(provider string) bool
 

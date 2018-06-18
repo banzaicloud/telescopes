@@ -93,8 +93,14 @@ type ClusterRecommendationResp struct {
 // swagger:response recommendationResp
 type ProductsResp struct {
 	// The cloud provider
-	Provider string           `json:"provider"`
-	Products []VirtualMachine `json:"products,omitempty"`
+	Provider string               `json:"provider"`
+	Products []productinfo.VmInfo `json:"products,omitempty"`
+}
+
+// RegionResp holds the list of available regions of a cloud provider
+type RegionResp struct {
+	Id   string `json:"id"`
+	Name string `json:"name"`
 }
 
 // NodePool represents a set of instances with a specific vm type
@@ -251,59 +257,85 @@ func (e *Engine) RecommendCluster(provider string, region string, req ClusterRec
 	}, nil
 }
 
+func (e *Engine) GetRegions(provider string) ([]RegionResp, error) {
+	regions, err := e.productInfo.GetRegions(provider)
+	if err != nil {
+		return nil, err
+	}
+	var response []RegionResp
+	for id, name := range regions {
+		response = append(response, RegionResp{id, name})
+	}
+	return response, nil
+}
+
 func (e *Engine) GetProducts(provider string, region string) (*ProductsResp, error) {
-	fmt.Println("*****", provider, region)
 	switch provider {
 	case "gce":
 		response := &ProductsResp{
 			Provider: provider,
-			Products: []VirtualMachine{
+			Products: []productinfo.VmInfo{
+				{
+					Type:          "n1-standard-2",
+					Mem:           4,
+					Cpus:          2,
+					Gpus:          0,
+					OnDemandPrice: 0.123,
+					SpotPrice: productinfo.SpotPriceInfo{
+						"eu-west-1a": 0.0209,
+						"eu-west-1b": 0.0201,
+						"eu-west-1c": 0.0231,
+					},
+					NtwPerf: "high",
+				},
 				{
 					Type:          "n1-standard-4",
 					Mem:           8,
 					Cpus:          4,
 					Gpus:          0,
-					OnDemandPrice: 0.2,
-					Burst:         false,
-					AvgPrice:      0.02,
-					NetworkPerf:   "high",
+					OnDemandPrice: 0.328,
+					SpotPrice: productinfo.SpotPriceInfo{
+						"eu-west-1a": 0.02109,
+						"eu-west-1b": 0.02301,
+						"eu-west-1c": 0.02231,
+					},
+					NtwPerf: "high",
 				},
 				{
 					Type:          "n1-standard-8",
 					Mem:           16,
 					Cpus:          8,
 					Gpus:          0,
-					OnDemandPrice: 0.38,
-					Burst:         false,
-					AvgPrice:      0.04,
-					NetworkPerf:   "high",
-				},
-				{
-					Type:          "n1-standard-16",
-					Mem:           32,
-					Cpus:          16,
-					Gpus:          0,
-					OnDemandPrice: 0.75,
-					Burst:         false,
-					AvgPrice:      0.089,
-					NetworkPerf:   "high",
+					OnDemandPrice: 0.575,
+					SpotPrice: productinfo.SpotPriceInfo{
+						"eu-west-1a": 0.03209,
+						"eu-west-1b": 0.03201,
+						"eu-west-1c": 0.03231,
+					},
+					NtwPerf: "high",
 				},
 			},
+		}
+		if region == "europe-west1" {
+			response.Products[0].Cpus = 17
 		}
 		return response, nil
 	case "ec2":
 		response := &ProductsResp{
 			Provider: provider,
-			Products: []VirtualMachine{
+			Products: []productinfo.VmInfo{
 				{
 					Type:          "m4.xlarge",
 					Mem:           8,
 					Cpus:          4,
 					Gpus:          0,
 					OnDemandPrice: 0.2,
-					Burst:         false,
-					AvgPrice:      0.02,
-					NetworkPerf:   "high",
+					SpotPrice: productinfo.SpotPriceInfo{
+						"eu-west-1a": 0.0209,
+						"eu-west-1b": 0.0201,
+						"eu-west-1c": 0.0231,
+					},
+					NtwPerf: "high",
 				},
 				{
 					Type:          "m4.2xlarge",
@@ -311,9 +343,12 @@ func (e *Engine) GetProducts(provider string, region string) (*ProductsResp, err
 					Cpus:          8,
 					Gpus:          0,
 					OnDemandPrice: 0.38,
-					Burst:         false,
-					AvgPrice:      0.04,
-					NetworkPerf:   "high",
+					SpotPrice: productinfo.SpotPriceInfo{
+						"eu-west-1a": 0.0209,
+						"eu-west-1b": 0.0201,
+						"eu-west-1c": 0.0231,
+					},
+					NtwPerf: "high",
 				},
 				{
 					Type:          "m4.4xlarge",
@@ -321,11 +356,17 @@ func (e *Engine) GetProducts(provider string, region string) (*ProductsResp, err
 					Cpus:          16,
 					Gpus:          0,
 					OnDemandPrice: 0.75,
-					Burst:         false,
-					AvgPrice:      0.089,
-					NetworkPerf:   "high",
+					SpotPrice: productinfo.SpotPriceInfo{
+						"eu-west-1a": 0.011,
+						"eu-west-1b": 0.012,
+						"eu-west-1c": 0.013,
+					},
+					NtwPerf: "high",
 				},
 			},
+		}
+		if region == "eu-west-1" {
+			response.Products[0].Cpus = 19
 		}
 		return response, nil
 	}

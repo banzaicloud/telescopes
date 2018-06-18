@@ -1,28 +1,35 @@
 import {Injectable} from '@angular/core';
-import {Product, Products} from './product';
+import {DisplayedProduct, Products, Region} from './product';
 import {Observable} from 'rxjs';
 import {map} from 'rxjs/operators';
 import {HttpClient} from '@angular/common/http';
-
-export const PRODUCTS: Product[] = [
-  {type: "m5.large", cpusPerVm: 4, memPerVm: 8,},
-  {type: "m5.xlarge", cpusPerVm: 8, memPerVm: 16},
-]
 
 @Injectable({
   providedIn: 'root'
 })
 export class ProductService {
 
-  private productsUrlBase = 'api/v1/products/';
+  private productsUrlBase = 'api/v1/';
 
   constructor(private http: HttpClient) {
   }
 
-  getProducts(provider, region): Observable<Product[]> {
-    return this.http.get<Products>(this.productsUrlBase + provider + "/" + region).pipe(
+  getRegions(provider): Observable<Region[]> {
+    return this.http.get<Region[]>(this.productsUrlBase + "regions/" + provider)
+  }
+
+
+  getProducts(provider, region): Observable<DisplayedProduct[]> {
+    return this.http.get<Products>(this.productsUrlBase + "products/" + provider + "/" + region).pipe(
       map(res => {
-        return res.products
+        return res.products.map(
+          res => {
+            return new DisplayedProduct(
+              res.type,
+              res.cpusPerVm + " vCPUs",
+              res.memPerVm + " GB",
+              "$" + res.onDemandPrice)
+          })
       })
     )
   }
