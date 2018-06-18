@@ -8,13 +8,20 @@ export class Product {
   cpusPerVm: number;
   memPerVm: number;
   onDemandPrice: number;
+  spotPrice: SpotPrice[];
+}
+
+export class SpotPrice {
+  zone: string;
+  price: number;
 }
 
 export class DisplayedProduct {
   constructor(private type: string,
               private cpus: string,
               private mem: string,
-              private regularPrice: string) {
+              private regularPrice: string,
+              private spotPrice: string) {
   }
 }
 

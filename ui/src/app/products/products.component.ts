@@ -11,7 +11,7 @@ import {MatTableDataSource} from "@angular/material";
 })
 export class ProductsComponent implements OnInit {
 
-  columnsToDisplay = ['machineType', 'cpu', 'mem', 'regularPrice'];
+  columnsToDisplay = ['machineType', 'cpu', 'mem', 'regularPrice', 'spotPrice'];
 
   regions: Region[];
   provider: string = "ec2";
