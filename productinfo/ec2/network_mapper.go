@@ -6,7 +6,7 @@ import (
 )
 
 var (
-	NtwPerfMap = map[string][]string{
+	ntwPerfMap = map[string][]string{
 		// available categories
 		//"10 Gigabit"
 		//"20 Gigabit"
@@ -37,7 +37,7 @@ func newEc2NetworkMapper() Ec2NetworkMapper {
 
 // MapNetworkPerf maps the network performance of the ec2 to the category supported ny telescope
 func (nm *Ec2NetworkMapper) MapNetworkPerf(vm productinfo.VmInfo) (string, error) {
-	for perfCat, strVals := range NtwPerfMap {
+	for perfCat, strVals := range ntwPerfMap {
 		if contains(strVals, vm.NtwPerf) {
 			return perfCat, nil
 		}
@@ -52,4 +52,8 @@ func contains(slice []string, val string) bool {
 		}
 	}
 	return false
+}
+
+func (e *Ec2Infoer) GetNtwPerfMap() map[string][]string {
+	return ntwPerfMap
 }

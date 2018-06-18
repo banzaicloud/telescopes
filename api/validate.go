@@ -150,17 +150,17 @@ func NetworkPerfValidatorFn(cpi *productinfo.CachingProductInfo) validator.Func 
 		// dig out the provider from the "topStruct"
 		cloud := reflect.Indirect(topStruct).FieldByName("P").String()
 
-		if perfMapper, err := cpi.GetNetworkPerfMapper(cloud); err == nil {
-
-			// the requested network performance is "valid" if it can be mapped to a telescope "category"
-			if perfCat, err := perfMapper.MapNetworkPerf(productinfo.VmInfo{NtwPerf: field.String()}); err == nil {
-				logrus.Debugf("validation succeeded. provider: %s : %s is mapped to %s", cloud, field.String(), perfCat)
-				return true
-			} else {
-				logrus.Debugf("validation failed for: %s", field.String())
-				return false
+		perfMapper, _ := cpi.GetNetworkPerfMapper(cloud)
+		ntwPerfMap := cpi.GetNtwPerfMap(cloud)
+		for _, values := range ntwPerfMap {
+			for _, value := range values {
+				// the requested network performance is "valid" if it can be mapped to a telescope "category"
+				perfCat, _ := perfMapper.MapNetworkPerf(productinfo.VmInfo{NtwPerf: value})
+				if perfCat == field.String() {
+					logrus.Debugf("validation succeeded. provider: %s : %s is mapped to %s", cloud, value, field.String())
+					return true
+				}
 			}
-
 		}
 		logrus.Errorf("could not retrieve network mapper for provider: %s", cloud)
 		return false

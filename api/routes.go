@@ -100,7 +100,7 @@ func (r *RouteHandler) recommendClusterSetup(c *gin.Context) {
 		log.Errorf("failed to bind request body: %s", err.Error())
 		c.JSON(http.StatusBadRequest, gin.H{
 			"code":    "bad_params",
-			"message": "invalid zone",
+			"message": "invalid zone(s) or network performance",
 			"cause":   err.Error(),
 		})
 		return
