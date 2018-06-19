@@ -110,10 +110,14 @@ type NodePool struct {
 
 // ClusterRecommendationAccuracy encapsulates recommendation accuracy
 type ClusterRecommendationAccuracy struct {
-	RespMem  float64  `json:"memory"`
-	RespCpu  float64  `json:"cpu"`
-	RespNode int      `json:"node"`
-	RespZone []string `json:"zone"`
+	// Number of recommended memories
+	RecMem float64 `json:"memory"`
+	// Number of recommended cpus
+	RecCpu float64 `json:"cpu"`
+	// Number of recommended nodes
+	RecNode int `json:"node"`
+	// Availability zones in the recommendation
+	RecZone []string `json:"zone,omitempty"`
 }
 
 // VirtualMachine describes an instance type
@@ -253,7 +257,7 @@ func (e *Engine) RecommendCluster(provider string, region string, req ClusterRec
 
 	cheapestNodePoolSet := e.findCheapestNodePoolSet(nodePools)
 
-	accuracy := e.findResponseSum(provider, region, req.Zones, cheapestNodePoolSet)
+	accuracy := req.findResponseSum(provider, region, cheapestNodePoolSet)
 
 	return &ClusterRecommendationResp{
 		Provider:  provider,
@@ -276,7 +280,7 @@ func (e *Engine) GetRegions(provider string) ([]RegionResp, error) {
 	return response, nil
 }
 
-func (e *Engine) findResponseSum(provider string, region string, zones []string, nodePoolSet []NodePool) ClusterRecommendationAccuracy {
+func (req *ClusterRecommendationReq) findResponseSum(provider string, region string, nodePoolSet []NodePool) ClusterRecommendationAccuracy {
 	var sumCpus float64
 	var sumMem float64
 	var sumNodes int
@@ -286,20 +290,11 @@ func (e *Engine) findResponseSum(provider string, region string, zones []string,
 		sumNodes += nodePool.SumNodes
 	}
 
-	if zones == nil || len(zones) == 0 {
-		zones = []string{}
-	}
-
-	if len(zones) == 0 {
-		z, _ := e.productInfo.GetZones(provider, region)
-		zones = z
-	}
-
 	return ClusterRecommendationAccuracy{
-		RespCpu:  sumCpus,
-		RespMem:  sumMem,
-		RespNode: sumNodes,
-		RespZone: zones,
+		RecCpu:  sumCpus,
+		RecMem:  sumMem,
+		RecNode: sumNodes,
+		RecZone: req.Zones,
 	}
 }
 
