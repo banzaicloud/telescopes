@@ -160,6 +160,7 @@ type ProductDetails struct {
 }
 
 // ProductDetailsResponse Api object to be mapped to product info response
+// swagger:response productDetailsResponse
 type ProductDetailsResponse struct {
 	// Products represents a slice of products for a given provider (VMs with attributes and process)
 	Products []ProductDetails

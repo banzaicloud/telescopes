@@ -137,6 +137,19 @@ func (r *RouteHandler) recommendClusterSetup(c *gin.Context) {
 	}
 }
 
+// swagger:route GET /products/:provider/:region products getProductDetails
+//
+// Provides a list of available machine types on a given provider in a specific region.
+//
+//     Produces:
+//     - application/json
+//
+//     Schemes: http
+//
+//     Security:
+//
+//     Responses:
+//       200: productDetailsResponse
 func (r *RouteHandler) getProductDetails(c *gin.Context) {
 	cProv := c.Param(providerParam)
 	regIon := c.Param(regionParam)
@@ -153,21 +166,21 @@ func (r *RouteHandler) getProductDetails(c *gin.Context) {
 	c.JSON(http.StatusInternalServerError, gin.H{"status": http.StatusInternalServerError, "message": fmt.Sprintf("%s", err)})
 }
 
+// swagger:route GET /regions/:provider regions getRegions
+//
+// Provides the list of available regions of a cloud provider
+//
+//     Produces:
+//     - application/json
+//
+//     Schemes: http
+//
+//     Security:
+//
+//     Responses:
+//       200: regionsResponse
 func (r *RouteHandler) getRegions(c *gin.Context) {
 	provider := c.Param("provider")
-
-	//// request decorated with provider and region
-	//reqWr := RequestWrapper{P: provider, R: region}
-	//
-	//if err := c.BindJSON(&reqWr); err != nil {
-	//	log.Errorf("failed to bind request body: %s", err.Error())
-	//	c.JSON(http.StatusBadRequest, gin.H{
-	//		"code":    "bad_params",
-	//		"message": "invalid zone",
-	//		"cause":   err.Error(),
-	//	})
-	//	return
-	//}
 
 	if response, err := r.engine.GetRegions(provider); err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"status": http.StatusInternalServerError, "message": fmt.Sprintf("%s", err)})

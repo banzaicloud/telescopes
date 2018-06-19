@@ -124,6 +124,10 @@ func (d *dummyProductInfo) GetNetworkPerfMapper(provider string) (productinfo.Ne
 	return nm, nil
 }
 
+func (d *dummyProductInfo) GetRegions(provider string) (map[string]string, error) {
+	return nil, nil
+}
+
 func TestEngine_RecommendAttrValues(t *testing.T) {
 
 	tests := []struct {

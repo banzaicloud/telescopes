@@ -16,6 +16,17 @@ info:
     url: 'http://www.apache.org/licenses/LICENSE-2.0.html'
   version: 0.0.1
 paths:
+  '/products/:provider/:region':
+    get:
+      tags:
+        - products
+      summary: >-
+        Provides a list of available machine types on a given provider in a
+        specific region.
+      operationId: getProductDetails
+      responses:
+        '200':
+          $ref: '#/components/responses/productDetailsResponse'
   '/recommender/:provider/:region/cluster':
     post:
       tags:
@@ -96,10 +107,30 @@ paths:
       responses:
         '200':
           $ref: '#/components/responses/recommendationResp'
+  '/regions/:provider':
+    get:
+      description: Provides the list of available regions of a cloud provider
+      tags:
+        - regions
+      operationId: getRegions
+      responses:
+        '200':
+          $ref: '#/components/responses/regionsResponse'
 servers:
   - url: /api/v1
 components:
   responses:
+    productDetailsResponse:
+      description: ProductDetailsResponse Api object to be mapped to product info response
+      headers:
+        Products:
+          description: >-
+            Products represents a slice of products for a given provider (VMs
+            with attributes and process)
+          schema:
+            type: array
+            items:
+              $ref: '#/components/schemas/ProductDetails'
     recommendationResp:
       description: ClusterRecommendationResp encapsulates recommendation result data
       headers:
@@ -121,6 +152,15 @@ components:
             type: array
             items:
               type: string
+    regionsResponse:
+      description: RegionResp holds the list of available regions of a cloud provider
+      headers:
+        id:
+          schema:
+            type: string
+        name:
+          schema:
+            type: string
   schemas:
     NodePool:
       description: NodePool represents a set of instances with a specific vm type
@@ -140,6 +180,50 @@ components:
           type: string
           x-go-name: VmClass
       x-go-package: github.com/banzaicloud/telescopes/recommender
+    ProductDetails:
+      description: apart of the VmInfo it may hold derived or additional information
+      type: object
+      title: ProductDetails extended view of the virtual machine details.
+      properties:
+        burst:
+          description: Burst this is derived for now
+          type: boolean
+          x-go-name: Burst
+        cpusPerVm:
+          type: number
+          format: double
+          x-go-name: Cpus
+        gpusPerVm:
+          type: number
+          format: double
+          x-go-name: Gpus
+        memPerVm:
+          type: number
+          format: double
+          x-go-name: Mem
+        ntwPerf:
+          type: string
+          x-go-name: NtwPerf
+        onDemandPrice:
+          type: number
+          format: double
+          x-go-name: OnDemandPrice
+        spotPrice:
+          type: array
+          items:
+            $ref: '#/components/schemas/ZonePrice'
+          $ref: '#/components/schemas/SpotPriceInfo'
+        type:
+          type: string
+          x-go-name: Type
+      x-go-package: github.com/banzaicloud/telescopes/productinfo
+    SpotPriceInfo:
+      description: SpotPriceInfo represents different prices per availability zones
+      type: object
+      additionalProperties:
+        type: number
+        format: double
+      x-go-package: github.com/banzaicloud/telescopes/productinfo
     VirtualMachine:
       description: VirtualMachine describes an instance type
       type: object
@@ -184,4 +268,15 @@ components:
           type: string
           x-go-name: Type
       x-go-package: github.com/banzaicloud/telescopes/recommender
+    ZonePrice:
+      description: ZonePrice struct for displaying proce information per zone
+      type: object
+      properties:
+        price:
+          type: string
+          x-go-name: Price
+        zone:
+          type: string
+          x-go-name: Zone
+      x-go-package: github.com/banzaicloud/telescopes/productinfo
 
