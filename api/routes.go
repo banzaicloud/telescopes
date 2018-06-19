@@ -13,6 +13,7 @@ import (
 	"github.com/gin-gonic/gin/binding"
 	log "github.com/sirupsen/logrus"
 	"gopkg.in/go-playground/validator.v8"
+	"os"
 )
 
 const (
@@ -54,15 +55,21 @@ func (r *RouteHandler) ConfigureRoutes(router *gin.Engine) {
 
 	v := binding.Validator.Engine().(*validator.Validate)
 
-	router.Use(static.Serve("/", static.LocalFile("./ui/dist/ui", true)))
-	base := router.Group("/")
+	basePath := "/"
+	if basePathFromEnv := os.Getenv("BASEPATH"); basePathFromEnv != "" {
+		basePath = basePathFromEnv
+	}
+
+	router.Use(static.Serve(basePath, static.LocalFile("./ui/dist/ui", true)))
+
+	base := router.Group(basePath)
 	{
 		base.GET("/status", r.signalStatus)
 		base.Use(cors.New(getCorsConfig()))
 	}
 
 	// the v1 api group
-	v1 := router.Group("/api/v1")
+	v1 := base.Group("/api/v1")
 	// set validation middlewares for request path parameter validation
 	v1.Use(ValidatePathParam(providerParam, v, "provider_supported"))
 
