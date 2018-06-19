@@ -87,6 +87,8 @@ type ClusterRecommendationResp struct {
 	Zones []string `json:"zones,omitempty"`
 	// Recommended node pools
 	NodePools []NodePool `json:"nodePools"`
+	// Accuracy of the recommendation
+	Accuracy ClusterRecommendationAccuracy `json:"accuracy"`
 }
 
 // RegionResp holds the list of available regions of a cloud provider
@@ -104,6 +106,14 @@ type NodePool struct {
 	SumNodes int `json:"sumNodes"`
 	// Specifies if the recommended node pool consists of regular or spot/preemptible instance types
 	VmClass string `json:"vmClass"`
+}
+
+// ClusterRecommendationAccuracy encapsulates recommendation accuracy
+type ClusterRecommendationAccuracy struct {
+	RespMem  float64  `json:"memory"`
+	RespCpu  float64  `json:"cpu"`
+	RespNode int      `json:"node"`
+	RespZone []string `json:"zone"`
 }
 
 // VirtualMachine describes an instance type
@@ -243,10 +253,13 @@ func (e *Engine) RecommendCluster(provider string, region string, req ClusterRec
 
 	cheapestNodePoolSet := e.findCheapestNodePoolSet(nodePools)
 
+	accuracy := e.findResponseSum(provider, region, req.Zones, cheapestNodePoolSet)
+
 	return &ClusterRecommendationResp{
 		Provider:  provider,
 		Zones:     req.Zones,
 		NodePools: cheapestNodePoolSet,
+		Accuracy:  accuracy,
 	}, nil
 }
 
@@ -261,6 +274,33 @@ func (e *Engine) GetRegions(provider string) ([]RegionResp, error) {
 		response = append(response, RegionResp{id, name})
 	}
 	return response, nil
+}
+
+func (e *Engine) findResponseSum(provider string, region string, zones []string, nodePoolSet []NodePool) ClusterRecommendationAccuracy {
+	var sumCpus float64
+	var sumMem float64
+	var sumNodes int
+	for _, nodePool := range nodePoolSet {
+		sumCpus += nodePool.getSum(productinfo.Cpu)
+		sumMem += nodePool.getSum(productinfo.Memory)
+		sumNodes += nodePool.SumNodes
+	}
+
+	if zones == nil || len(zones) == 0 {
+		zones = []string{}
+	}
+
+	if len(zones) == 0 {
+		z, _ := e.productInfo.GetZones(provider, region)
+		zones = z
+	}
+
+	return ClusterRecommendationAccuracy{
+		RespCpu:  sumCpus,
+		RespMem:  sumMem,
+		RespNode: sumNodes,
+		RespZone: zones,
+	}
 }
 
 // findCheapestNodePoolSet looks up the "cheapest" node pool set from the provided map

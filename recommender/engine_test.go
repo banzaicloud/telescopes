@@ -108,7 +108,7 @@ func (d *dummyProductInfo) GetZones(provider string, region string) ([]string, e
 	if d.TcId == ZoneError {
 		return nil, errors.New("no zone available")
 	}
-	return nil, nil
+	return []string{"dummyZone1", "dummyZone2", "dummyZone3"}, nil
 }
 
 func (d *dummyProductInfo) GetPrice(provider string, region string, instanceType string, zones []string) (float64, float64, error) {
@@ -464,6 +464,27 @@ func TestEngine_RecommendCluster(t *testing.T) {
 				assert.Equal(t, 7, len(response.NodePools))
 				assert.Equal(t, "dummy", response.Provider)
 				assert.Equal(t, []string{"testZone1", "testZone2"}, response.Zones)
+				assert.Equal(t, []string{"testZone1", "testZone2"}, response.Accuracy.RespZone)
+				assert.Equal(t, 9, response.Accuracy.RespNode)
+				assert.Equal(t, float64(104), response.Accuracy.RespMem)
+				assert.Equal(t, float64(104), response.Accuracy.RespCpu)
+			},
+		},
+		{
+			name: "cluster recommendation success",
+			pi:   &dummyProductInfo{},
+			request: ClusterRecommendationReq{
+				MinNodes: 5,
+				MaxNodes: 10,
+				SumMem:   100,
+				SumCpu:   100,
+			},
+			provider: "dummy",
+			region:   "us-west-2",
+			check: func(response *ClusterRecommendationResp, err error) {
+				assert.Nil(t, err, "should not get error when recommending")
+				assert.Equal(t, []string(nil), response.Zones)
+				assert.Equal(t, []string{"dummyZone1", "dummyZone2", "dummyZone3"}, response.Accuracy.RespZone)
 			},
 		},
 		{
