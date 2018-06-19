@@ -464,14 +464,14 @@ func TestEngine_RecommendCluster(t *testing.T) {
 				assert.Equal(t, 7, len(response.NodePools))
 				assert.Equal(t, "dummy", response.Provider)
 				assert.Equal(t, []string{"testZone1", "testZone2"}, response.Zones)
-				assert.Equal(t, []string{"testZone1", "testZone2"}, response.Accuracy.RespZone)
-				assert.Equal(t, 9, response.Accuracy.RespNode)
-				assert.Equal(t, float64(104), response.Accuracy.RespMem)
-				assert.Equal(t, float64(104), response.Accuracy.RespCpu)
+				assert.Equal(t, []string{"testZone1", "testZone2"}, response.Accuracy.RecZone)
+				assert.Equal(t, 9, response.Accuracy.RecNode)
+				assert.Equal(t, float64(104), response.Accuracy.RecMem)
+				assert.Equal(t, float64(104), response.Accuracy.RecCpu)
 			},
 		},
 		{
-			name: "cluster recommendation success",
+			name: "cluster recommendation success - zone slice is empty",
 			pi:   &dummyProductInfo{},
 			request: ClusterRecommendationReq{
 				MinNodes: 5,
@@ -484,7 +484,7 @@ func TestEngine_RecommendCluster(t *testing.T) {
 			check: func(response *ClusterRecommendationResp, err error) {
 				assert.Nil(t, err, "should not get error when recommending")
 				assert.Equal(t, []string(nil), response.Zones)
-				assert.Equal(t, []string{"dummyZone1", "dummyZone2", "dummyZone3"}, response.Accuracy.RespZone)
+				assert.Equal(t, []string(nil), response.Accuracy.RecZone)
 			},
 		},
 		{
