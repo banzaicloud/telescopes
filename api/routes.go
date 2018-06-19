@@ -65,17 +65,18 @@ func (r *RouteHandler) ConfigureRoutes(router *gin.Engine) {
 	v1 := router.Group("/api/v1")
 	// set validation middlewares for request path parameter validation
 	v1.Use(ValidatePathParam(providerParam, v, "provider_supported"))
-	v1.Use(ValidateRegionData(v))
 
 	// recommender api group
 	recGroup := v1.Group("/recommender")
 	{
+		recGroup.Use(ValidateRegionData(v))
 		recGroup.POST("/:provider/:region/cluster/", r.recommendClusterSetup)
 	}
 
 	// product api group
 	piGroup := v1.Group("/products")
 	{
+		piGroup.Use(ValidateRegionData(v))
 		piGroup.GET("/:provider/:region/", r.getProductDetails)
 	}
 
