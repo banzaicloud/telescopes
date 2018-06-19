@@ -583,7 +583,7 @@ func TestEngine_filtersForAttr(t *testing.T) {
 			pi:   &dummyProductInfo{},
 			attr: productinfo.Cpu,
 			check: func(vms []vmFilter, err error) {
-				assert.Equal(t, 3, len(vms), "invalid filter count")
+				assert.Equal(t, 5, len(vms), "invalid filter count")
 				assert.Nil(t, err, "the error should be nil")
 			},
 		},
@@ -592,7 +592,7 @@ func TestEngine_filtersForAttr(t *testing.T) {
 			pi:   &dummyProductInfo{},
 			attr: productinfo.Memory,
 			check: func(vms []vmFilter, err error) {
-				assert.Equal(t, 3, len(vms), "invalid filter count")
+				assert.Equal(t, 5, len(vms), "invalid filter count")
 				assert.Nil(t, err, "the error should be nil")
 			},
 		},
@@ -811,6 +811,138 @@ func TestEngine_burstFilter(t *testing.T) {
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
 			test.check(test.engine.burstFilter(test.vm, test.req))
+		})
+	}
+}
+
+func TestEngine_ExcludesFilter(t *testing.T) {
+	tests := []struct {
+		name   string
+		engine Engine
+		vm     VirtualMachine
+		req    ClusterRecommendationReq
+		check  func(res bool)
+	}{
+		{
+			name:   "nil blacklist",
+			engine: Engine{},
+			vm: VirtualMachine{
+				Type: "vm-type",
+			},
+			req: ClusterRecommendationReq{},
+			check: func(res bool) {
+				assert.True(t, res, "all vms should pass")
+			},
+		},
+		{
+			name:   "empty blacklist",
+			engine: Engine{},
+			vm: VirtualMachine{
+				Type: "vm-type",
+			},
+			req: ClusterRecommendationReq{
+				Excludes: []string{},
+			},
+			check: func(res bool) {
+				assert.True(t, res, "all vms should pass")
+			},
+		},
+		{
+			name:   "vm blacklisted",
+			engine: Engine{},
+			vm: VirtualMachine{
+				Type: "blacklisted-type",
+			},
+			req: ClusterRecommendationReq{
+				Excludes: []string{"blacklisted-type", "other type"},
+			},
+			check: func(res bool) {
+				assert.False(t, res, "the filter should fail")
+			},
+		},
+		{
+			name:   "vm not blacklisted",
+			engine: Engine{},
+			vm: VirtualMachine{
+				Type: "not-blacklisted-type",
+			},
+			req: ClusterRecommendationReq{
+				Excludes: []string{"blacklisted-type", "other type"},
+			},
+			check: func(res bool) {
+				assert.True(t, res, "the filter should fail")
+			},
+		},
+	}
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			test.check(test.engine.excludesFilter(test.vm, test.req))
+		})
+	}
+}
+
+func TestEngine_IncludesFilter(t *testing.T) {
+	tests := []struct {
+		name   string
+		engine Engine
+		vm     VirtualMachine
+		req    ClusterRecommendationReq
+		check  func(res bool)
+	}{
+		{
+			name:   "nil whitelist",
+			engine: Engine{},
+			vm: VirtualMachine{
+				Type: "vm-type",
+			},
+			req: ClusterRecommendationReq{},
+			check: func(res bool) {
+				assert.True(t, res, "all vms should pass")
+			},
+		},
+		{
+			name:   "empty whitelist",
+			engine: Engine{},
+			vm: VirtualMachine{
+				Type: "vm-type",
+			},
+			req: ClusterRecommendationReq{
+				Includes: []string{},
+			},
+			check: func(res bool) {
+				assert.True(t, res, "all vms should pass")
+			},
+		},
+		{
+			name:   "vm whitelisted",
+			engine: Engine{},
+			vm: VirtualMachine{
+				Type: "whitelisted-type",
+			},
+			req: ClusterRecommendationReq{
+				Includes: []string{"whitelisted-type", "other type"},
+			},
+			check: func(res bool) {
+				assert.True(t, res, "the filter should pass")
+			},
+		},
+		{
+			name:   "vm not whitelisted",
+			engine: Engine{},
+			vm: VirtualMachine{
+				Type: "not-blacklisted-type",
+			},
+			req: ClusterRecommendationReq{
+				Includes: []string{"blacklisted-type", "other type"},
+			},
+			check: func(res bool) {
+				assert.False(t, res, "the filter should fail")
+			},
+		},
+	}
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			test.check(test.engine.includesFilter(test.vm, test.req))
 		})
 	}
 }

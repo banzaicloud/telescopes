@@ -8,6 +8,7 @@ import (
 
 	"github.com/banzaicloud/telescopes/productinfo"
 	log "github.com/sirupsen/logrus"
+	"k8s.io/kubernetes/pkg/util/slice"
 )
 
 const (
@@ -76,6 +77,10 @@ type ClusterRecommendationReq struct {
 	AllowBurst *bool `json:"allowBurst,omitempty"`
 	// NertworkPerf specifies the network performance category
 	NetworkPerf *string `json:"networkPerf" binding:"omitempty,network"`
+	// Excludes is a blacklist - a slice with vm types to be excluded from the recommendation
+	Excludes []string `json:"excludes,omitempty"`
+	// Includes is a whitelist - a slice with vm types to be contained in the recommendation
+	Includes []string `json:"includes,omitempty"`
 }
 
 // ClusterRecommendationResp encapsulates recommendation result data
@@ -169,6 +174,32 @@ func (e *Engine) ntwPerformanceFilter(vm VirtualMachine, req ClusterRecommendati
 		return true
 	}
 	if vm.NetworkPerf == *req.NetworkPerf { //the network performance category matches the vm
+		return true
+	}
+	return false
+}
+
+// excludeFilter checks for the vm type in the request' exclude list, the filter  passes if the type is not excluded
+func (e *Engine) excludesFilter(vm VirtualMachine, req ClusterRecommendationReq) bool {
+	if req.Excludes == nil || len(req.Excludes) == 0 {
+		log.Debugf("no blacklist provided - all vm types are welcome")
+		return true
+	}
+	if slice.ContainsString(req.Excludes, vm.Type, nil) {
+		log.Debugf("the vm type [%s] is blacklisted", vm.Type)
+		return false
+	}
+	return true
+}
+
+// includesFilter checks whether the vm type is in the includes list; the filter passes if the type is in the list
+func (e *Engine) includesFilter(vm VirtualMachine, req ClusterRecommendationReq) bool {
+	if req.Includes == nil || len(req.Includes) == 0 {
+		log.Debugf("no whitelist specified - all vm types are welcome")
+		return true
+	}
+	if slice.ContainsString(req.Includes, vm.Type, nil) {
+		log.Debugf("the vm type [%s] is whitelisted", vm.Type)
 		return true
 	}
 	return false
@@ -478,9 +509,9 @@ func (e *Engine) RecommendAttrValues(provider string, attr string, req ClusterRe
 func (e *Engine) filtersForAttr(attr string) ([]vmFilter, error) {
 	switch attr {
 	case productinfo.Cpu:
-		return []vmFilter{e.ntwPerformanceFilter, e.minMemRatioFilter, e.burstFilter}, nil
+		return []vmFilter{e.ntwPerformanceFilter, e.minMemRatioFilter, e.burstFilter, e.includesFilter, e.excludesFilter}, nil
 	case productinfo.Memory:
-		return []vmFilter{e.ntwPerformanceFilter, e.minCpuRatioFilter, e.burstFilter}, nil
+		return []vmFilter{e.ntwPerformanceFilter, e.minCpuRatioFilter, e.burstFilter, e.includesFilter, e.excludesFilter}, nil
 	default:
 		return nil, fmt.Errorf("unsupported attribute: [%s]", attr)
 	}

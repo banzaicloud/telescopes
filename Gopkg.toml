@@ -62,3 +62,7 @@
 [[constraint]]
   branch = "master"
   name = "github.com/gin-contrib/static"
+
+[[constraint]]
+  name = "k8s.io/kubernetes"
+  version = "1.10.4"
