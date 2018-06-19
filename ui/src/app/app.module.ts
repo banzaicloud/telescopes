@@ -7,6 +7,7 @@ import {MatSelectModule} from '@angular/material/select';
 import {MatExpansionModule} from '@angular/material/expansion';
 import {MatInputModule} from '@angular/material/input';
 import {MatIconModule} from '@angular/material/icon';
+import {MatSortModule} from '@angular/material/sort';
 import {HttpClientModule} from '@angular/common/http';
 
 import {AppComponent} from './app.component';
@@ -25,6 +26,7 @@ import {ProductsComponent} from './products/products.component';
     MatSelectModule,
     MatInputModule,
     MatExpansionModule,
+    MatSortModule,
     MatIconModule,
     HttpClientModule
   ],
