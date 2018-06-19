@@ -38,10 +38,10 @@ export class ProductService {
             return new DisplayedProduct(
               res.type,
               res.cpusPerVm + " vCPUs",
-              res.memPerVm + " GB",
+              res.memPerVm.toFixed(2) + " GB",
               "$" + res.onDemandPrice.toFixed(5),
               displayedSpot,
-              res.ntwPerf)
+              res.ntwPerf == "" ? "unavailable" : res.ntwPerf)
           })
       })
     )
