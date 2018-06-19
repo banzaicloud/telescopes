@@ -43,11 +43,6 @@ export class ProductsComponent implements OnInit {
       .subscribe(products => {
         this.products = new MatTableDataSource<DisplayedProduct>(products)
         this.products.sort = this.sort;
-        this.sort.sort(<MatSortable>{
-            id: 'type',
-            start: 'asc'
-          }
-        );
       });
   }
 
