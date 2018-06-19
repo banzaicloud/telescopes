@@ -78,9 +78,9 @@ type ClusterRecommendationReq struct {
 	// NertworkPerf specifies the network performance category
 	NetworkPerf *string `json:"networkPerf" binding:"omitempty,network"`
 	// Excludes is a blacklist - a slice with vm types to be excluded from the recommendation
-	Excludes []string `json:"exclude,omitempty"`
+	Excludes []string `json:"excludes,omitempty"`
 	// Includes is a whitelist - a slice with vm types to be contained in the recommendation
-	Includes []string `json:"include, omitempty"`
+	Includes []string `json:"includes,omitempty"`
 }
 
 // ClusterRecommendationResp encapsulates recommendation result data
