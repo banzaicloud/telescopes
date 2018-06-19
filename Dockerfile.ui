@@ -8,7 +8,7 @@ ADD ./ui /ui
 WORKDIR /ui
 RUN npm install
 RUN npm install -g @angular/cli
-RUN ng build --base-href=/productinfo/
+RUN ng build --configuration=production --base-href=/productinfo/
 
 FROM alpine:3.7
 RUN apk update && apk add ca-certificates && rm -rf /var/cache/apk/*
