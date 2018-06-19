@@ -417,11 +417,13 @@ func (pi *CachingProductInfo) GetProductDetails(cloud string, region string) (*P
 
 	var pr Price
 	for i, vm := range vms {
-
 		pd := newProductDetails(vm)
-
 		if cachedVal, ok := pi.vmAttrStore.Get(pi.getPriceKey(cloud, region, vm.Type)); ok {
 			pr = cachedVal.(Price)
+			// fill the on demand price if appropriate
+			if pr.OnDemandPrice > 0 {
+				pd.OnDemandPrice = pr.OnDemandPrice
+			}
 		} else {
 			log.Debugf("price info not yet cached for key: %s", pi.getPriceKey(cloud, region, vm.Type))
 		}
