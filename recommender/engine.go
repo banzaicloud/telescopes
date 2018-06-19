@@ -110,11 +110,11 @@ type NodePool struct {
 
 // ClusterRecommendationAccuracy encapsulates recommendation accuracy
 type ClusterRecommendationAccuracy struct {
-	// Number of recommended memories
+	// The summarised amount of memory in the recommended cluster
 	RecMem float64 `json:"memory"`
-	// Number of recommended cpus
+	// The summarised amount of cpu in the recommended cluster
 	RecCpu float64 `json:"cpu"`
-	// Number of recommended nodes
+	// The summarised amount of node in the recommended cluster
 	RecNode int `json:"node"`
 	// Availability zones in the recommendation
 	RecZone []string `json:"zone,omitempty"`
