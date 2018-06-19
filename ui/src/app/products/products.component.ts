@@ -1,8 +1,8 @@
-import {Component, OnInit} from '@angular/core';
+import {Component, OnInit, ViewChild} from '@angular/core';
 import {ProductService} from '../product.service';
 import {DisplayedProduct, Region} from "../product";
 import {Observable} from "rxjs/index";
-import {MatTableDataSource} from "@angular/material";
+import {MatSort, MatTableDataSource} from "@angular/material";
 
 @Component({
   selector: 'app-products',
@@ -11,7 +11,7 @@ import {MatTableDataSource} from "@angular/material";
 })
 export class ProductsComponent implements OnInit {
 
-  columnsToDisplay = ['machineType', 'cpu', 'mem', 'regularPrice', 'spotPrice'];
+  columnsToDisplay = ['type', 'cpu', 'mem', 'ntwPerf', 'regularPrice', 'spotPrice'];
 
   regions: Region[];
   provider: string = "ec2";
@@ -20,6 +20,8 @@ export class ProductsComponent implements OnInit {
 
   constructor(private productService: ProductService) {
   }
+
+  @ViewChild(MatSort) sort: MatSort;
 
   ngOnInit() {
     this.updateProducts()
@@ -38,7 +40,10 @@ export class ProductsComponent implements OnInit {
 
   getProducts(): void {
     this.productService.getProducts(this.provider, this.region)
-      .subscribe(products => this.products = new MatTableDataSource<DisplayedProduct>(products));
+      .subscribe(products => {
+        this.products = new MatTableDataSource<DisplayedProduct>(products)
+        this.products.sort = this.sort;
+      });
   }
 
   updateProducts(): void {

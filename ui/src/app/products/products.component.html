@@ -36,29 +36,34 @@
   <div class="col-1">
   </div>
   <div class="col-10">
-    <mat-table [dataSource]="products">
-      <ng-container matColumnDef="machineType">
-        <mat-header-cell *matHeaderCellDef> Machine Type</mat-header-cell>
+    <mat-table [dataSource]="products" matSort (matSortChange)="sortData($event)">
+      <ng-container matColumnDef="type">
+        <mat-header-cell *matHeaderCellDef mat-sort-header> Machine Type</mat-header-cell>
         <mat-cell *matCellDef="let machine"> {{machine.type}} </mat-cell>
       </ng-container>
 
       <ng-container matColumnDef="cpu">
-        <mat-header-cell *matHeaderCellDef> CPUs</mat-header-cell>
+        <mat-header-cell *matHeaderCellDef mat-sort-header> CPUs</mat-header-cell>
         <mat-cell *matCellDef="let machine"> {{machine.cpus}}</mat-cell>
       </ng-container>
 
       <ng-container matColumnDef="mem">
-        <mat-header-cell *matHeaderCellDef> Memory</mat-header-cell>
+        <mat-header-cell *matHeaderCellDef mat-sort-header> Memory</mat-header-cell>
         <mat-cell *matCellDef="let machine"> {{machine.mem}}</mat-cell>
       </ng-container>
 
+      <ng-container matColumnDef="ntwPerf">
+        <mat-header-cell *matHeaderCellDef mat-sort-header> Network Performance</mat-header-cell>
+        <mat-cell *matCellDef="let machine"> {{machine.ntwPerf}}</mat-cell>
+      </ng-container>
+
       <ng-container matColumnDef="regularPrice">
-        <mat-header-cell *matHeaderCellDef> On Demand Price (Linux)</mat-header-cell>
+        <mat-header-cell *matHeaderCellDef mat-sort-header> On Demand Price (Linux)</mat-header-cell>
         <mat-cell *matCellDef="let machine"> {{machine.regularPrice}}</mat-cell>
       </ng-container>
 
       <ng-container matColumnDef="spotPrice">
-        <mat-header-cell *matHeaderCellDef> Average Spot Price</mat-header-cell>
+        <mat-header-cell *matHeaderCellDef mat-sort-header> Average Spot Price</mat-header-cell>
         <mat-cell *matCellDef="let machine"> {{machine.spotPrice}}</mat-cell>
       </ng-container>
 

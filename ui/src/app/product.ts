@@ -1,6 +1,6 @@
 export class Products {
-  provider: string;
-  products: Product[];
+  // provider: string;
+  Products: Product[];
 }
 
 export class Product {
@@ -9,11 +9,12 @@ export class Product {
   memPerVm: number;
   onDemandPrice: number;
   spotPrice: SpotPrice[];
+  ntwPerf: string;
 }
 
 export class SpotPrice {
   zone: string;
-  price: number;
+  price: string;
 }
 
 export class DisplayedProduct {
@@ -21,7 +22,8 @@ export class DisplayedProduct {
               private cpus: string,
               private mem: string,
               private regularPrice: string,
-              private spotPrice: string) {
+              private spotPrice: string,
+              private ntwPerf: string) {
   }
 }
 
