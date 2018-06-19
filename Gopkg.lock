@@ -592,6 +592,7 @@
     "pkg/util/intstr",
     "pkg/util/json",
     "pkg/util/net",
+    "pkg/util/rand",
     "pkg/util/runtime",
     "pkg/util/sets",
     "pkg/util/validation",
@@ -623,9 +624,15 @@
   revision = "23781f4d6632d88e869066eaebb743857aa1ef9b"
   version = "v7.0.0"
 
+[[projects]]
+  name = "k8s.io/kubernetes"
+  packages = ["pkg/util/slice"]
+  revision = "5ca598b4ba5abb89bb773071ce452e33fb66339d"
+  version = "v1.10.4"
+
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "409bda12aa316dfe7a5d22370cd4826b5d15097919b2af9eb3c7ba3ecbf1aefb"
+  inputs-digest = "5a15c961c9a8d4088609709f9390e6018f843712d3dd195044e9d7a8cb6bf467"
   solver-name = "gps-cdcl"
   solver-version = 1
