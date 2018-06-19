@@ -27,7 +27,8 @@
   <div class="col-1">
   </div>
   <div class="col-10">
-    <span class="mr-3">Get the same result with cURL:</span><code>curl -X GET 'localhost:9092/api/v1/products/{{provider}}/{{region}}'</code>
+    <span class="mr-3">Get the same result with cURL:</span><code>curl -X GET
+    'localhost:9092/api/v1/products/{{provider}}/{{region}}'</code>
   </div>
   <div class="col-1">
   </div>
@@ -36,7 +37,7 @@
   <div class="col-1">
   </div>
   <div class="col-10">
-    <mat-table [dataSource]="products" matSort (matSortChange)="sortData($event)">
+    <mat-table [dataSource]="products" matSort>
       <ng-container matColumnDef="type">
         <mat-header-cell *matHeaderCellDef mat-sort-header> Machine Type</mat-header-cell>
         <mat-cell *matCellDef="let machine"> {{machine.type}} </mat-cell>

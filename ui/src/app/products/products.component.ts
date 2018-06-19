@@ -2,7 +2,7 @@ import {Component, OnInit, ViewChild} from '@angular/core';
 import {ProductService} from '../product.service';
 import {DisplayedProduct, Region} from "../product";
 import {Observable} from "rxjs/index";
-import {MatSort, MatTableDataSource} from "@angular/material";
+import {MatSort, MatSortable, MatTableDataSource} from "@angular/material";
 
 @Component({
   selector: 'app-products',
@@ -43,6 +43,11 @@ export class ProductsComponent implements OnInit {
       .subscribe(products => {
         this.products = new MatTableDataSource<DisplayedProduct>(products)
         this.products.sort = this.sort;
+        this.sort.sort(<MatSortable>{
+            id: 'type',
+            start: 'asc'
+          }
+        );
       });
   }
 
