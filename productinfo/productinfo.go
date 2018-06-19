@@ -416,7 +416,7 @@ func (pi *CachingProductInfo) GetProductDetails(cloud string, region string) (*P
 	details := make([]ProductDetails, len(vms))
 
 	var pr Price
-	for _, vm := range vms {
+	for i, vm := range vms {
 
 		pd := newProductDetails(vm)
 
@@ -430,7 +430,7 @@ func (pi *CachingProductInfo) GetProductDetails(cloud string, region string) (*P
 			pd.SpotInfo = append(pd.SpotInfo, *newZonePrice(zone, price))
 		}
 
-		details = append(details, *pd)
+		details[i] = *pd
 	}
 
 	return &ProductDetailsResponse{

@@ -139,6 +139,7 @@ func (r *RouteHandler) getProductDetails(c *gin.Context) {
 	if details, err := r.prod.GetProductDetails(cProv, regIon); err == nil {
 		log.Debugf("successfully retrieved product details:  %s, region: %s", cProv, regIon)
 		c.JSON(http.StatusOK, *details)
+		return
 	}
 
 	c.JSON(http.StatusInternalServerError, gin.H{"status": http.StatusInternalServerError, "message": fmt.Sprintf("%s", err)})
