@@ -1,0 +1,20 @@
+FROM golang:1.9.3-alpine3.7 as backend
+ADD . /go/src/github.com/banzaicloud/telescopes
+WORKDIR /go/src/github.com/banzaicloud/telescopes
+RUN go build -o /bin/telescopes .
+
+FROM node:9 as frontend
+ADD ./ui /ui
+WORKDIR /ui
+RUN npm install
+RUN npm install -g @angular/cli
+RUN ng build --base-href=/productinfo/
+
+FROM alpine:3.7
+RUN apk update && apk add ca-certificates && rm -rf /var/cache/apk/*
+COPY --from=backend /bin/telescopes /bin
+COPY --from=frontend /ui/dist/ui /ui/dist/ui
+
+ENV BASEPATH "/productinfo"
+
+ENTRYPOINT ["/bin/telescopes"]
