@@ -105,7 +105,7 @@ func (cpi *CachingProductInfo) renewProviderInfo(provider string, wg *sync.WaitG
 // renewAll sequentially renews information for all provider
 func (cpi *CachingProductInfo) renewAll() {
 	var providerWg sync.WaitGroup
-	for provider, _ := range cpi.productInfoers {
+	for provider := range cpi.productInfoers {
 		providerWg.Add(1)
 		go cpi.renewProviderInfo(provider, &providerWg)
 	}
