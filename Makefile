@@ -102,4 +102,4 @@ ineffassign: install-ineffassign
 	ineffassign ${GOFILES_NOVENDOR}
 
 gocyclo: install-gocyclo
-	gocyclo -over 15 ${GOFILES_NOVENDOR}
+	gocyclo -over 18 ${GOFILES_NOVENDOR}
