@@ -350,7 +350,8 @@ func (e *Ec2Infoer) getSpotPricesFromPrometheus(region string) (map[string]produ
 	result, err := e.prometheus.Query(context.Background(), query, time.Now())
 	if err != nil {
 		return nil, err
-	} else if result.String() == "" {
+	}
+	if result.String() == "" {
 		log.Warnf("Prometheus metric is empty")
 	} else {
 		r := result.(model.Vector)
@@ -405,11 +406,16 @@ func (e *Ec2Infoer) GetCurrentPrices(region string) (map[string]productinfo.Pric
 			log.WithError(err).Warn("Couldn't get spot price info from Prometheus API, fallback to direct AWS API access.")
 		}
 	}
-	log.Debug("getting current spot prices directly from the AWS API")
-	spotPrices, err = e.getCurrentSpotPrices(region)
-	if err != nil {
-		return nil, err
+
+	if len(spotPrices) == 0 {
+		log.Debug("getting current spot prices directly from the AWS API")
+		spotPrices, err = e.getCurrentSpotPrices(region)
+		if err != nil {
+			log.Errorf("could notr retrieve current prices. region %s, error: %s", region, err.Error())
+			return nil, err
+		}
 	}
+
 	prices := make(map[string]productinfo.Price)
 	for region, sp := range spotPrices {
 		prices[region] = productinfo.Price{
