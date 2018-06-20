@@ -92,6 +92,8 @@ type ClusterRecommendationResp struct {
 	Zones []string `json:"zones,omitempty"`
 	// Recommended node pools
 	NodePools []NodePool `json:"nodePools"`
+	// Accuracy of the recommendation
+	Accuracy ClusterRecommendationAccuracy `json:"accuracy"`
 }
 
 // RegionResp holds the list of available regions of a cloud provider
@@ -109,6 +111,18 @@ type NodePool struct {
 	SumNodes int `json:"sumNodes"`
 	// Specifies if the recommended node pool consists of regular or spot/preemptible instance types
 	VmClass string `json:"vmClass"`
+}
+
+// ClusterRecommendationAccuracy encapsulates recommendation accuracy
+type ClusterRecommendationAccuracy struct {
+	// The summarised amount of memory in the recommended cluster
+	RecMem float64 `json:"memory"`
+	// The summarised amount of cpu in the recommended cluster
+	RecCpu float64 `json:"cpu"`
+	// The summarised amount of node in the recommended cluster
+	RecNode int `json:"node"`
+	// Availability zones in the recommendation
+	RecZone []string `json:"zone,omitempty"`
 }
 
 // VirtualMachine describes an instance type
@@ -274,10 +288,13 @@ func (e *Engine) RecommendCluster(provider string, region string, req ClusterRec
 
 	cheapestNodePoolSet := e.findCheapestNodePoolSet(nodePools)
 
+	accuracy := req.findResponseSum(provider, region, cheapestNodePoolSet)
+
 	return &ClusterRecommendationResp{
 		Provider:  provider,
 		Zones:     req.Zones,
 		NodePools: cheapestNodePoolSet,
+		Accuracy:  accuracy,
 	}, nil
 }
 
@@ -292,6 +309,24 @@ func (e *Engine) GetRegions(provider string) ([]RegionResp, error) {
 		response = append(response, RegionResp{id, name})
 	}
 	return response, nil
+}
+
+func (req *ClusterRecommendationReq) findResponseSum(provider string, region string, nodePoolSet []NodePool) ClusterRecommendationAccuracy {
+	var sumCpus float64
+	var sumMem float64
+	var sumNodes int
+	for _, nodePool := range nodePoolSet {
+		sumCpus += nodePool.getSum(productinfo.Cpu)
+		sumMem += nodePool.getSum(productinfo.Memory)
+		sumNodes += nodePool.SumNodes
+	}
+
+	return ClusterRecommendationAccuracy{
+		RecCpu:  sumCpus,
+		RecMem:  sumMem,
+		RecNode: sumNodes,
+		RecZone: req.Zones,
+	}
 }
 
 // findCheapestNodePoolSet looks up the "cheapest" node pool set from the provided map
