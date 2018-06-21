@@ -6,8 +6,10 @@ LD_FLAGS = -X "main.version=$(TAG)"
 GOFILES_NOVENDOR = $(shell find . -type f -name '*.go' -not -path "./vendor/*")
 PKGS=$(shell go list ./... | grep -v /vendor)
 
-SWAGGER_TMP_FILE = ./docs/openapi/recommender.json
-SWAGGER_FILE = ./docs/openapi/recommender.yaml
+SWAGGER_PI_TMP_FILE = ./docs/openapi/productinfo.json
+SWAGGER_PI_FILE = ./docs/openapi/productinfo.yaml
+SWAGGER_REC_TMP_FILE = ./docs/openapi/recommender.json
+SWAGGER_REC_FILE = ./docs/openapi/recommender.yaml
 
 .PHONY: _no-target-specified
 _no-target-specified:
@@ -50,9 +52,13 @@ run-dev:
 	go run $(wildcard *.go)
 
 swagger:
-	swagger generate spec -o $(SWAGGER_TMP_FILE) 
-	swagger2openapi -y $(SWAGGER_TMP_FILE) > $(SWAGGER_FILE)
-	rm $(SWAGGER_TMP_FILE)
+	swagger generate spec -m -b ./cmd/productinfo -o $(SWAGGER_PI_TMP_FILE) 
+	swagger2openapi -y $(SWAGGER_PI_TMP_FILE) > $(SWAGGER_PI_FILE)
+	swagger generate spec -m -b ./cmd/telescopes -o $(SWAGGER_REC_TMP_FILE) 
+	swagger2openapi -y $(SWAGGER_REC_TMP_FILE) > $(SWAGGER_REC_FILE)
+
+generate-pi-client:
+	swagger generate client -f ./docs/openapi/productinfo.json -A productinfo -t pkg/productinfo-client/
 
 build:
 	go build .

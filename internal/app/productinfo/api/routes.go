@@ -1,0 +1,144 @@
+package api
+
+import (
+	"fmt"
+	"net/http"
+	"os"
+
+	"github.com/banzaicloud/telescopes/pkg/productinfo"
+	"github.com/gin-contrib/cors"
+	"github.com/gin-contrib/static"
+	"github.com/gin-gonic/gin"
+	"github.com/gin-gonic/gin/binding"
+	log "github.com/sirupsen/logrus"
+	"gopkg.in/go-playground/validator.v8"
+)
+
+const (
+	providerParam = "provider"
+	regionParam   = "region"
+)
+
+// RouteHandler configures the REST API routes in the gin router
+type RouteHandler struct {
+	prod *productinfo.CachingProductInfo
+}
+
+// NewRouteHandler creates a new RouteHandler and returns a reference to it
+func NewRouteHandler(p *productinfo.CachingProductInfo) *RouteHandler {
+	return &RouteHandler{
+		prod: p,
+	}
+}
+
+func getCorsConfig() cors.Config {
+	config := cors.DefaultConfig()
+	config.AllowAllOrigins = true
+	if !config.AllowAllOrigins {
+		config.AllowOrigins = []string{"http://", "https://"}
+	}
+	config.AllowMethods = []string{http.MethodPut, http.MethodDelete, http.MethodGet, http.MethodPost, http.MethodOptions}
+	config.AllowHeaders = []string{"Origin", "Authorization", "Content-Type"}
+	config.ExposeHeaders = []string{"Content-Length"}
+	config.AllowCredentials = true
+	config.MaxAge = 12
+	return config
+}
+
+// ConfigureRoutes configures the gin engine, defines the rest API for this application
+func (r *RouteHandler) ConfigureRoutes(router *gin.Engine) {
+	log.Info("configuring routes")
+
+	v := binding.Validator.Engine().(*validator.Validate)
+
+	basePath := "/"
+	if basePathFromEnv := os.Getenv("PRODUCTINFO_BASEPATH"); basePathFromEnv != "" {
+		basePath = basePathFromEnv
+	}
+
+	router.Use(cors.New(getCorsConfig()))
+	router.Use(static.Serve(basePath, static.LocalFile("./web/dist/ui", true)))
+
+	base := router.Group(basePath)
+	{
+		base.GET("/status", r.signalStatus)
+	}
+
+	// the v1 api group
+	v1 := base.Group("/api/v1")
+	// set validation middlewares for request path parameter validation
+	v1.Use(ValidatePathParam(providerParam, v, "provider_supported"))
+
+	// product api group
+	piGroup := v1.Group("/products")
+	{
+		piGroup.Use(ValidateRegionData(v))
+		piGroup.GET("/:provider/:region/", r.getProductDetails)
+	}
+
+	metaGroup := v1.Group("/regions")
+	{
+		metaGroup.GET("/:provider", r.getRegions)
+	}
+
+}
+
+func (r *RouteHandler) signalStatus(c *gin.Context) {
+	c.JSON(http.StatusOK, "ok")
+}
+
+// swagger:route GET /products/{provider}/{region} products getProductDetails
+//
+// Provides a list of available machine types on a given provider in a specific region.
+//
+//     Produces:
+//     - application/json
+//
+//     Schemes: http
+//
+//     Security:
+//
+//     Responses:
+//       200: ProductDetailsResponse
+func (r *RouteHandler) getProductDetails(c *gin.Context) {
+	cProv := c.Param(providerParam)
+	regIon := c.Param(regionParam)
+
+	log.Infof("getting product details for provider: %s, region: %s", cProv, regIon)
+
+	var err error
+	if details, err := r.prod.GetProductDetails(cProv, regIon); err == nil {
+		log.Debugf("successfully retrieved product details:  %s, region: %s", cProv, regIon)
+		c.JSON(http.StatusOK, ProductDetailsResponse{details})
+		return
+	}
+
+	c.JSON(http.StatusInternalServerError, gin.H{"status": http.StatusInternalServerError, "message": fmt.Sprintf("%s", err)})
+}
+
+// swagger:route GET /regions/:provider regions getRegions
+//
+// Provides the list of available regions of a cloud provider
+//
+//     Produces:
+//     - application/json
+//
+//     Schemes: http
+//
+//     Security:
+//
+//     Responses:
+//       200: regionsResponse
+func (r *RouteHandler) getRegions(c *gin.Context) {
+	provider := c.Param("provider")
+	regions, err := r.prod.GetRegions(provider)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"status": http.StatusInternalServerError, "message": fmt.Sprintf("%s", err)})
+		return
+	}
+	var response []RegionResp
+	for id, name := range regions {
+		response = append(response, RegionResp{id, name})
+	}
+	c.JSON(http.StatusOK, response)
+}
