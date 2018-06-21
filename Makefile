@@ -72,7 +72,7 @@ lint: install-golint
 	golint -min_confidence 0.9 -set_exit_status $(PKGS)
 
 test:
-	@go test -v -cover ./...
+	@go test -v -cover ./...  > test.txt
 
 install-golint:
 	GOLINT_CMD=$(shell command -v golint 2> /dev/null)
@@ -103,3 +103,13 @@ ineffassign: install-ineffassign
 
 gocyclo: install-gocyclo
 	gocyclo -over 18 ${GOFILES_NOVENDOR}
+
+install-go-junit-report:
+	GOLINT_CMD=$(shell command -v go-junit-report 2> /dev/null)
+ifndef GOLINT_CMD
+	go get -u github.com/jstemmer/go-junit-report
+endif
+
+go-junit-report: install-go-junit-report
+	$(shell mkdir -p test-results)
+	cat test.txt | go-junit-report > test-results/report.xml
