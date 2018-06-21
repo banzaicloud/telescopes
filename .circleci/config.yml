@@ -42,3 +42,14 @@ jobs:
           name: Run tests
           command:
               make test
+      - run:
+          name: Generate test reports
+          command:
+              make go-junit-report
+          when: always
+
+      - store_test_results:
+          path: test-results/
+      - store_artifacts:
+          path: test-results/
+
