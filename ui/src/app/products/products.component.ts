@@ -41,6 +41,7 @@ export class ProductsComponent implements OnInit {
   getProducts(): void {
     this.productService.getProducts(this.provider, this.region)
       .subscribe(products => {
+        console.log(products);
         this.products = new MatTableDataSource<DisplayedProduct>(products);
         this.products.sort = this.sort;
       });
