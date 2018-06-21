@@ -302,7 +302,7 @@ func (a *AzureInfoer) GetAttributeValues(attribute string) (productinfo.AttrValu
 				}] = ""
 			case memory:
 				valueSet[productinfo.AttrValue{
-					Value:    float64(*v.MemoryInMB) / 1000,
+					Value:    float64(*v.MemoryInMB) / 1024,
 					StrValue: fmt.Sprintf("%v", *v.MemoryInMB),
 				}] = ""
 			}
@@ -329,7 +329,7 @@ func (a *AzureInfoer) GetProducts(regionId string) ([]productinfo.VmInfo, error)
 		vms = append(vms, productinfo.VmInfo{
 			Type: *v.Name,
 			Cpus: float64(*v.NumberOfCores),
-			Mem:  float64(*v.MemoryInMB) / 1000,
+			Mem:  float64(*v.MemoryInMB) / 1024,
 			// TODO: netw perf
 		})
 	}

@@ -166,7 +166,7 @@ func (g *GceInfoer) GetAttributeValues(attribute string) (productinfo.AttrValues
 					}] = ""
 				case memory:
 					valueSet[productinfo.AttrValue{
-						Value:    float64(mt.MemoryMb) / 1000,
+						Value:    float64(mt.MemoryMb) / 1024,
 						StrValue: fmt.Sprintf("%v", mt.MemoryMb),
 					}] = ""
 				}
@@ -201,7 +201,7 @@ func (g *GceInfoer) GetProducts(regionId string) ([]productinfo.VmInfo, error) {
 			vms = append(vms, productinfo.VmInfo{
 				Type: mt.Name,
 				Cpus: float64(mt.GuestCpus),
-				Mem:  float64(mt.MemoryMb) / 1000,
+				Mem:  float64(mt.MemoryMb) / 1024,
 				// TODO: netw perf
 			})
 		}
