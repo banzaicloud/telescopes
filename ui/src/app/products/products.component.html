@@ -45,12 +45,12 @@
 
       <ng-container matColumnDef="cpu">
         <mat-header-cell *matHeaderCellDef mat-sort-header> CPUs</mat-header-cell>
-        <mat-cell *matCellDef="let machine"> {{machine.cpus}}</mat-cell>
+        <mat-cell *matCellDef="let machine"> {{machine.cpus}} vCPUs</mat-cell>
       </ng-container>
 
       <ng-container matColumnDef="mem">
         <mat-header-cell *matHeaderCellDef mat-sort-header> Memory</mat-header-cell>
-        <mat-cell *matCellDef="let machine"> {{machine.mem}}</mat-cell>
+        <mat-cell *matCellDef="let machine"> {{ machine.mem | toFixedNumber }}  <span *ngIf="machine.mem !== 'unavailable'">&nbsp;GB</span></mat-cell>
       </ng-container>
 
       <ng-container matColumnDef="ntwPerf">
@@ -60,12 +60,12 @@
 
       <ng-container matColumnDef="regularPrice">
         <mat-header-cell *matHeaderCellDef mat-sort-header> On Demand Price (Linux)</mat-header-cell>
-        <mat-cell *matCellDef="let machine"> {{machine.regularPrice}}</mat-cell>
+        <mat-cell *matCellDef="let machine"> ${{machine.regularPrice | toFixedNumber : 5 }}</mat-cell>
       </ng-container>
 
       <ng-container matColumnDef="spotPrice">
         <mat-header-cell *matHeaderCellDef mat-sort-header> Average Spot Price</mat-header-cell>
-        <mat-cell *matCellDef="let machine"> {{machine.spotPrice}}</mat-cell>
+        <mat-cell *matCellDef="let machine"> ${{machine.spotPrice | toFixedNumber : 5 }}</mat-cell>
       </ng-container>
 
       <mat-header-row *matHeaderRowDef="columnsToDisplay"></mat-header-row>

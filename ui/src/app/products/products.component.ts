@@ -24,7 +24,7 @@ export class ProductsComponent implements OnInit {
   @ViewChild(MatSort) sort: MatSort;
 
   ngOnInit() {
-    this.updateProducts()
+    this.updateProducts();
   }
 
   getRegions(): Observable<Region[]> {
@@ -41,15 +41,15 @@ export class ProductsComponent implements OnInit {
   getProducts(): void {
     this.productService.getProducts(this.provider, this.region)
       .subscribe(products => {
-        this.products = new MatTableDataSource<DisplayedProduct>(products)
+        this.products = new MatTableDataSource<DisplayedProduct>(products);
         this.products.sort = this.sort;
       });
   }
 
   updateProducts(): void {
     this.getRegions().subscribe(() => {
-      this.getProducts()
-    })
+      this.getProducts();
+    });
   }
 
   applyFilter(filterValue: string) {
