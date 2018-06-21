@@ -75,8 +75,8 @@
     "auth",
     "vault"
   ]
-  revision = "950d407647b0c77fb6425a500a00e3e17d959406"
-  version = "0.1.4"
+  revision = "cf4ca7f1732e669e10bcea939c42e21b3807aa43"
+  version = "0.2.1"
 
 [[projects]]
   name = "github.com/davecgh/go-spew"
@@ -205,6 +205,12 @@
 
 [[projects]]
   branch = "master"
+  name = "github.com/hashicorp/go-retryablehttp"
+  packages = ["."]
+  revision = "3b087ef2d313afe6c55b2f511d20db04ca767075"
+
+[[projects]]
+  branch = "master"
   name = "github.com/hashicorp/go-rootcerts"
   packages = ["."]
   revision = "6bb64b370b90e7ef1fa532be9e591a81c3493e00"
@@ -237,12 +243,13 @@
   packages = [
     "api",
     "helper/compressutil",
+    "helper/hclutil",
     "helper/jsonutil",
     "helper/parseutil",
     "helper/strutil"
   ]
-  revision = "756fdc4587350daf1c65b93647b2cc31a6f119cd"
-  version = "v0.10.1"
+  revision = "533003e27840d9646cb4e7d23b3a113895da1dd0"
+  version = "v0.10.3"
 
 [[projects]]
   name = "github.com/jinzhu/gorm"
@@ -373,12 +380,6 @@
   packages = ["."]
   revision = "f58768cc1a7a7e77a3bd49e98cdd21419399b6a3"
   version = "v1.2.0"
-
-[[projects]]
-  name = "github.com/sethgrid/pester"
-  packages = ["."]
-  revision = "03e26c9abbbf5accb8349790bf9f41bde09d72c3"
-  version = "1.0.0"
 
 [[projects]]
   name = "github.com/shopspring/decimal"
@@ -633,6 +634,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "5a15c961c9a8d4088609709f9390e6018f843712d3dd195044e9d7a8cb6bf467"
+  inputs-digest = "429b176895c78eb5cc9fde222021dcea0c2fc95569addf798a353d3a49a37488"
   solver-name = "gps-cdcl"
   solver-version = 1
