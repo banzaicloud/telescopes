@@ -12,11 +12,13 @@ import {HttpClientModule} from '@angular/common/http';
 
 import {AppComponent} from './app.component';
 import {ProductsComponent} from './products/products.component';
+import { ToFixedNumberPipe } from './products/toFixedNumber.pipe';
 
 @NgModule({
   declarations: [
     AppComponent,
-    ProductsComponent
+    ProductsComponent,
+    ToFixedNumberPipe,
   ],
   imports: [
     BrowserModule,

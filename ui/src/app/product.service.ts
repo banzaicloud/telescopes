@@ -15,35 +15,33 @@ export class ProductService {
   }
 
   getRegions(provider): Observable<Region[]> {
-    return this.http.get<Region[]>(this.productsUrlBase + "regions/" + provider)
+    return this.http.get<Region[]>(this.productsUrlBase + 'regions/' + provider);
   }
 
   getProducts(provider, region): Observable<DisplayedProduct[]> {
-    return this.http.get<Products>(this.productsUrlBase + "products/" + provider + "/" + region).pipe(
+    return this.http.get<Products>(this.productsUrlBase + 'products/' + provider + '/' + region).pipe(
       map(res => {
         return res.Products.map(
-          res => {
-            var avgSpot = 0;
-            if (res.spotPrice != null) {
-              var i;
-              for (i = 0; i < res.spotPrice.length; i++) {
-                avgSpot = avgSpot + parseFloat(res.spotPrice[i].price);
+          response => {
+            let avgSpot = 0;
+            if (response.spotPrice != null) {
+              let i;
+              for (i = 0; i < response.spotPrice.length; i++) {
+                avgSpot = avgSpot + parseFloat(response.spotPrice[i].price);
               }
-              avgSpot = avgSpot / res.spotPrice.length;
+              avgSpot = avgSpot / response.spotPrice.length;
             }
-            var displayedSpot = "$" + avgSpot.toFixed(5);
-            if (avgSpot == 0) {
-              displayedSpot = "unavailable"
-            }
+            const displayedSpot = avgSpot !== 0 ? avgSpot : 'unavailable';
+
             return new DisplayedProduct(
-              res.type,
-              res.cpusPerVm + " vCPUs",
-              res.memPerVm.toFixed(2) + " GB",
-              "$" + res.onDemandPrice.toFixed(5),
+              response.type,
+              response.cpusPerVm,
+              response.memPerVm,
+              response.onDemandPrice,
               displayedSpot,
-              res.ntwPerf == "" ? "unavailable" : res.ntwPerf)
-          })
+              response.ntwPerf === '' ? 'unavailable' : response.ntwPerf);
+          });
       })
-    )
+    );
   }
 }

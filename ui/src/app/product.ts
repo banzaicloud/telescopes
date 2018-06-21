@@ -19,10 +19,10 @@ export class SpotPrice {
 
 export class DisplayedProduct {
   constructor(private type: string,
-              private cpus: string,
-              private mem: string,
-              private regularPrice: string,
-              private spotPrice: string,
+              private cpus: number,
+              private mem: number,
+              private regularPrice: number,
+              private spotPrice: number | string,
               private ntwPerf: string) {
   }
 }
