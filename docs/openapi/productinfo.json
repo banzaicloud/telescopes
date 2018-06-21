@@ -1,0 +1,216 @@
+{
+  "schemes": [
+    "http",
+    "https"
+  ],
+  "swagger": "2.0",
+  "info": {
+    "description": "The product info application uses the cloud provider APIs to asynchronously fetch and parse instance type attributes\nand prices, while storing the results in an in memory cache and making it available as structured data through a REST API.",
+    "title": "Product Info.",
+    "contact": {
+      "name": "Banzai Cloud",
+      "email": "info@banzaicloud.com"
+    },
+    "license": {
+      "name": "Apache 2.0",
+      "url": "http://www.apache.org/licenses/LICENSE-2.0.html"
+    },
+    "version": "0.0.1"
+  },
+  "basePath": "/api/v1",
+  "paths": {
+    "/products/{provider}/{region}": {
+      "get": {
+        "produces": [
+          "application/json"
+        ],
+        "schemes": [
+          "http"
+        ],
+        "tags": [
+          "products"
+        ],
+        "summary": "Provides a list of available machine types on a given provider in a specific region.",
+        "operationId": "getProductDetails",
+        "parameters": [
+          {
+            "type": "string",
+            "x-go-name": "Provider",
+            "name": "provider",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "x-go-name": "Region",
+            "name": "region",
+            "in": "path",
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "ProductDetailsResponse",
+            "schema": {
+              "$ref": "#/definitions/ProductDetailsResponse"
+            }
+          }
+        }
+      }
+    },
+    "/regions/:provider": {
+      "get": {
+        "description": "Provides the list of available regions of a cloud provider",
+        "produces": [
+          "application/json"
+        ],
+        "schemes": [
+          "http"
+        ],
+        "tags": [
+          "regions"
+        ],
+        "operationId": "getRegions",
+        "responses": {
+          "200": {
+            "$ref": "#/responses/regionsResponse"
+          }
+        }
+      }
+    }
+  },
+  "definitions": {
+    "GetProductDetailsParams": {
+      "description": "GetProductDetailsParams is a placeholder for the get products path parameters",
+      "type": "object",
+      "properties": {
+        "provider": {
+          "description": "in:path",
+          "type": "string",
+          "x-go-name": "Provider"
+        },
+        "region": {
+          "description": "in:path",
+          "type": "string",
+          "x-go-name": "Region"
+        }
+      },
+      "x-go-package": "github.com/banzaicloud/telescopes/internal/app/productinfo/api"
+    },
+    "ProductDetails": {
+      "description": "ProductDetails extended view of the virtual machine details. Apart of the VmInfo it may hold derived or additional information",
+      "type": "object",
+      "properties": {
+        "burst": {
+          "description": "Burst this is derived for now",
+          "type": "boolean",
+          "x-go-name": "Burst"
+        },
+        "cpusPerVm": {
+          "type": "number",
+          "format": "double",
+          "x-go-name": "Cpus"
+        },
+        "gpusPerVm": {
+          "type": "number",
+          "format": "double",
+          "x-go-name": "Gpus"
+        },
+        "memPerVm": {
+          "type": "number",
+          "format": "double",
+          "x-go-name": "Mem"
+        },
+        "ntwPerf": {
+          "type": "string",
+          "x-go-name": "NtwPerf"
+        },
+        "onDemandPrice": {
+          "type": "number",
+          "format": "double",
+          "x-go-name": "OnDemandPrice"
+        },
+        "spotPrice": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/ZonePrice"
+          },
+          "$ref": "#/definitions/SpotPriceInfo"
+        },
+        "type": {
+          "type": "string",
+          "x-go-name": "Type"
+        }
+      },
+      "x-go-package": "github.com/banzaicloud/telescopes/pkg/productinfo"
+    },
+    "ProductDetailsResponse": {
+      "description": "ProductDetailsResponse Api object to be mapped to product info response",
+      "type": "object",
+      "properties": {
+        "products": {
+          "description": "Products represents a slice of products for a given provider (VMs with attributes and process)",
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/ProductDetails"
+          },
+          "x-go-name": "Products"
+        }
+      },
+      "x-go-package": "github.com/banzaicloud/telescopes/internal/app/productinfo/api"
+    },
+    "RegionResp": {
+      "description": "RegionResp holds the list of available regions of a cloud provider",
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "x-go-name": "Id"
+        },
+        "name": {
+          "type": "string",
+          "x-go-name": "Name"
+        }
+      },
+      "x-go-package": "github.com/banzaicloud/telescopes/internal/app/productinfo/api"
+    },
+    "SpotPriceInfo": {
+      "description": "SpotPriceInfo represents different prices per availability zones",
+      "type": "object",
+      "additionalProperties": {
+        "type": "number",
+        "format": "double"
+      },
+      "x-go-package": "github.com/banzaicloud/telescopes/pkg/productinfo"
+    },
+    "ZonePrice": {
+      "description": "ZonePrice struct for displaying proce information per zone",
+      "type": "object",
+      "properties": {
+        "price": {
+          "type": "number",
+          "format": "double",
+          "x-go-name": "Price"
+        },
+        "zone": {
+          "type": "string",
+          "x-go-name": "Zone"
+        }
+      },
+      "x-go-package": "github.com/banzaicloud/telescopes/pkg/productinfo"
+    }
+  },
+  "responses": {
+    "regionsResponse": {
+      "description": "RegionResp holds the list of available regions of a cloud provider",
+      "headers": {
+        "id": {
+          "type": "string"
+        },
+        "name": {
+          "type": "string"
+        }
+      }
+    }
+  }
+}
