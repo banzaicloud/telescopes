@@ -75,11 +75,11 @@ type ProductInfo interface {
 	// Initialize is called once per product info renewals so it can be used to download a large price descriptor
 	Initialize(provider string) (map[string]map[string]Price, error)
 
+	// GetAttributes returns the supported attribute names
+	GetAttributes() []string
+
 	// GetAttrValues returns a slice with the possible values for a given attribute on a specific provider
 	GetAttrValues(provider string, attribute string) ([]float64, error)
-
-	// GetVmsWithAttrValue returns a slice with all those virtual machines in a region that have the required value for a given attribute
-	GetVmsWithAttrValue(provider string, regionId string, attrKey string, value float64) ([]VmInfo, error)
 
 	// GetZones returns all the availability zones for a region
 	GetZones(provider string, region string) ([]string, error)

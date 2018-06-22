@@ -9,7 +9,9 @@ import (
 	"github.com/banzaicloud/telescopes/pkg/recommender"
 	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
+	"github.com/gin-gonic/gin/binding"
 	log "github.com/sirupsen/logrus"
+	"gopkg.in/go-playground/validator.v8"
 )
 
 const (
@@ -47,7 +49,7 @@ func getCorsConfig() cors.Config {
 func (r *RouteHandler) ConfigureRoutes(router *gin.Engine) {
 	log.Info("configuring routes")
 
-	//v := binding.Validator.Engine().(*validator.Validate)
+	v := binding.Validator.Engine().(*validator.Validate)
 
 	basePath := "/"
 	if basePathFromEnv := os.Getenv("TELESCOPES_BASEPATH"); basePathFromEnv != "" {
@@ -60,15 +62,11 @@ func (r *RouteHandler) ConfigureRoutes(router *gin.Engine) {
 		base.Use(cors.New(getCorsConfig()))
 	}
 
-	// the v1 api group
 	v1 := base.Group("/api/v1")
-	// set validation middlewares for request path parameter validation
-	//v1.Use(ValidatePathParam(providerParam, v, "provider_supported"))
-
-	// recommender api group
+	v1.Use(ValidatePathParam(providerParam, v, "provider"))
+	v1.Use(ValidateRegionData(v))
 	recGroup := v1.Group("/recommender")
 	{
-		//recGroup.Use(ValidateRegionData(v))
 		recGroup.POST("/:provider/:region/cluster/", r.recommendClusterSetup)
 	}
 }
@@ -104,19 +102,19 @@ func (r *RouteHandler) recommendClusterSetup(c *gin.Context) {
 	region := c.Param(regionParam)
 
 	// request decorated with provider and region
-	reqWr := RequestWrapper{P: provider, R: region}
+	req := RequestWrapper{Provider: provider, Region: region}
 
-	if err := c.BindJSON(&reqWr); err != nil {
+	if err := c.BindJSON(&req); err != nil {
 		log.Errorf("failed to bind request body: %s", err.Error())
 		c.JSON(http.StatusBadRequest, gin.H{
 			"code":    "bad_params",
-			"message": "invalid zone(s) or network performance",
+			"message": "validation failed",
 			"cause":   err.Error(),
 		})
 		return
 	}
 
-	if response, err := r.engine.RecommendCluster(provider, region, reqWr.ClusterRecommendationReq); err != nil {
+	if response, err := r.engine.RecommendCluster(provider, region, req.ClusterRecommendationReq); err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"status": http.StatusInternalServerError, "message": fmt.Sprintf("%s", err)})
 	} else {
 		c.JSON(http.StatusOK, *response)
@@ -126,6 +124,6 @@ func (r *RouteHandler) recommendClusterSetup(c *gin.Context) {
 // RequestWrapper internal struct for passing provider/zone info to the validator
 type RequestWrapper struct {
 	recommender.ClusterRecommendationReq
-	P string
-	R string
+	Provider string
+	Region   string
 }

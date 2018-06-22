@@ -4,8 +4,6 @@ import (
 	"fmt"
 	"net/http"
 	"reflect"
-	"regexp"
-	"strings"
 
 	"github.com/banzaicloud/telescopes/pkg/productinfo"
 	"github.com/gin-gonic/gin"
@@ -19,23 +17,25 @@ func ConfigureValidator(providers []string, pi *productinfo.CachingProductInfo) 
 	// retrieve the gin validator
 	v := binding.Validator.Engine().(*validator.Validate)
 
-	// register validator for the provider parameter in the request path
-	var providerString = fmt.Sprintf("^%s$", strings.Join(providers, "|"))
-	var passwordRegexProvider = regexp.MustCompile(providerString)
-	v.RegisterValidation("provider_supported", func(v *validator.Validate, topStruct reflect.Value, currentStruct reflect.Value, field reflect.Value, fieldtype reflect.Type, fieldKind reflect.Kind, param string) bool {
-		return passwordRegexProvider.MatchString(field.String())
+	v.RegisterValidation("provider", func(v *validator.Validate, topStruct reflect.Value, currentStruct reflect.Value, field reflect.Value, fieldtype reflect.Type, fieldKind reflect.Kind, param string) bool {
+		for _, p := range providers {
+			if field.String() == p {
+				return true
+			}
+		}
+		return false
+	})
+	v.RegisterValidation("attribute", func(v *validator.Validate, topStruct reflect.Value, currentStruct reflect.Value, field reflect.Value, fieldtype reflect.Type, fieldKind reflect.Kind, param string) bool {
+		for _, p := range pi.GetAttributes() {
+			if field.String() == p {
+				return true
+			}
+		}
+		return false
 	})
 
 	// register validator for the region parameter in the request path
-	rd := regionData{}
-	v.RegisterValidation("region", rd.validationFn(pi))
-
-	// register validator for zones
-	v.RegisterValidation("zone", ZoneValidatorFn(pi))
-
-	// register validator for network performance
-	v.RegisterValidation("network", NetworkPerfValidatorFn())
-
+	v.RegisterValidation("region", regionValidator(pi))
 }
 
 // ValidatePathParam is a gin middleware handler function that validates a named path parameter with specific Validate tags
@@ -59,7 +59,6 @@ func ValidatePathParam(name string, validate *validator.Validate, tags ...string
 }
 
 // ValidateRegionData middleware function to validate region information in the request path.
-// It succeeds if the region is valid for the current provider
 func ValidateRegionData(validate *validator.Validate) gin.HandlerFunc {
 	const (
 		providerParam = "provider"
@@ -102,7 +101,7 @@ func newRegionData(cloud string, region string) regionData {
 }
 
 // validationFn validation logic for the region data to be registered with the validator
-func (rd *regionData) validationFn(cpi *productinfo.CachingProductInfo) validator.Func {
+func regionValidator(cpi *productinfo.CachingProductInfo) validator.Func {
 
 	return func(v *validator.Validate, topStruct reflect.Value, currentStruct reflect.Value, field reflect.Value, fieldtype reflect.Type, fieldKind reflect.Kind, param string) bool {
 		currentProvider := currentStruct.FieldByName("Cloud").String()
@@ -120,49 +119,5 @@ func (rd *regionData) validationFn(cpi *productinfo.CachingProductInfo) validato
 			}
 		}
 		return false
-	}
-}
-
-// ZoneValidatorFn validates the zone in the recommendation request.
-// Returns true if the zone is valid on the current cloud provider
-func ZoneValidatorFn(cpi *productinfo.CachingProductInfo) validator.Func {
-	// caching product info may be available here, but the provider is not
-	return func(v *validator.Validate, topStruct reflect.Value, currentStruct reflect.Value, field reflect.Value,
-		fieldtype reflect.Type, fieldKind reflect.Kind, param string) bool {
-
-		// dig out the provider and region from the "topStruct"
-		cloud := reflect.Indirect(topStruct).FieldByName("P").String()
-		region := reflect.Indirect(topStruct).FieldByName("R").String()
-
-		// retrieve the zones
-		zones, _ := cpi.GetZones(cloud, region)
-		for _, zone := range zones {
-			if zone == field.String() {
-				return true
-			}
-		}
-		return false
-	}
-}
-
-// NetworkPerfValidatorFn validates the network performance in the recommendation request.
-// Returns true if the network performance is valid
-func NetworkPerfValidatorFn() validator.Func {
-	return func(v *validator.Validate, topStruct reflect.Value, currentStruct reflect.Value, field reflect.Value,
-		fieldtype reflect.Type, fieldKind reflect.Kind, param string) bool {
-
-		switch field.String() {
-		case productinfo.NTW_LOW:
-			return true
-		case productinfo.NTW_MEDIUM:
-			return true
-		case productinfo.NTW_HIGH:
-			return true
-		case productinfo.NTW_EXTRA:
-			return true
-		default:
-			logrus.Errorf("could not retrieve network mapper")
-			return false
-		}
 	}
 }

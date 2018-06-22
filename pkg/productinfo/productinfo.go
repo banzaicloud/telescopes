@@ -201,6 +201,11 @@ func (cpi *CachingProductInfo) Initialize(provider string) (map[string]map[strin
 	return allPrices, nil
 }
 
+// GetAttributes returns the supported attribute names
+func (cpi *CachingProductInfo) GetAttributes() []string {
+	return []string{Cpu, Memory}
+}
+
 // GetAttrValues returns a slice with the values for the given attribute name
 func (cpi *CachingProductInfo) GetAttrValues(provider string, attribute string) ([]float64, error) {
 	v, err := cpi.getAttrValues(provider, attribute)
