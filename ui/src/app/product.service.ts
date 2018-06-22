@@ -9,7 +9,7 @@ import {HttpClient} from '@angular/common/http';
 })
 export class ProductService {
 
-  private productsUrlBase = '/api/v1/';
+  private productsUrlBase = 'api/v1/';
 
   constructor(private http: HttpClient) {
   }
