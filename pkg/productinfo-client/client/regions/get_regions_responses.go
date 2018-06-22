@@ -7,10 +7,13 @@ package regions
 
 import (
 	"fmt"
+	"io"
 
 	"github.com/go-openapi/runtime"
 
 	strfmt "github.com/go-openapi/strfmt"
+
+	models "github.com/banzaicloud/telescopes/pkg/productinfo-client/models"
 )
 
 // GetRegionsReader is a Reader for the GetRegions structure.
@@ -41,25 +44,22 @@ func NewGetRegionsOK() *GetRegionsOK {
 
 /*GetRegionsOK handles this case with default header values.
 
-GetRegionsResp holds the list of available regions of a cloud provider
+RegionsResponse
 */
 type GetRegionsOK struct {
-	ID string
-
-	Name string
+	Payload models.RegionsResponse
 }
 
 func (o *GetRegionsOK) Error() string {
-	return fmt.Sprintf("[GET /regions/{provider}][%d] getRegionsOK ", 200)
+	return fmt.Sprintf("[GET /regions/{provider}][%d] getRegionsOK  %+v", 200, o.Payload)
 }
 
 func (o *GetRegionsOK) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
 
-	// response header id
-	o.ID = response.GetHeader("id")
-
-	// response header name
-	o.Name = response.GetHeader("name")
+	// response payload
+	if err := consumer.Consume(response.Body(), &o.Payload); err != nil && err != io.EOF {
+		return err
+	}
 
 	return nil
 }

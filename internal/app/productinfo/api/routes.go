@@ -82,6 +82,11 @@ func (r *RouteHandler) ConfigureRoutes(router *gin.Engine) {
 		metaGroup.GET("/:provider/:region", r.getRegion)
 	}
 
+	providerGroup := v1.Group("/providers")
+	{
+		providerGroup.GET("/", r.getProviders)
+	}
+
 }
 
 func (r *RouteHandler) signalStatus(c *gin.Context) {
@@ -167,9 +172,9 @@ func (r *RouteHandler) getRegions(c *gin.Context) {
 		c.JSON(http.StatusInternalServerError, gin.H{"status": http.StatusInternalServerError, "message": fmt.Sprintf("%s", err)})
 		return
 	}
-	var response []GetRegionsResp
+	var response RegionsResponse
 	for id, name := range regions {
-		response = append(response, GetRegionsResp{id, name})
+		response = append(response, Region{id, name})
 	}
 	c.JSON(http.StatusOK, response)
 }
@@ -201,4 +206,26 @@ func (r *RouteHandler) getRegion(c *gin.Context) {
 		c.JSON(http.StatusInternalServerError, gin.H{"status": http.StatusInternalServerError, "message": fmt.Sprintf("%s", err)})
 	}
 	c.JSON(http.StatusOK, GetRegionResp{region, regions[region], zones})
+}
+
+// swagger:route GET /providers providers getProviders
+//
+// Returns the supported providers
+//
+//     Produces:
+//     - application/json
+//
+//     Schemes: http
+//
+//     Security:
+//
+//     Responses:
+//       200: ProviderResponse
+func (r *RouteHandler) getProviders(c *gin.Context) {
+
+	providers := r.prod.GetProviders()
+	if len(providers) < 1 {
+		c.JSON(http.StatusInternalServerError, gin.H{"status": http.StatusInternalServerError, "message": "no providers are configured"})
+	}
+	c.JSON(http.StatusOK, providers)
 }

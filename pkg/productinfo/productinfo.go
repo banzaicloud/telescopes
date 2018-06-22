@@ -69,6 +69,15 @@ func NewCachingProductInfo(ri time.Duration, cache *cache.Cache, infoers map[str
 	return &pi, nil
 }
 
+// GetProviders returns the supported providers
+func (cpi *CachingProductInfo) GetProviders() []string {
+	var providers []string
+	for p := range cpi.productInfoers {
+		providers = append(providers, p)
+	}
+	return providers
+}
+
 // renewProviderInfo renews provider information for the provider argument. It optionally signals the end of renewal to the
 // provided WaitGroup (if provided)
 func (cpi *CachingProductInfo) renewProviderInfo(provider string, wg *sync.WaitGroup) {

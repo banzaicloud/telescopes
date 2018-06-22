@@ -25,9 +25,11 @@ type GetRegionsParams struct {
 	Provider string `json:"provider"`
 }
 
-// GetRegionsResp holds the list of available regions of a cloud provider
-// swagger:response RegionsResponse
-type GetRegionsResp struct {
+// RegionsResponse holds the list of available regions of a cloud provider
+// swagger:model RegionsResponse
+type RegionsResponse []Region
+
+type Region struct {
 	Id   string `json:"id"`
 	Name string `json:"name"`
 }
@@ -66,3 +68,7 @@ type AttributeResponse struct {
 	AttributeName   string    `json:"attributeName"`
 	AttributeValues []float64 `json:"attributeValues"`
 }
+
+// ProviderResponse is the response used for the supported providers
+// swagger:model ProviderResponse
+type ProviderResponse []string

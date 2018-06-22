@@ -13,6 +13,7 @@ import (
 
 	"github.com/banzaicloud/telescopes/pkg/productinfo-client/client/attributes"
 	"github.com/banzaicloud/telescopes/pkg/productinfo-client/client/products"
+	"github.com/banzaicloud/telescopes/pkg/productinfo-client/client/providers"
 	"github.com/banzaicloud/telescopes/pkg/productinfo-client/client/regions"
 )
 
@@ -62,6 +63,8 @@ func New(transport runtime.ClientTransport, formats strfmt.Registry) *Productinf
 	cli.Attributes = attributes.New(transport, formats)
 
 	cli.Products = products.New(transport, formats)
+
+	cli.Providers = providers.New(transport, formats)
 
 	cli.Regions = regions.New(transport, formats)
 
@@ -113,6 +116,8 @@ type Productinfo struct {
 
 	Products *products.Client
 
+	Providers *providers.Client
+
 	Regions *regions.Client
 
 	Transport runtime.ClientTransport
@@ -125,6 +130,8 @@ func (c *Productinfo) SetTransport(transport runtime.ClientTransport) {
 	c.Attributes.SetTransport(transport)
 
 	c.Products.SetTransport(transport)
+
+	c.Providers.SetTransport(transport)
 
 	c.Regions.SetTransport(transport)
 

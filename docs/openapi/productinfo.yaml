@@ -75,6 +75,19 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/AttributeResponse'
+  /providers:
+    get:
+      description: Returns the supported providers
+      tags:
+        - providers
+      operationId: getProviders
+      responses:
+        '200':
+          description: ProviderResponse
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProviderResponse'
   '/regions/{provider}':
     get:
       description: Provides the list of available regions of a cloud provider
@@ -90,7 +103,11 @@ paths:
             type: string
       responses:
         '200':
-          $ref: '#/components/responses/RegionsResponse'
+          description: RegionsResponse
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RegionsResponse'
   '/regions/{provider}/{region}':
     get:
       description: Provides the detailed info of a specific region of a cloud provider
@@ -120,16 +137,6 @@ paths:
 servers:
   - url: /api/v1
 components:
-  responses:
-    RegionsResponse:
-      description: GetRegionsResp holds the list of available regions of a cloud provider
-      headers:
-        id:
-          schema:
-            type: string
-        name:
-          schema:
-            type: string
   schemas:
     AttributeResponse:
       description: AttributeResponse holds attribute values
@@ -205,17 +212,6 @@ components:
           type: string
           x-go-name: Provider
       x-go-package: github.com/banzaicloud/telescopes/internal/app/productinfo/api
-    GetRegionsResp:
-      description: GetRegionsResp holds the list of available regions of a cloud provider
-      type: object
-      properties:
-        id:
-          type: string
-          x-go-name: Id
-        name:
-          type: string
-          x-go-name: Name
-      x-go-package: github.com/banzaicloud/telescopes/internal/app/productinfo/api
     ProductDetails:
       description: >-
         ProductDetails extended view of the virtual machine details. Apart of
@@ -267,6 +263,22 @@ components:
             $ref: '#/components/schemas/ProductDetails'
           x-go-name: Products
       x-go-package: github.com/banzaicloud/telescopes/internal/app/productinfo/api
+    ProviderResponse:
+      description: ProviderResponse is the response used for the supported providers
+      type: array
+      items:
+        type: string
+      x-go-package: github.com/banzaicloud/telescopes/internal/app/productinfo/api
+    Region:
+      type: object
+      properties:
+        id:
+          type: string
+          x-go-name: Id
+        name:
+          type: string
+          x-go-name: Name
+      x-go-package: github.com/banzaicloud/telescopes/internal/app/productinfo/api
     RegionResponse:
       description: >-
         GetRegionResp holds the detailed description of a specific region of a
@@ -285,6 +297,12 @@ components:
             type: string
           x-go-name: Zones
       x-go-name: GetRegionResp
+      x-go-package: github.com/banzaicloud/telescopes/internal/app/productinfo/api
+    RegionsResponse:
+      description: RegionsResponse holds the list of available regions of a cloud provider
+      type: array
+      items:
+        $ref: '#/components/schemas/Region'
       x-go-package: github.com/banzaicloud/telescopes/internal/app/productinfo/api
     SpotPriceInfo:
       description: SpotPriceInfo represents different prices per availability zones
