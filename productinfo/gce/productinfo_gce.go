@@ -13,6 +13,7 @@ import (
 	billing "google.golang.org/api/cloudbilling/v1"
 	"google.golang.org/api/compute/v1"
 	"google.golang.org/api/googleapi/transport"
+	"strconv"
 )
 
 const (
@@ -191,6 +192,7 @@ func (g *GceInfoer) GetAttributeValues(attribute string) (productinfo.AttrValues
 func (g *GceInfoer) GetProducts(regionId string) ([]productinfo.VmInfo, error) {
 	log.Debugf("getting product info [region=%s]", regionId)
 	var vms []productinfo.VmInfo
+	var ntwPerf string
 	zones, err := g.GetZones(regionId)
 	if err != nil {
 		return nil, err
@@ -198,11 +200,18 @@ func (g *GceInfoer) GetProducts(regionId string) ([]productinfo.VmInfo, error) {
 	// TODO: check if all machine types are available in every regions??
 	err = g.computeSvc.MachineTypes.List(g.projectId, zones[0]).Pages(context.TODO(), func(allMts *compute.MachineTypeList) error {
 		for _, mt := range allMts.Items {
+			if mt.GuestCpus < 1 {
+				ntwPerf = strconv.Itoa(1)
+			} else if mt.GuestCpus > 8 {
+				ntwPerf = strconv.Itoa(16)
+			} else {
+				ntwPerf = strconv.Itoa(int(mt.GuestCpus * 2))
+			}
 			vms = append(vms, productinfo.VmInfo{
-				Type: mt.Name,
-				Cpus: float64(mt.GuestCpus),
-				Mem:  float64(mt.MemoryMb) / 1024,
-				// TODO: netw perf
+				Type:    mt.Name,
+				Cpus:    float64(mt.GuestCpus),
+				Mem:     float64(mt.MemoryMb) / 1024,
+				NtwPerf: ntwPerf,
 			})
 		}
 		return nil
