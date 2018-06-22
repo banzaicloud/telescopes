@@ -17,12 +17,15 @@ import (
 	"os"
 	"strings"
 
+	"github.com/banzaicloud/telescopes/pkg/productinfo-client/client"
+	"github.com/go-openapi/strfmt"
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/viper"
 
 	"github.com/banzaicloud/telescopes/internal/app/telescopes/api"
 	"github.com/banzaicloud/telescopes/pkg/recommender"
 	"github.com/gin-gonic/gin"
+	httptransport "github.com/go-openapi/runtime/client"
 	flag "github.com/spf13/pflag"
 )
 
@@ -138,11 +141,15 @@ func main() {
 	ensureCfg()
 
 	url := parseProductInfoAddress()
-	engine, err := recommender.NewEngine(url.Host, url.Path, []string{url.Scheme})
-	quitOnError("error encountered", err)
+	transport := httptransport.New(url.Host, url.Path, []string{url.Scheme})
+	pc := client.New(transport, strfmt.Default)
+
+	engine, err := recommender.NewEngine(pc)
+	quitOnError("failed to start telescopes", err)
 
 	// configure the gin validator
-	//TODO: api.ConfigureValidator(viper.GetStringSlice(providerFlag), productInfo)
+	err = api.ConfigureValidator(pc)
+	quitOnError("failed to start telescopes", err)
 
 	routeHandler := api.NewRouteHandler(engine)
 

@@ -4,10 +4,11 @@ import (
 	"fmt"
 	"net/http"
 	"reflect"
-	"regexp"
-	"strings"
 
 	"github.com/banzaicloud/telescopes/pkg/productinfo"
+	"github.com/banzaicloud/telescopes/pkg/productinfo-client/client"
+	"github.com/banzaicloud/telescopes/pkg/productinfo-client/client/providers"
+	"github.com/banzaicloud/telescopes/pkg/productinfo-client/client/regions"
 	"github.com/gin-gonic/gin"
 	"github.com/gin-gonic/gin/binding"
 	"github.com/sirupsen/logrus"
@@ -15,27 +16,13 @@ import (
 )
 
 // ConfigureValidator configures the Gin validator with custom validator functions
-func ConfigureValidator(providers []string, pi *productinfo.CachingProductInfo) {
-	// retrieve the gin validator
+func ConfigureValidator(pc *client.Productinfo) error {
 	v := binding.Validator.Engine().(*validator.Validate)
-
-	// register validator for the provider parameter in the request path
-	var providerString = fmt.Sprintf("^%s$", strings.Join(providers, "|"))
-	var passwordRegexProvider = regexp.MustCompile(providerString)
-	v.RegisterValidation("provider_supported", func(v *validator.Validate, topStruct reflect.Value, currentStruct reflect.Value, field reflect.Value, fieldtype reflect.Type, fieldKind reflect.Kind, param string) bool {
-		return passwordRegexProvider.MatchString(field.String())
-	})
-
-	// register validator for the region parameter in the request path
-	rd := regionData{}
-	v.RegisterValidation("region", rd.validationFn(pi))
-
-	// register validator for zones
-	v.RegisterValidation("zone", ZoneValidatorFn(pi))
-
-	// register validator for network performance
-	v.RegisterValidation("network", NetworkPerfValidatorFn())
-
+	v.RegisterValidation("provider", providerValidator(pc))
+	v.RegisterValidation("region", regionValidator(pc))
+	v.RegisterValidation("zone", zoneValidator(pc))
+	v.RegisterValidation("network", networkPerfValidator())
+	return nil
 }
 
 // ValidatePathParam is a gin middleware handler function that validates a named path parameter with specific Validate tags
@@ -58,8 +45,7 @@ func ValidatePathParam(name string, validate *validator.Validate, tags ...string
 	}
 }
 
-// ValidateRegionData middleware function to validate region information in the request path.
-// It succeeds if the region is valid for the current provider
+// ValidateRegionData middleware function to validate region information in the request path
 func ValidateRegionData(validate *validator.Validate) gin.HandlerFunc {
 	const (
 		providerParam = "provider"
@@ -80,42 +66,17 @@ func ValidateRegionData(validate *validator.Validate) gin.HandlerFunc {
 			return
 		}
 	}
-
 }
 
-// regionData struct encapsulating data for region validation in the request path
-type regionData struct {
-	// Cloud the cloud provider from the request path
-	Cloud string `binding:"required"`
-	// Region the region in the request path
-	Region string `binding:"region"`
-}
-
-// String representation of the path data
-func (rd *regionData) String() string {
-	return fmt.Sprintf("Cloud: %s, Region: %s", rd.Cloud, rd.Region)
-}
-
-// newRegionData constructs a new
-func newRegionData(cloud string, region string) regionData {
-	return regionData{Cloud: cloud, Region: region}
-}
-
-// validationFn validation logic for the region data to be registered with the validator
-func (rd *regionData) validationFn(cpi *productinfo.CachingProductInfo) validator.Func {
-
+func providerValidator(pc *client.Productinfo) validator.Func {
 	return func(v *validator.Validate, topStruct reflect.Value, currentStruct reflect.Value, field reflect.Value, fieldtype reflect.Type, fieldKind reflect.Kind, param string) bool {
-		currentProvider := currentStruct.FieldByName("Cloud").String()
-		currentRegion := currentStruct.FieldByName("Region").String()
-
-		regions, err := cpi.GetRegions(currentProvider)
+		providers, err := pc.Providers.GetProviders(providers.NewGetProvidersParams())
 		if err != nil {
-			logrus.Errorf("could not get regions for provider: %s, err: %s", currentProvider, err.Error())
+			logrus.WithError(err).Errorf("failed to get providers")
+			return false
 		}
-
-		logrus.Debugf("current region: %s, regions: %#v", currentRegion, regions)
-		for reg := range regions {
-			if reg == currentRegion {
+		for _, p := range providers.Payload {
+			if p == field.String() {
 				return true
 			}
 		}
@@ -123,20 +84,61 @@ func (rd *regionData) validationFn(cpi *productinfo.CachingProductInfo) validato
 	}
 }
 
-// ZoneValidatorFn validates the zone in the recommendation request.
+// regionData struct encapsulating data for region validation in the request path
+type regionData struct {
+	// Provider the cloud provider from the request path
+	Provider string `binding:"required"`
+	// Region the region in the request path
+	Region string `binding:"region"`
+}
+
+// String representation of the path data
+func (rd *regionData) String() string {
+	return fmt.Sprintf("Provider: %s, Region: %s", rd.Provider, rd.Region)
+}
+
+// newRegionData constructs a new
+func newRegionData(provider string, region string) regionData {
+	return regionData{Provider: provider, Region: region}
+}
+
+// validationFn validation logic for the region data to be registered with the validator
+func regionValidator(pc *client.Productinfo) validator.Func {
+
+	return func(v *validator.Validate, topStruct reflect.Value, currentStruct reflect.Value, field reflect.Value, fieldtype reflect.Type, fieldKind reflect.Kind, param string) bool {
+		currentProvider := currentStruct.FieldByName("Provider").String()
+		currentRegion := currentStruct.FieldByName("Region").String()
+
+		response, err := pc.Regions.GetRegions(regions.NewGetRegionsParams().WithProvider(currentProvider))
+		if err != nil {
+			logrus.WithError(err).Errorf("could not get regions for provider: %s", currentProvider)
+			return false
+		}
+
+		logrus.Debugf("current region: %s, regions: %#v", currentRegion, response.Payload)
+		for _, r := range response.Payload {
+			if r.ID == currentRegion {
+				return true
+			}
+		}
+		return false
+	}
+}
+
+// zoneValidator validates the zone in the recommendation request.
 // Returns true if the zone is valid on the current cloud provider
-func ZoneValidatorFn(cpi *productinfo.CachingProductInfo) validator.Func {
+func zoneValidator(pc *client.Productinfo) validator.Func {
 	// caching product info may be available here, but the provider is not
 	return func(v *validator.Validate, topStruct reflect.Value, currentStruct reflect.Value, field reflect.Value,
 		fieldtype reflect.Type, fieldKind reflect.Kind, param string) bool {
 
 		// dig out the provider and region from the "topStruct"
-		cloud := reflect.Indirect(topStruct).FieldByName("P").String()
-		region := reflect.Indirect(topStruct).FieldByName("R").String()
+		provider := reflect.Indirect(topStruct).FieldByName("Provider").String()
+		region := reflect.Indirect(topStruct).FieldByName("Region").String()
 
 		// retrieve the zones
-		zones, _ := cpi.GetZones(cloud, region)
-		for _, zone := range zones {
+		response, _ := pc.Regions.GetRegion(regions.NewGetRegionParams().WithProvider(provider).WithRegion(region))
+		for _, zone := range response.Payload.Zones {
 			if zone == field.String() {
 				return true
 			}
@@ -145,9 +147,9 @@ func ZoneValidatorFn(cpi *productinfo.CachingProductInfo) validator.Func {
 	}
 }
 
-// NetworkPerfValidatorFn validates the network performance in the recommendation request.
+// networkPerfValidator validates the network performance in the recommendation request.
 // Returns true if the network performance is valid
-func NetworkPerfValidatorFn() validator.Func {
+func networkPerfValidator() validator.Func {
 	return func(v *validator.Validate, topStruct reflect.Value, currentStruct reflect.Value, field reflect.Value,
 		fieldtype reflect.Type, fieldKind reflect.Kind, param string) bool {
 

@@ -11,8 +11,6 @@ import (
 	"github.com/banzaicloud/telescopes/pkg/productinfo-client/client/products"
 	"github.com/banzaicloud/telescopes/pkg/productinfo-client/client/regions"
 	"github.com/banzaicloud/telescopes/pkg/productinfo-client/models"
-	httptransport "github.com/go-openapi/runtime/client"
-	"github.com/go-openapi/strfmt"
 	log "github.com/sirupsen/logrus"
 	"k8s.io/kubernetes/pkg/util/slice"
 )
@@ -48,12 +46,7 @@ type Engine struct {
 }
 
 // NewEngine creates a new Engine instance
-func NewEngine(host string, basePath string, schemes []string) (*Engine, error) {
-	transport := httptransport.New(host, basePath, schemes)
-	pc := client.New(transport, strfmt.Default)
-	if pc == nil {
-		return nil, errors.New("could not create engine")
-	}
+func NewEngine(pc *client.Productinfo) (*Engine, error) {
 	return &Engine{
 		piClient: pc,
 	}, nil
@@ -75,15 +68,13 @@ type ClusterRecommendationReq struct {
 	// Percentage of regular (on-demand) nodes in the recommended cluster
 	OnDemandPct int `json:"onDemandPct,omitempty" binding:"min=1,max=100"`
 	// Availability zones that the cluster should expand to
-	Zones []string `json:"zones,omitempty"`
-	// TODO: Zones []string `json:"zones,omitempty" binding:"dive,zone"`
+	Zones []string `json:"zones,omitempty" binding:"dive,zone"`
 	// Total number of GPUs requested for the cluster
 	SumGpu int `json:"sumGpu,omitempty"`
 	// Are burst instances allowed in recommendation
 	AllowBurst *bool `json:"allowBurst,omitempty"`
 	// NertworkPerf specifies the network performance category
-	NetworkPerf *string `json:"networkPerf"`
-	//TODO: NetworkPerf *string `json:"networkPerf" binding:"omitempty,network"`
+	NetworkPerf *string `json:"networkPerf" binding:"omitempty,network"`
 	// Excludes is a blacklist - a slice with vm types to be excluded from the recommendation
 	Excludes []string `json:"excludes,omitempty"`
 	// Includes is a whitelist - a slice with vm types to be contained in the recommendation

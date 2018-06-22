@@ -66,20 +66,20 @@ func (r *RouteHandler) ConfigureRoutes(router *gin.Engine) {
 	}
 
 	v1 := base.Group("/api/v1")
-	// set validation middlewares for request path parameter validation
-	v1.Use(ValidatePathParam(providerParam, v, "provider_supported"))
 
 	piGroup := v1.Group("/products")
 	{
+		piGroup.Use(ValidatePathParam(providerParam, v, "provider"))
 		piGroup.Use(ValidateRegionData(v))
 		piGroup.GET("/:provider/:region/", r.getProductDetails)
-		piGroup.GET("/:provider/:region/:attribute", r.getAttrValues)
+		piGroup.GET("/:provider/:region/:attribute", r.getAttrValues).Use(ValidatePathParam(attributeParam, v, "attribute"))
 	}
 
 	metaGroup := v1.Group("/regions")
 	{
+		metaGroup.Use(ValidatePathParam(providerParam, v, "provider"))
 		metaGroup.GET("/:provider", r.getRegions)
-		metaGroup.GET("/:provider/:region", r.getRegion)
+		metaGroup.GET("/:provider/:region", r.getRegion).Use(ValidateRegionData(v))
 	}
 
 	providerGroup := v1.Group("/providers")
