@@ -213,9 +213,7 @@ components:
           x-go-name: Provider
       x-go-package: github.com/banzaicloud/telescopes/internal/app/productinfo/api
     ProductDetails:
-      description: >-
-        ProductDetails extended view of the virtual machine details. Apart of
-        the VmInfo it may hold derived or additional information
+      description: ProductDetails extended view of the virtual machine details
       type: object
       properties:
         burst:

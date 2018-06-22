@@ -1,5 +1,5 @@
 export class Products {
-  Products: Product[];
+  products: Product[];
 }
 
 export class Product {
@@ -13,7 +13,7 @@ export class Product {
 
 export class SpotPrice {
   zone: string;
-  price: string;
+  price: number;
 }
 
 export class DisplayedProduct {
