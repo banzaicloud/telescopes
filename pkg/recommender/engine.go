@@ -9,6 +9,7 @@ import (
 	"github.com/banzaicloud/telescopes/pkg/productinfo-client/client"
 	"github.com/banzaicloud/telescopes/pkg/productinfo-client/client/attributes"
 	"github.com/banzaicloud/telescopes/pkg/productinfo-client/client/products"
+	"github.com/banzaicloud/telescopes/pkg/productinfo-client/client/regions"
 	"github.com/banzaicloud/telescopes/pkg/productinfo-client/models"
 	httptransport "github.com/go-openapi/runtime/client"
 	"github.com/go-openapi/strfmt"
@@ -446,14 +447,16 @@ func (e *Engine) findVmsWithAttrValues(provider string, region string, zones []s
 	}
 
 	if len(zones) == 0 {
-		z, err := e.productsClient.GetZones(provider, region)
+		grp := regions.NewGetRegionParams().WithProvider(provider).WithRegion(region)
+		r, err := e.piClient.Regions.GetRegion(grp)
 		if err != nil {
 			return nil, err
 		}
-		zones = z
+		zones = r.Payload.Zones
 	}
 
-	allProducts, err := e.piClient.Products.GetProductDetails(products.NewGetProductDetailsParams().WithRegion(region).WithProvider(provider))
+	gpdp := products.NewGetProductDetailsParams().WithRegion(region).WithProvider(provider)
+	allProducts, err := e.piClient.Products.GetProductDetails(gpdp)
 	if err != nil {
 		return nil, err
 	}

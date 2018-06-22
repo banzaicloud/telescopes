@@ -65,12 +65,10 @@ func (r *RouteHandler) ConfigureRoutes(router *gin.Engine) {
 		base.GET("/status", r.signalStatus)
 	}
 
-	// the v1 api group
 	v1 := base.Group("/api/v1")
 	// set validation middlewares for request path parameter validation
 	v1.Use(ValidatePathParam(providerParam, v, "provider_supported"))
 
-	// product api group
 	piGroup := v1.Group("/products")
 	{
 		piGroup.Use(ValidateRegionData(v))
@@ -81,6 +79,7 @@ func (r *RouteHandler) ConfigureRoutes(router *gin.Engine) {
 	metaGroup := v1.Group("/regions")
 	{
 		metaGroup.GET("/:provider", r.getRegions)
+		metaGroup.GET("/:provider/:region", r.getRegion)
 	}
 
 }
@@ -168,9 +167,38 @@ func (r *RouteHandler) getRegions(c *gin.Context) {
 		c.JSON(http.StatusInternalServerError, gin.H{"status": http.StatusInternalServerError, "message": fmt.Sprintf("%s", err)})
 		return
 	}
-	var response []RegionResp
+	var response []GetRegionsResp
 	for id, name := range regions {
-		response = append(response, RegionResp{id, name})
+		response = append(response, GetRegionsResp{id, name})
 	}
 	c.JSON(http.StatusOK, response)
+}
+
+// swagger:route GET /regions/{provider}/{region} regions getRegion
+//
+// Provides the detailed info of a specific region of a cloud provider
+//
+//     Produces:
+//     - application/json
+//
+//     Schemes: http
+//
+//     Security:
+//
+//     Responses:
+//       200: RegionResponse
+func (r *RouteHandler) getRegion(c *gin.Context) {
+	provider := c.Param("provider")
+	region := c.Param("region")
+
+	regions, err := r.prod.GetRegions(provider)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"status": http.StatusInternalServerError, "message": fmt.Sprintf("%s", err)})
+		return
+	}
+	zones, err := r.prod.GetZones(provider, region)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"status": http.StatusInternalServerError, "message": fmt.Sprintf("%s", err)})
+	}
+	c.JSON(http.StatusOK, GetRegionResp{region, regions[region], zones})
 }

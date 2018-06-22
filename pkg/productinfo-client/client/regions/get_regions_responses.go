@@ -41,7 +41,7 @@ func NewGetRegionsOK() *GetRegionsOK {
 
 /*GetRegionsOK handles this case with default header values.
 
-RegionResp holds the list of available regions of a cloud provider
+GetRegionsResp holds the list of available regions of a cloud provider
 */
 type GetRegionsOK struct {
 	ID string
