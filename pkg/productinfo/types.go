@@ -66,6 +66,9 @@ type ProductInfoer interface {
 
 // ProductInfo is the main entry point for retrieving vm type characteristics and pricing information on different cloud providers
 type ProductInfo interface {
+	// GetProviders returns the supported providers
+	GetProviders() []string
+
 	// Start starts the product information retrieval in a new goroutine
 	Start(ctx context.Context)
 

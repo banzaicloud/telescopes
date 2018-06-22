@@ -104,6 +104,29 @@
         }
       }
     },
+    "/providers": {
+      "get": {
+        "description": "Returns the supported providers",
+        "produces": [
+          "application/json"
+        ],
+        "schemes": [
+          "http"
+        ],
+        "tags": [
+          "providers"
+        ],
+        "operationId": "getProviders",
+        "responses": {
+          "200": {
+            "description": "ProviderResponse",
+            "schema": {
+              "$ref": "#/definitions/ProviderResponse"
+            }
+          }
+        }
+      }
+    },
     "/regions/{provider}": {
       "get": {
         "description": "Provides the list of available regions of a cloud provider",
@@ -128,7 +151,10 @@
         ],
         "responses": {
           "200": {
-            "$ref": "#/responses/RegionsResponse"
+            "description": "RegionsResponse",
+            "schema": {
+              "$ref": "#/definitions/RegionsResponse"
+            }
           }
         }
       }
@@ -261,21 +287,6 @@
       },
       "x-go-package": "github.com/banzaicloud/telescopes/internal/app/productinfo/api"
     },
-    "GetRegionsResp": {
-      "description": "GetRegionsResp holds the list of available regions of a cloud provider",
-      "type": "object",
-      "properties": {
-        "id": {
-          "type": "string",
-          "x-go-name": "Id"
-        },
-        "name": {
-          "type": "string",
-          "x-go-name": "Name"
-        }
-      },
-      "x-go-package": "github.com/banzaicloud/telescopes/internal/app/productinfo/api"
-    },
     "ProductDetails": {
       "description": "ProductDetails extended view of the virtual machine details. Apart of the VmInfo it may hold derived or additional information",
       "type": "object",
@@ -338,6 +349,28 @@
       },
       "x-go-package": "github.com/banzaicloud/telescopes/internal/app/productinfo/api"
     },
+    "ProviderResponse": {
+      "description": "ProviderResponse is the response used for the supported providers",
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "x-go-package": "github.com/banzaicloud/telescopes/internal/app/productinfo/api"
+    },
+    "Region": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "x-go-name": "Id"
+        },
+        "name": {
+          "type": "string",
+          "x-go-name": "Name"
+        }
+      },
+      "x-go-package": "github.com/banzaicloud/telescopes/internal/app/productinfo/api"
+    },
     "RegionResponse": {
       "description": "GetRegionResp holds the detailed description of a specific region of a cloud provider",
       "type": "object",
@@ -359,6 +392,14 @@
         }
       },
       "x-go-name": "GetRegionResp",
+      "x-go-package": "github.com/banzaicloud/telescopes/internal/app/productinfo/api"
+    },
+    "RegionsResponse": {
+      "description": "RegionsResponse holds the list of available regions of a cloud provider",
+      "type": "array",
+      "items": {
+        "$ref": "#/definitions/Region"
+      },
       "x-go-package": "github.com/banzaicloud/telescopes/internal/app/productinfo/api"
     },
     "SpotPriceInfo": {
@@ -385,19 +426,6 @@
         }
       },
       "x-go-package": "github.com/banzaicloud/telescopes/pkg/productinfo"
-    }
-  },
-  "responses": {
-    "RegionsResponse": {
-      "description": "GetRegionsResp holds the list of available regions of a cloud provider",
-      "headers": {
-        "id": {
-          "type": "string"
-        },
-        "name": {
-          "type": "string"
-        }
-      }
     }
   }
 }
