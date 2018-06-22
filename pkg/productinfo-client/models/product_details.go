@@ -14,7 +14,7 @@ import (
 	"github.com/go-openapi/swag"
 )
 
-// ProductDetails ProductDetails extended view of the virtual machine details. Apart of the VmInfo it may hold derived or additional information
+// ProductDetails ProductDetails extended view of the virtual machine details
 // swagger:model ProductDetails
 type ProductDetails struct {
 
