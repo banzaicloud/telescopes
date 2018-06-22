@@ -6,6 +6,8 @@ import (
 	"math"
 	"sort"
 
+	"github.com/banzaicloud/telescopes/pkg/productinfo-client/client"
+	"github.com/banzaicloud/telescopes/pkg/productinfo-client/client/attributes"
 	"github.com/banzaicloud/telescopes/pkg/productinfo-client/client/products"
 	"github.com/banzaicloud/telescopes/pkg/productinfo-client/models"
 	httptransport "github.com/go-openapi/runtime/client"
@@ -41,18 +43,18 @@ type ClusterRecommender interface {
 
 // Engine represents the recommendation engine, it operates on a map of provider -> VmRegistry
 type Engine struct {
-	productsClient *products.Client
+	piClient *client.Productinfo
 }
 
 // NewEngine creates a new Engine instance
 func NewEngine(host string, basePath string, schemes []string) (*Engine, error) {
 	transport := httptransport.New(host, basePath, schemes)
-	pc := products.New(transport, strfmt.Default)
+	pc := client.New(transport, strfmt.Default)
 	if pc == nil {
 		return nil, errors.New("could not create engine")
 	}
 	return &Engine{
-		productsClient: pc,
+		piClient: pc,
 	}, nil
 }
 
@@ -260,7 +262,7 @@ func (e *Engine) RecommendCluster(provider string, region string, req ClusterRec
 
 	for _, attr := range attributes {
 
-		values, err := e.RecommendAttrValues(provider, attr, req)
+		values, err := e.RecommendAttrValues(provider, region, attr, req)
 		if err != nil {
 			return nil, fmt.Errorf("could not get values for attr: [%s], cause: [%s]", attr, err.Error())
 		}
@@ -451,7 +453,7 @@ func (e *Engine) findVmsWithAttrValues(provider string, region string, zones []s
 		zones = z
 	}
 
-	allProducts, err := e.productsClient.GetProductDetails(products.NewGetProductDetailsParams().WithRegion(region).WithProvider(provider))
+	allProducts, err := e.piClient.Products.GetProductDetails(products.NewGetProductDetailsParams().WithRegion(region).WithProvider(provider))
 	if err != nil {
 		return nil, err
 	}
@@ -515,9 +517,10 @@ func (e *Engine) filtersApply(vm VirtualMachine, filters []vmFilter, req Cluster
 }
 
 // RecommendAttrValues selects the attribute values allowed to participate in the recommendation process
-func (e *Engine) RecommendAttrValues(provider string, attr string, req ClusterRecommendationReq) ([]float64, error) {
+func (e *Engine) RecommendAttrValues(provider string, region string, attr string, req ClusterRecommendationReq) ([]float64, error) {
 
-	allValues, err := e.productsClient.GetAttrValues(provider, attr)
+	attrParams := attributes.NewGetAttributeValuesParams().WithProvider(provider).WithRegion(region).WithAttribute(attr)
+	allValues, err := e.piClient.Attributes.GetAttributeValues(attrParams)
 	if err != nil {
 		return nil, err
 	}
@@ -529,7 +532,7 @@ func (e *Engine) RecommendAttrValues(provider string, attr string, req ClusterRe
 
 	maxValuePerVm, _ := req.maxValuePerVm(attr)
 
-	values, err := e.findValuesBetween(allValues, minValuePerVm, maxValuePerVm)
+	values, err := e.findValuesBetween(allValues.Payload.AttributeValues, minValuePerVm, maxValuePerVm)
 	if err != nil {
 		return nil, err
 	}

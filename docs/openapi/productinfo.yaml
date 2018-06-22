@@ -43,20 +43,59 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ProductDetailsResponse'
-  '/regions/:provider':
+  '/products/{provider}/{region}/{attribute}':
+    get:
+      tags:
+        - attributes
+      summary: Provides a list of available attribute values in a provider's region.
+      operationId: getAttributeValues
+      parameters:
+        - x-go-name: Provider
+          name: provider
+          in: path
+          required: true
+          schema:
+            type: string
+        - x-go-name: Region
+          name: region
+          in: path
+          required: true
+          schema:
+            type: string
+        - x-go-name: Attribute
+          name: attribute
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: AttributeResponse
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AttributeResponse'
+  '/regions/{provider}':
     get:
       description: Provides the list of available regions of a cloud provider
       tags:
         - regions
       operationId: getRegions
+      parameters:
+        - x-go-name: Provider
+          name: provider
+          in: path
+          required: true
+          schema:
+            type: string
       responses:
         '200':
-          $ref: '#/components/responses/regionsResponse'
+          $ref: '#/components/responses/RegionsResponse'
 servers:
   - url: /api/v1
 components:
   responses:
-    regionsResponse:
+    RegionsResponse:
       description: RegionResp holds the list of available regions of a cloud provider
       headers:
         id:
@@ -66,10 +105,43 @@ components:
           schema:
             type: string
   schemas:
+    AttributeResponse:
+      description: AttributeResponse holds attribute values
+      type: object
+      properties:
+        attributeName:
+          type: string
+          x-go-name: AttributeName
+        attributeValues:
+          type: array
+          items:
+            type: number
+            format: double
+          x-go-name: AttributeValues
+      x-go-package: github.com/banzaicloud/telescopes/internal/app/productinfo/api
+    GetAttributeValuesParams:
+      description: >-
+        GetAttributeValuesParams is a placeholder for the get attribute values
+        route's path parameters
+      type: object
+      properties:
+        attribute:
+          description: 'in:path'
+          type: string
+          x-go-name: Attribute
+        provider:
+          description: 'in:path'
+          type: string
+          x-go-name: Provider
+        region:
+          description: 'in:path'
+          type: string
+          x-go-name: Region
+      x-go-package: github.com/banzaicloud/telescopes/internal/app/productinfo/api
     GetProductDetailsParams:
       description: >-
-        GetProductDetailsParams is a placeholder for the get products path
-        parameters
+        GetProductDetailsParams is a placeholder for the get products route's
+        path parameters
       type: object
       properties:
         provider:
@@ -80,6 +152,17 @@ components:
           description: 'in:path'
           type: string
           x-go-name: Region
+      x-go-package: github.com/banzaicloud/telescopes/internal/app/productinfo/api
+    GetRegionsParams:
+      description: >-
+        GetRegionsParams is a placeholder for the get regions route's path
+        parameters
+      type: object
+      properties:
+        provider:
+          description: 'in:path'
+          type: string
+          x-go-name: Provider
       x-go-package: github.com/banzaicloud/telescopes/internal/app/productinfo/api
     ProductDetails:
       description: >-

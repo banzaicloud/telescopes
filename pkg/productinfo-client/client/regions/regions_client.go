@@ -36,7 +36,7 @@ func (a *Client) GetRegions(params *GetRegionsParams) (*GetRegionsOK, error) {
 	result, err := a.transport.Submit(&runtime.ClientOperation{
 		ID:                 "getRegions",
 		Method:             "GET",
-		PathPattern:        "/regions/:provider",
+		PathPattern:        "/regions/{provider}",
 		ProducesMediaTypes: []string{"application/json"},
 		ConsumesMediaTypes: []string{""},
 		Schemes:            []string{"http", "https"},
