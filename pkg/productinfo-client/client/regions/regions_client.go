@@ -25,6 +25,34 @@ type Client struct {
 }
 
 /*
+GetRegion Provides the detailed info of a specific region of a cloud provider
+*/
+func (a *Client) GetRegion(params *GetRegionParams) (*GetRegionOK, error) {
+	// TODO: Validate the params before sending
+	if params == nil {
+		params = NewGetRegionParams()
+	}
+
+	result, err := a.transport.Submit(&runtime.ClientOperation{
+		ID:                 "getRegion",
+		Method:             "GET",
+		PathPattern:        "/regions/{provider}/{region}",
+		ProducesMediaTypes: []string{"application/json"},
+		ConsumesMediaTypes: []string{""},
+		Schemes:            []string{"http", "https"},
+		Params:             params,
+		Reader:             &GetRegionReader{formats: a.formats},
+		Context:            params.Context,
+		Client:             params.HTTPClient,
+	})
+	if err != nil {
+		return nil, err
+	}
+	return result.(*GetRegionOK), nil
+
+}
+
+/*
 GetRegions Provides the list of available regions of a cloud provider
 */
 func (a *Client) GetRegions(params *GetRegionsParams) (*GetRegionsOK, error) {

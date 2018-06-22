@@ -91,12 +91,38 @@ paths:
       responses:
         '200':
           $ref: '#/components/responses/RegionsResponse'
+  '/regions/{provider}/{region}':
+    get:
+      description: Provides the detailed info of a specific region of a cloud provider
+      tags:
+        - regions
+      operationId: getRegion
+      parameters:
+        - x-go-name: Provider
+          name: provider
+          in: path
+          required: true
+          schema:
+            type: string
+        - x-go-name: Region
+          name: region
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: RegionResponse
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RegionResponse'
 servers:
   - url: /api/v1
 components:
   responses:
     RegionsResponse:
-      description: RegionResp holds the list of available regions of a cloud provider
+      description: GetRegionsResp holds the list of available regions of a cloud provider
       headers:
         id:
           schema:
@@ -153,6 +179,21 @@ components:
           type: string
           x-go-name: Region
       x-go-package: github.com/banzaicloud/telescopes/internal/app/productinfo/api
+    GetRegionParams:
+      description: >-
+        GetRegionParams is a placeholder for the get region route's path
+        parameters
+      type: object
+      properties:
+        provider:
+          description: 'in:path'
+          type: string
+          x-go-name: Provider
+        region:
+          description: 'in:path'
+          type: string
+          x-go-name: Region
+      x-go-package: github.com/banzaicloud/telescopes/internal/app/productinfo/api
     GetRegionsParams:
       description: >-
         GetRegionsParams is a placeholder for the get regions route's path
@@ -163,6 +204,17 @@ components:
           description: 'in:path'
           type: string
           x-go-name: Provider
+      x-go-package: github.com/banzaicloud/telescopes/internal/app/productinfo/api
+    GetRegionsResp:
+      description: GetRegionsResp holds the list of available regions of a cloud provider
+      type: object
+      properties:
+        id:
+          type: string
+          x-go-name: Id
+        name:
+          type: string
+          x-go-name: Name
       x-go-package: github.com/banzaicloud/telescopes/internal/app/productinfo/api
     ProductDetails:
       description: >-
@@ -215,8 +267,10 @@ components:
             $ref: '#/components/schemas/ProductDetails'
           x-go-name: Products
       x-go-package: github.com/banzaicloud/telescopes/internal/app/productinfo/api
-    RegionResp:
-      description: RegionResp holds the list of available regions of a cloud provider
+    RegionResponse:
+      description: >-
+        GetRegionResp holds the detailed description of a specific region of a
+        cloud provider
       type: object
       properties:
         id:
@@ -225,6 +279,12 @@ components:
         name:
           type: string
           x-go-name: Name
+        zones:
+          type: array
+          items:
+            type: string
+          x-go-name: Zones
+      x-go-name: GetRegionResp
       x-go-package: github.com/banzaicloud/telescopes/internal/app/productinfo/api
     SpotPriceInfo:
       description: SpotPriceInfo represents different prices per availability zones

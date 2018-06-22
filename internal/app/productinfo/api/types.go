@@ -25,11 +25,28 @@ type GetRegionsParams struct {
 	Provider string `json:"provider"`
 }
 
-// RegionResp holds the list of available regions of a cloud provider
+// GetRegionsResp holds the list of available regions of a cloud provider
 // swagger:response RegionsResponse
-type RegionResp struct {
+type GetRegionsResp struct {
 	Id   string `json:"id"`
 	Name string `json:"name"`
+}
+
+// GetRegionParams is a placeholder for the get region route's path parameters
+// swagger:parameters getRegion
+type GetRegionParams struct {
+	// in:path
+	Provider string `json:"provider"`
+	// in:path
+	Region string `json:"region"`
+}
+
+// GetRegionResp holds the detailed description of a specific region of a cloud provider
+// swagger:model RegionResponse
+type GetRegionResp struct {
+	Id    string   `json:"id"`
+	Name  string   `json:"name"`
+	Zones []string `json:"zones"`
 }
 
 // GetAttributeValuesParams is a placeholder for the get attribute values route's path parameters
