@@ -381,7 +381,7 @@ func TestCachingProductInfo_GetAttrValues(t *testing.T) {
 			Attribute: Cpu,
 			checker: func(value []float64, err error) {
 				assert.Nil(t, err, "the returned error must be nil")
-				assert.Equal(t, []float64{0, 0, 21, 23}, value)
+				assert.Equal(t, []float64{21, 23}, value)
 			},
 		},
 		{
