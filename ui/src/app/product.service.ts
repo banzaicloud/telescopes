@@ -36,7 +36,9 @@ export class ProductService {
             return new DisplayedProduct(
               response.type,
               response.cpusPerVm,
+              response.cpusPerVm + ' vCPUs',
               response.memPerVm,
+              response.memPerVm + ' GB',
               response.onDemandPrice,
               displayedSpot,
               response.ntwPerf === '' ? 'unavailable' : response.ntwPerf);
