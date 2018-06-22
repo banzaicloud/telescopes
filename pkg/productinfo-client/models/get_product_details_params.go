@@ -11,7 +11,7 @@ import (
 	"github.com/go-openapi/swag"
 )
 
-// GetProductDetailsParams GetProductDetailsParams is a placeholder for the get products path parameters
+// GetProductDetailsParams GetProductDetailsParams is a placeholder for the get products route's path parameters
 // swagger:model GetProductDetailsParams
 type GetProductDetailsParams struct {
 

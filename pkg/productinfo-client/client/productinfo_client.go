@@ -11,6 +11,7 @@ import (
 
 	strfmt "github.com/go-openapi/strfmt"
 
+	"github.com/banzaicloud/telescopes/pkg/productinfo-client/client/attributes"
 	"github.com/banzaicloud/telescopes/pkg/productinfo-client/client/products"
 	"github.com/banzaicloud/telescopes/pkg/productinfo-client/client/regions"
 )
@@ -57,6 +58,8 @@ func New(transport runtime.ClientTransport, formats strfmt.Registry) *Productinf
 
 	cli := new(Productinfo)
 	cli.Transport = transport
+
+	cli.Attributes = attributes.New(transport, formats)
 
 	cli.Products = products.New(transport, formats)
 
@@ -106,6 +109,8 @@ func (cfg *TransportConfig) WithSchemes(schemes []string) *TransportConfig {
 
 // Productinfo is a client for productinfo
 type Productinfo struct {
+	Attributes *attributes.Client
+
 	Products *products.Client
 
 	Regions *regions.Client
@@ -116,6 +121,8 @@ type Productinfo struct {
 // SetTransport changes the transport on the client and all its subresources
 func (c *Productinfo) SetTransport(transport runtime.ClientTransport) {
 	c.Transport = transport
+
+	c.Attributes.SetTransport(transport)
 
 	c.Products.SetTransport(transport)
 

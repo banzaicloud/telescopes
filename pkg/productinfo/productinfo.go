@@ -14,8 +14,8 @@ import (
 
 func (v AttrValues) floatValues() []float64 {
 	floatValues := make([]float64, len(v))
-	for _, av := range v {
-		floatValues = append(floatValues, av.Value)
+	for i, av := range v {
+		floatValues[i] = av.Value
 	}
 	return floatValues
 }
