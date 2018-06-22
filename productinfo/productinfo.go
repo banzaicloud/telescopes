@@ -446,3 +446,13 @@ func (cpi *CachingProductInfo) GetProductDetails(cloud string, region string) (*
 		Products: details,
 	}, nil
 }
+
+// Contains decides value is in slice or not
+func Contains(slice []string, val string) bool {
+	for _, v := range slice {
+		if v == val {
+			return true
+		}
+	}
+	return false
+}

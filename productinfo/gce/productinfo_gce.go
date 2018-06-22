@@ -201,10 +201,13 @@ func (g *GceInfoer) GetProducts(regionId string) ([]productinfo.VmInfo, error) {
 	err = g.computeSvc.MachineTypes.List(g.projectId, zones[0]).Pages(context.TODO(), func(allMts *compute.MachineTypeList) error {
 		for _, mt := range allMts.Items {
 			if mt.GuestCpus < 1 {
+				// minimum 1 Gbps network performance for each virtual machine
 				ntwPerf = strconv.Itoa(1)
 			} else if mt.GuestCpus > 8 {
+				// theoretical maximum of 16 Gbps for each virtual machine
 				ntwPerf = strconv.Itoa(16)
 			} else {
+				// each vCPU has a 2 Gbps egress cap for peak performance
 				ntwPerf = strconv.Itoa(int(mt.GuestCpus * 2))
 			}
 			vms = append(vms, productinfo.VmInfo{
