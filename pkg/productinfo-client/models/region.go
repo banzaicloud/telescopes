@@ -11,7 +11,7 @@ import (
 	"github.com/go-openapi/swag"
 )
 
-// Region region
+// Region Region hold the id and name of a cloud provider region
 // swagger:model Region
 type Region struct {
 
