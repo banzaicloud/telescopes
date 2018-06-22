@@ -5,7 +5,6 @@ import (
 	"net/http"
 	"reflect"
 
-	"github.com/banzaicloud/telescopes/pkg/productinfo"
 	"github.com/banzaicloud/telescopes/pkg/productinfo-client/client"
 	"github.com/banzaicloud/telescopes/pkg/productinfo-client/client/providers"
 	"github.com/banzaicloud/telescopes/pkg/productinfo-client/client/regions"
@@ -13,6 +12,13 @@ import (
 	"github.com/gin-gonic/gin/binding"
 	"github.com/sirupsen/logrus"
 	"gopkg.in/go-playground/validator.v8"
+)
+
+const (
+	NTW_LOW    = "low"
+	NTW_MEDIUM = "medium"
+	NTW_HIGH   = "high"
+	NTW_EXTRA  = "extra"
 )
 
 // ConfigureValidator configures the Gin validator with custom validator functions
@@ -126,17 +132,12 @@ func regionValidator(pc *client.Productinfo) validator.Func {
 }
 
 // zoneValidator validates the zone in the recommendation request.
-// Returns true if the zone is valid on the current cloud provider
 func zoneValidator(pc *client.Productinfo) validator.Func {
-	// caching product info may be available here, but the provider is not
 	return func(v *validator.Validate, topStruct reflect.Value, currentStruct reflect.Value, field reflect.Value,
 		fieldtype reflect.Type, fieldKind reflect.Kind, param string) bool {
 
-		// dig out the provider and region from the "topStruct"
 		provider := reflect.Indirect(topStruct).FieldByName("Provider").String()
 		region := reflect.Indirect(topStruct).FieldByName("Region").String()
-
-		// retrieve the zones
 		response, _ := pc.Regions.GetRegion(regions.NewGetRegionParams().WithProvider(provider).WithRegion(region))
 		for _, zone := range response.Payload.Zones {
 			if zone == field.String() {
@@ -148,23 +149,15 @@ func zoneValidator(pc *client.Productinfo) validator.Func {
 }
 
 // networkPerfValidator validates the network performance in the recommendation request.
-// Returns true if the network performance is valid
 func networkPerfValidator() validator.Func {
 	return func(v *validator.Validate, topStruct reflect.Value, currentStruct reflect.Value, field reflect.Value,
 		fieldtype reflect.Type, fieldKind reflect.Kind, param string) bool {
 
-		switch field.String() {
-		case productinfo.NTW_LOW:
-			return true
-		case productinfo.NTW_MEDIUM:
-			return true
-		case productinfo.NTW_HIGH:
-			return true
-		case productinfo.NTW_EXTRA:
-			return true
-		default:
-			logrus.Errorf("could not retrieve network mapper")
-			return false
+		for _, n := range []string{NTW_LOW, NTW_MEDIUM, NTW_HIGH, NTW_EXTRA} {
+			if field.String() == n {
+				return true
+			}
 		}
+		return false
 	}
 }

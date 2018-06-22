@@ -5,7 +5,6 @@ import (
 	"errors"
 	"testing"
 
-	"github.com/banzaicloud/telescopes/pkg/productinfo"
 	"github.com/stretchr/testify/assert"
 )
 
