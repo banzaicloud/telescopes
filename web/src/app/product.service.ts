@@ -21,13 +21,13 @@ export class ProductService {
   getProducts(provider, region): Observable<DisplayedProduct[]> {
     return this.http.get<Products>(this.productsUrlBase + 'products/' + provider + '/' + region).pipe(
       map(res => {
-        return res.Products.map(
+        return res.products.map(
           response => {
             let avgSpot = 0;
             if (response.spotPrice != null) {
               let i;
               for (i = 0; i < response.spotPrice.length; i++) {
-                avgSpot = avgSpot + parseFloat(response.spotPrice[i].price);
+                avgSpot = avgSpot + response.spotPrice[i].price;
               }
               avgSpot = avgSpot / response.spotPrice.length;
             }

@@ -147,7 +147,7 @@ func newZonePrice(zone string, price float64) *ZonePrice {
 	}
 }
 
-// ProductDetails extended view of the virtual machine details. Apart of the VmInfo it may hold derived or additional information
+// ProductDetails extended view of the virtual machine details
 type ProductDetails struct {
 	// Embedded struct!
 	VmInfo
