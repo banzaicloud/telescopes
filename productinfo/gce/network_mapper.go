@@ -3,6 +3,7 @@ package gce
 import (
 	"fmt"
 	"github.com/banzaicloud/telescopes/productinfo"
+	"k8s.io/kubernetes/pkg/util/slice"
 )
 
 var (
@@ -26,7 +27,7 @@ func newGceNetworkMapper() *GceNetworkMapper {
 // MapNetworkPerf maps the network performance of the gce instance to the category supported by telescopes
 func (nm *GceNetworkMapper) MapNetworkPerf(vm productinfo.VmInfo) (string, error) {
 	for perfCat, strVals := range ntwPerfMap {
-		if productinfo.Contains(strVals, vm.NtwPerf) {
+		if slice.ContainsString(strVals, vm.NtwPerf, nil) {
 			return perfCat, nil
 		}
 	}
