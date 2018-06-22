@@ -15,10 +15,10 @@ import (
 )
 
 const (
-	NTW_LOW    = "low"
-	NTW_MEDIUM = "medium"
-	NTW_HIGH   = "high"
-	NTW_EXTRA  = "extra"
+	ntwLow    = "low"
+	ntwMedium = "medium"
+	ntwHigh   = "high"
+	ntwExtra  = "extra"
 )
 
 // ConfigureValidator configures the Gin validator with custom validator functions
@@ -153,7 +153,7 @@ func networkPerfValidator() validator.Func {
 	return func(v *validator.Validate, topStruct reflect.Value, currentStruct reflect.Value, field reflect.Value,
 		fieldtype reflect.Type, fieldKind reflect.Kind, param string) bool {
 
-		for _, n := range []string{NTW_LOW, NTW_MEDIUM, NTW_HIGH, NTW_EXTRA} {
+		for _, n := range []string{ntwLow, ntwMedium, ntwHigh, ntwExtra} {
 			if field.String() == n {
 				return true
 			}

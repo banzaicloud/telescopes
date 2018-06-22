@@ -29,6 +29,7 @@ type GetRegionsParams struct {
 // swagger:model RegionsResponse
 type RegionsResponse []Region
 
+// Region hold the id and name of a cloud provider region
 type Region struct {
 	Id   string `json:"id"`
 	Name string `json:"name"`

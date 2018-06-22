@@ -61,7 +61,8 @@ generate-pi-client:
 	swagger generate client -f ./docs/openapi/productinfo.json -A productinfo -t pkg/productinfo-client/
 
 build:
-	go build .
+	go build ./cmd/telescopes/
+	go build ./cmd/productinfo/
 
 build-all: check-fmt check-misspell lint vet test swagger build
 

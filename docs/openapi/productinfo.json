@@ -358,6 +358,7 @@
       "x-go-package": "github.com/banzaicloud/telescopes/internal/app/productinfo/api"
     },
     "Region": {
+      "description": "Region hold the id and name of a cloud provider region",
       "type": "object",
       "properties": {
         "id": {
