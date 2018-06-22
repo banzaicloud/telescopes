@@ -474,7 +474,7 @@ func (e *Engine) findVmsWithAttrValues(provider string, region string, zones []s
 			vm := VirtualMachine{
 				Type:          p.Type,
 				OnDemandPrice: p.OnDemandPrice,
-				AvgPrice:      avg(p.SpotPrice),
+				AvgPrice:      avg(p.SpotPrice, zones),
 				Cpus:          p.Cpus,
 				Mem:           p.Mem,
 				Gpus:          p.Gpus,
@@ -489,10 +489,14 @@ func (e *Engine) findVmsWithAttrValues(provider string, region string, zones []s
 	return vms, nil
 }
 
-func avg(prices []*models.ZonePrice) float64 {
+func avg(prices []*models.ZonePrice, recZones []string) float64 {
 	avgPrice := 0.0
 	for _, price := range prices {
-		avgPrice += price.Price
+		for _, z := range recZones {
+			if z == price.Zone {
+				avgPrice += price.Price
+			}
+		}
 	}
 	return avgPrice / float64(len(prices))
 }

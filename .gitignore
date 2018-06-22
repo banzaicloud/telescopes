@@ -3,5 +3,7 @@
 bin/*
 .idea/
 /telescopes
+/productinfo
 conf/config.toml
 *.swp
+test.txt
