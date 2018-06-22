@@ -82,7 +82,7 @@ type ClusterRecommendationReq struct {
 }
 
 // ClusterRecommendationResp encapsulates recommendation result data
-// swagger:response recommendationResp
+// swagger:model RecommendationResponse
 type ClusterRecommendationResp struct {
 	// The cloud provider
 	Provider string `json:"provider"`

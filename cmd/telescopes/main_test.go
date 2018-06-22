@@ -2,12 +2,12 @@ package main
 
 import (
 	"fmt"
-	"github.com/banzaicloud/telescopes/pkg/recommender"
+	"os"
+	"testing"
+
 	"github.com/spf13/pflag"
 	"github.com/spf13/viper"
 	"github.com/stretchr/testify/assert"
-	"os"
-	"testing"
 )
 
 var stdin *os.File

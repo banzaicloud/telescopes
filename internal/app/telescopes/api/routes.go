@@ -95,7 +95,7 @@ func (r *RouteHandler) signalStatus(c *gin.Context) {
 //     Security:
 //
 //     Responses:
-//       200: recommendationResp
+//       200: RecommendationResponse
 func (r *RouteHandler) recommendClusterSetup(c *gin.Context) {
 	log.Info("recommend cluster setup")
 	provider := c.Param(providerParam)
