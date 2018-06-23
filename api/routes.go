@@ -60,12 +60,12 @@ func (r *RouteHandler) ConfigureRoutes(router *gin.Engine) {
 		basePath = basePathFromEnv
 	}
 
+	router.Use(cors.New(getCorsConfig()))
 	router.Use(static.Serve(basePath, static.LocalFile("./ui/dist/ui", true)))
 
 	base := router.Group(basePath)
 	{
 		base.GET("/status", r.signalStatus)
-		base.Use(cors.New(getCorsConfig()))
 	}
 
 	// the v1 api group
