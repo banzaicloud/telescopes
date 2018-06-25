@@ -12,7 +12,6 @@ import (
 	"github.com/banzaicloud/telescopes/pkg/productinfo-client/client/regions"
 	"github.com/banzaicloud/telescopes/pkg/productinfo-client/models"
 	log "github.com/sirupsen/logrus"
-	"k8s.io/kubernetes/pkg/util/slice"
 )
 
 const (
@@ -190,7 +189,7 @@ func (e *Engine) excludesFilter(vm VirtualMachine, req ClusterRecommendationReq)
 		log.Debugf("no blacklist provided - all vm types are welcome")
 		return true
 	}
-	if slice.ContainsString(req.Excludes, vm.Type, nil) {
+	if contains(req.Excludes, vm.Type) {
 		log.Debugf("the vm type [%s] is blacklisted", vm.Type)
 		return false
 	}
@@ -203,7 +202,7 @@ func (e *Engine) includesFilter(vm VirtualMachine, req ClusterRecommendationReq)
 		log.Debugf("no whitelist specified - all vm types are welcome")
 		return true
 	}
-	if slice.ContainsString(req.Includes, vm.Type, nil) {
+	if contains(req.Includes, vm.Type) {
 		log.Debugf("the vm type [%s] is whitelisted", vm.Type)
 		return true
 	}
@@ -716,4 +715,13 @@ func (n *NodePool) poolPrice() float64 {
 		sum = float64(n.SumNodes) * n.VmType.AvgPrice
 	}
 	return sum
+}
+
+func contains(slice []string, s string) bool {
+	for _, e := range slice {
+		if e == s {
+			return true
+		}
+	}
+	return false
 }
