@@ -4,7 +4,6 @@ import (
 	"fmt"
 
 	"github.com/banzaicloud/telescopes/pkg/productinfo"
-	"k8s.io/kubernetes/pkg/util/slice"
 )
 
 var (
@@ -40,7 +39,7 @@ func newEc2NetworkMapper() Ec2NetworkMapper {
 // MapNetworkPerf maps the network performance of the ec2 to the category supported ny telescope
 func (nm *Ec2NetworkMapper) MapNetworkPerf(vm productinfo.VmInfo) (string, error) {
 	for perfCat, strVals := range ntwPerfMap {
-		if slice.ContainsString(strVals, vm.NtwPerf, nil) {
+		if productinfo.Contains(strVals, vm.NtwPerf) {
 			return perfCat, nil
 		}
 	}

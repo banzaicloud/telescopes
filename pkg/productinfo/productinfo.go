@@ -423,3 +423,13 @@ func (cpi *CachingProductInfo) GetProductDetails(cloud string, region string) ([
 
 	return details, nil
 }
+
+// Contains is a helper function to check if a slice contains a string
+func Contains(slice []string, s string) bool {
+	for _, e := range slice {
+		if e == s {
+			return true
+		}
+	}
+	return false
+}
