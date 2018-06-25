@@ -25,6 +25,18 @@ paths:
         specific region.
       operationId: recommendClusterSetup
       parameters:
+        - x-go-name: Provider
+          name: provider
+          in: path
+          required: true
+          schema:
+            type: string
+        - x-go-name: Region
+          name: region
+          in: path
+          required: true
+          schema:
+            type: string
         - x-go-name: SumCpu
           description: Total number of CPUs requested for the cluster
           name: sumCpu
@@ -113,18 +125,6 @@ paths:
             type: array
             items:
               type: string
-        - x-go-name: Provider
-          name: provider
-          in: path
-          required: true
-          schema:
-            type: string
-        - x-go-name: Region
-          name: region
-          in: path
-          required: true
-          schema:
-            type: string
       responses:
         '200':
           description: RecommendationResponse
@@ -386,8 +386,7 @@ components:
     ProductDetails:
       description: >-
         ProductDetails ProductDetails extended view of the virtual machine
-        details. Apart of the VmInfo it may hold derived or additional
-        information
+        details
       type: object
       properties:
         burst:
@@ -479,7 +478,7 @@ components:
       x-go-name: ClusterRecommendationResp
       x-go-package: github.com/banzaicloud/telescopes/pkg/recommender
     Region:
-      description: Region region
+      description: Region Region hold the id and name of a cloud provider region
       type: object
       properties:
         id:

@@ -56,10 +56,11 @@ func (r *RouteHandler) ConfigureRoutes(router *gin.Engine) {
 		basePath = basePathFromEnv
 	}
 
+	router.Use(cors.New(getCorsConfig()))
+
 	base := router.Group(basePath)
 	{
 		base.GET("/status", r.signalStatus)
-		base.Use(cors.New(getCorsConfig()))
 	}
 
 	v1 := base.Group("/api/v1")
