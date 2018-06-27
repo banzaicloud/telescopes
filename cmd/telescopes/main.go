@@ -144,7 +144,7 @@ func main() {
 	transport := httptransport.New(url.Host, url.Path, []string{url.Scheme})
 	pc := client.New(transport, strfmt.Default)
 
-	engine, err := recommender.NewEngine(pc)
+	engine, err := recommender.NewEngine(recommender.NewProductInfoClient(pc))
 	quitOnError("failed to start telescopes", err)
 
 	// configure the gin validator

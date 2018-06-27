@@ -6,10 +6,6 @@ import (
 	"math"
 	"sort"
 
-	"github.com/banzaicloud/telescopes/pkg/productinfo-client/client"
-	"github.com/banzaicloud/telescopes/pkg/productinfo-client/client/attributes"
-	"github.com/banzaicloud/telescopes/pkg/productinfo-client/client/products"
-	"github.com/banzaicloud/telescopes/pkg/productinfo-client/client/regions"
 	"github.com/banzaicloud/telescopes/pkg/productinfo-client/models"
 	log "github.com/sirupsen/logrus"
 )
@@ -41,13 +37,13 @@ type ClusterRecommender interface {
 
 // Engine represents the recommendation engine, it operates on a map of provider -> VmRegistry
 type Engine struct {
-	piClient *client.Productinfo
+	piSource ProductInfoSource
 }
 
 // NewEngine creates a new Engine instance
-func NewEngine(pc *client.Productinfo) (*Engine, error) {
+func NewEngine(pis ProductInfoSource) (*Engine, error) {
 	return &Engine{
-		piClient: pc,
+		piSource: pis,
 	}, nil
 }
 
@@ -430,30 +426,28 @@ func (e *Engine) RecommendVms(provider string, region string, attr string, value
 
 func (e *Engine) findVmsWithAttrValues(provider string, region string, zones []string, attr string, values []float64) ([]VirtualMachine, error) {
 	log.Infof("Getting instance types and on demand prices with %v %s", values, attr)
-	var vms []VirtualMachine
+	var (
+		vms []VirtualMachine
+	)
 
 	if zones == nil || len(zones) == 0 {
-		zones = []string{}
-	}
-
-	if len(zones) == 0 {
-		grp := regions.NewGetRegionParams().WithProvider(provider).WithRegion(region)
-		r, err := e.piClient.Regions.GetRegion(grp)
-		if err != nil {
+		if z, err := e.piSource.GetRegion(provider, region); err == nil {
+			zones = z
+		} else {
+			log.Errorf("couldn't describe region: %s, provider: %s", region, provider)
 			return nil, err
 		}
-		zones = r.Payload.Zones
 	}
 
-	gpdp := products.NewGetProductDetailsParams().WithRegion(region).WithProvider(provider)
-	allProducts, err := e.piClient.Products.GetProductDetails(gpdp)
+	allProducts, err := e.piSource.GetProductDetails(provider, region)
 	if err != nil {
+		log.Errorf("couldn't get product details. region: %s, provider: %s", region, provider)
 		return nil, err
 	}
 
 	for _, v := range values {
 		var filteredProducts []models.ProductDetails
-		for _, p := range allProducts.Payload.Products {
+		for _, p := range allProducts {
 			switch attr {
 			case Cpu:
 				if p.Cpus != v {
@@ -516,8 +510,7 @@ func (e *Engine) filtersApply(vm VirtualMachine, filters []vmFilter, req Cluster
 // RecommendAttrValues selects the attribute values allowed to participate in the recommendation process
 func (e *Engine) RecommendAttrValues(provider string, region string, attr string, req ClusterRecommendationReq) ([]float64, error) {
 
-	attrParams := attributes.NewGetAttributeValuesParams().WithProvider(provider).WithRegion(region).WithAttribute(attr)
-	allValues, err := e.piClient.Attributes.GetAttributeValues(attrParams)
+	allValues, err := e.piSource.GetAttributeValues(provider, region, attr)
 	if err != nil {
 		return nil, err
 	}
@@ -529,7 +522,7 @@ func (e *Engine) RecommendAttrValues(provider string, region string, attr string
 
 	maxValuePerVm, _ := req.maxValuePerVm(attr)
 
-	values, err := e.findValuesBetween(allValues.Payload.AttributeValues, minValuePerVm, maxValuePerVm)
+	values, err := e.findValuesBetween(allValues, minValuePerVm, maxValuePerVm)
 	if err != nil {
 		return nil, err
 	}
