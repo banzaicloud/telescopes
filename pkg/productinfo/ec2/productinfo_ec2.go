@@ -168,10 +168,10 @@ func (e *Ec2Infoer) GetProducts(regionId string) ([]productinfo.VmInfo, error) {
 			continue
 		}
 
-		onDemandPrice, _ := strconv.ParseFloat(odPriceStr, 32)
-		cpus, _ := strconv.ParseFloat(cpusStr, 32)
-		mem, _ := strconv.ParseFloat(strings.Split(memStr, " ")[0], 32)
-		gpus, _ := strconv.ParseFloat(gpu, 32)
+		onDemandPrice, _ := strconv.ParseFloat(odPriceStr, 64)
+		cpus, _ := strconv.ParseFloat(cpusStr, 64)
+		mem, _ := strconv.ParseFloat(strings.Split(memStr, " ")[0], 64)
+		gpus, _ := strconv.ParseFloat(gpu, 64)
 		vm := productinfo.VmInfo{
 			Type:          instanceType,
 			OnDemandPrice: onDemandPrice,
