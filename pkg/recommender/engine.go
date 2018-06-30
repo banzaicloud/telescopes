@@ -146,6 +146,11 @@ type vmFilter func(vm VirtualMachine, req ClusterRecommendationReq) bool
 
 func (e *Engine) minMemRatioFilter(vm VirtualMachine, req ClusterRecommendationReq) bool {
 	minMemToCpuRatio := req.SumMem / req.SumCpu
+
+	if minMemToCpuRatio == 1 {
+		return true
+	}
+
 	if vm.Mem/vm.Cpus < minMemToCpuRatio {
 		return false
 	}
@@ -163,7 +168,10 @@ func (e *Engine) burstFilter(vm VirtualMachine, req ClusterRecommendationReq) bo
 
 func (e *Engine) minCpuRatioFilter(vm VirtualMachine, req ClusterRecommendationReq) bool {
 	minCpuToMemRatio := req.SumCpu / req.SumMem
-	if vm.Cpus/vm.Mem < minCpuToMemRatio {
+	if minCpuToMemRatio == 1 {
+		return true
+	}
+	if vm.Cpus/vm.Mem <= minCpuToMemRatio {
 		return false
 	}
 	return true
