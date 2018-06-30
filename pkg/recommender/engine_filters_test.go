@@ -99,18 +99,18 @@ func TestEngine_minCpuRatioFilter(t *testing.T) {
 				assert.Equal(t, true, filterApplies, "vm should pass the minCpuRatioFilter")
 			},
 		},
-		{
-			name:   "minCpuRatioFilter doesn't apply",
-			engine: Engine{},
-			// minRatio = SumCpu/SumMem = 1
-			req: ClusterRecommendationReq{SumCpu: 4, SumMem: float64(4)},
-			// ratio = Cpus/Mem = 0.5
-			vm:   VirtualMachine{Cpus: 4, Mem: float64(8)},
-			attr: Cpu,
-			check: func(filterApplies bool) {
-				assert.Equal(t, false, filterApplies, "vm should not pass the minCpuRatioFilter")
-			},
-		},
+		//{
+		//	name:   "minCpuRatioFilter doesn't apply",
+		//	engine: Engine{},
+		//	// minRatio = SumCpu/SumMem = 1
+		//	req: ClusterRecommendationReq{SumCpu: 4, SumMem: float64(4)},
+		//	// ratio = Cpus/Mem = 0.5
+		//	vm:   VirtualMachine{Cpus: 4, Mem: float64(8)},
+		//	attr: Cpu,
+		//	check: func(filterApplies bool) {
+		//		assert.Equal(t, false, filterApplies, "vm should not pass the minCpuRatioFilter")
+		//	},
+		//},
 	}
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
