@@ -145,6 +145,11 @@ func (v *VirtualMachine) getAttrValue(attr string) float64 {
 type vmFilter func(vm VirtualMachine, req ClusterRecommendationReq) bool
 
 func (e *Engine) minMemRatioFilter(vm VirtualMachine, req ClusterRecommendationReq) bool {
+	// if there is a single node requested
+	if req.MaxNodes == 1 {
+		return vm.Cpus >= req.SumCpu
+	}
+
 	minMemToCpuRatio := req.SumMem / req.SumCpu
 	if vm.Mem/vm.Cpus < minMemToCpuRatio {
 		return false
@@ -162,6 +167,11 @@ func (e *Engine) burstFilter(vm VirtualMachine, req ClusterRecommendationReq) bo
 }
 
 func (e *Engine) minCpuRatioFilter(vm VirtualMachine, req ClusterRecommendationReq) bool {
+	// if there is a single node requested
+	if req.MaxNodes == 1 {
+		return vm.Mem >= req.SumMem
+	}
+
 	minCpuToMemRatio := req.SumCpu / req.SumMem
 	if vm.Cpus/vm.Mem < minCpuToMemRatio {
 		return false
