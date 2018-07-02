@@ -261,6 +261,11 @@ func (e *Engine) RecommendCluster(provider string, region string, req ClusterRec
 		if err != nil {
 			return nil, fmt.Errorf("could not get virtual machines for attr: [%s], cause: [%s]", attr, err.Error())
 		}
+		if len(filteredVms) == 0 {
+			log.Debugf("no vms with the requested resources found. attribute: %s", attr)
+			// skip the nodepool creation, go to the next attr
+			continue
+		}
 		log.Debugf("recommended vms for [%s]: count:[%d] , values: [%#V]", attr, len(filteredVms), filteredVms)
 
 		nps, err := e.RecommendNodePools(attr, filteredVms, values, req)
@@ -270,6 +275,11 @@ func (e *Engine) RecommendCluster(provider string, region string, req ClusterRec
 		log.Debugf("recommended node pools for [%s]: count:[%d] , values: [%#V]", attr, len(nps), nps)
 
 		nodePools[attr] = nps
+	}
+
+	if len(nodePools) == 0 {
+		log.Debugf("could not recommend node pools for request: %v", req)
+		return nil, errors.New("could not recommend cluster with the requested resources")
 	}
 
 	cheapestNodePoolSet := e.findCheapestNodePoolSet(nodePools)
@@ -418,7 +428,7 @@ func (e *Engine) RecommendVms(provider string, region string, attr string, value
 	}
 
 	if len(filteredVms) == 0 {
-		return nil, errors.New("couldn't find any VMs to recommend")
+		log.Debugf("no vms found for attribute: %s", attr)
 	}
 
 	return filteredVms, nil
