@@ -289,23 +289,6 @@ func TestEngine_RecommendVms(t *testing.T) {
 				assert.Equal(t, 3, len(vms))
 			},
 		},
-		{
-			name:   "could not find any VMs to recommender",
-			region: "us-west-2",
-			filters: []vmFilter{func(vm VirtualMachine, req ClusterRecommendationReq) bool {
-				return false
-			}},
-			pi:        &dummyProductInfoSource{},
-			values:    []float64{1, 2},
-			provider:  "dummy",
-			attribute: Cpu,
-
-			check: func(vms []VirtualMachine, err error) {
-				assert.EqualError(t, err, "couldn't find any VMs to recommend")
-				assert.Nil(t, vms, "the vms should be nil")
-
-			},
-		},
 	}
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
