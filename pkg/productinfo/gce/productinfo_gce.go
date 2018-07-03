@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"net/http"
 	"regexp"
+	"strconv"
 	"strings"
 
 	"github.com/banzaicloud/telescopes/pkg/productinfo"
@@ -13,13 +14,31 @@ import (
 	billing "google.golang.org/api/cloudbilling/v1"
 	"google.golang.org/api/compute/v1"
 	"google.golang.org/api/googleapi/transport"
-	"strconv"
 )
 
 const (
 	cpu    = "cpu"
 	memory = "memory"
 )
+
+var regionNames = map[string]string{
+	"asia-east1":              "Asia Pacific (Taiwan)",
+	"asia-northeast1":         "Asia Pacific (Tokyo)",
+	"asia-south1":             "Asia Pacific (Mumbai)",
+	"asia-southeast1":         "Asia Pacific (Singapore)",
+	"australia-southeast1":    "Asia Pacific (Sydney)",
+	"europe-north1":           "EU (Finland)",
+	"europe-west1":            "EU (Belgium)",
+	"europe-west2":            "EU (London)",
+	"europe-west3":            "EU (Frankfurt)",
+	"europe-west4":            "EU (Netherlands)",
+	"northamerica-northeast1": "Canada (Montréal)",
+	"southamerica-east1":      "South America (São Paulo)",
+	"us-central1":             "US Central (Iowa)",
+	"us-east1":                "US East (South Carolina)",
+	"us-east4":                "US East (Northern Virginia)",
+	"us-west1":                "US West (Oregon)",
+}
 
 // GceInfoer encapsulates the data and operations needed to access external resources
 type GceInfoer struct {
@@ -235,7 +254,11 @@ func (g *GceInfoer) GetRegions() (map[string]string, error) {
 		return nil, err
 	}
 	for _, region := range regionList.Items {
-		regionIdMap[region.Name] = region.Description
+		description := region.Description
+		if displayName, ok := regionNames[region.Name]; ok {
+			description = displayName
+		}
+		regionIdMap[region.Name] = description
 
 	}
 	log.Debugf("regions found: %v", regionIdMap)
