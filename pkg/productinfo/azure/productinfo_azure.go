@@ -319,7 +319,7 @@ func (a *AzureInfoer) GetAttributeValues(attribute string) (productinfo.AttrValu
 
 // GetProducts retrieves the available virtual machines based on the arguments provided
 func (a *AzureInfoer) GetProducts(regionId string) ([]productinfo.VmInfo, error) {
-	log.Debugf("getting product info [region=%s, %s=%v]", regionId)
+	log.Debugf("getting product info [region=%s]", regionId)
 	var vms []productinfo.VmInfo
 	vmSizes, err := a.vmSizesClient.List(context.TODO(), regionId)
 	if err != nil {

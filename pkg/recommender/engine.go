@@ -266,13 +266,13 @@ func (e *Engine) RecommendCluster(provider string, region string, req ClusterRec
 			// skip the nodepool creation, go to the next attr
 			continue
 		}
-		log.Debugf("recommended vms for [%s]: count:[%d] , values: [%#V]", attr, len(filteredVms), filteredVms)
+		log.Debugf("recommended vms for [%s]: count:[%d] , values: [%#v]", attr, len(filteredVms), filteredVms)
 
 		nps, err := e.RecommendNodePools(attr, filteredVms, values, req)
 		if err != nil {
 			return nil, fmt.Errorf("error while recommending node pools for attr: [%s], cause: [%s]", attr, err.Error())
 		}
-		log.Debugf("recommended node pools for [%s]: count:[%d] , values: [%#V]", attr, len(nps), nps)
+		log.Debugf("recommended node pools for [%s]: count:[%d] , values: [%#v]", attr, len(nps), nps)
 
 		nodePools[attr] = nps
 	}
@@ -493,6 +493,9 @@ func (e *Engine) findVmsWithAttrValues(provider string, region string, zones []s
 }
 
 func avg(prices []*models.ZonePrice, recZones []string) float64 {
+	if len(prices) == 0 {
+		return 0.0
+	}
 	avgPrice := 0.0
 	for _, price := range prices {
 		for _, z := range recZones {
