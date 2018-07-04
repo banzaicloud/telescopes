@@ -316,19 +316,6 @@ func (cpi *CachingProductInfo) renewVms(provider string, regionId string) ([]VmI
 	return values, nil
 }
 
-func (cpi *CachingProductInfo) getAttrValue(provider string, attrKey string, attrValue float64) (*AttrValue, error) {
-	attrValues, err := cpi.getAttrValues(provider, attrKey)
-	if err != nil {
-		return nil, err
-	}
-	for _, av := range attrValues {
-		if av.Value == attrValue {
-			return &av, nil
-		}
-	}
-	return nil, errors.New("couldn't find attribute Value")
-}
-
 // GetZones returns the availability zones in a region
 func (cpi *CachingProductInfo) GetZones(provider string, region string) ([]string, error) {
 	zoneCacheKey := cpi.getZonesKey(provider, region)
@@ -373,7 +360,7 @@ func (cpi *CachingProductInfo) GetRegions(provider string) (map[string]string, e
 		return cachedVal.(map[string]string), nil
 	}
 
-	// retrieve zones from the provider
+	// retrieve regions from the provider
 	regions, err := cpi.productInfoers[provider].GetRegions()
 	if err != nil {
 		log.Errorf("could not retrieve regions. provider: %s", provider)
