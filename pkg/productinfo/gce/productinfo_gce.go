@@ -229,11 +229,16 @@ func (g *GceInfoer) GetProducts(regionId string) ([]productinfo.VmInfo, error) {
 				// each vCPU has a 2 Gbps egress cap for peak performance
 				ntwPerf = strconv.Itoa(int(mt.GuestCpus * 2))
 			}
+			ntwPerfCat, err := g.mapNetworkPerf(ntwPerf)
+			if err != nil {
+				log.Warn("could not get network category")
+			}
 			vms = append(vms, productinfo.VmInfo{
-				Type:    mt.Name,
-				Cpus:    float64(mt.GuestCpus),
-				Mem:     float64(mt.MemoryMb) / 1024,
-				NtwPerf: ntwPerf,
+				Type:       mt.Name,
+				Cpus:       float64(mt.GuestCpus),
+				Mem:        float64(mt.MemoryMb) / 1024,
+				NtwPerf:    ntwPerf,
+				NtwPerfCat: ntwPerfCat,
 			})
 		}
 		return nil
@@ -311,7 +316,21 @@ func (g *GceInfoer) GetCpuAttrName() string {
 	return cpu
 }
 
-// GetNetworkPerformanceMapper returns the network performance mappier implementation for this provider
-func (g *GceInfoer) GetNetworkPerformanceMapper() (productinfo.NetworkPerfMapper, error) {
-	return newGceNetworkMapper(), nil
+var (
+	ntwPerfMap = map[string][]string{
+		productinfo.NTW_LOW:    {"1", "2"},
+		productinfo.NTW_MEDIUM: {"4", "6", "8"},
+		productinfo.NTW_HIGH:   {"10", "12", "14"},
+		productinfo.NTW_EXTRA:  {"16"},
+	}
+)
+
+// mapNetworkPerf maps the network performance of the gce instance to the category supported by telescopes
+func (g *GceInfoer) mapNetworkPerf(networkperf string) (string, error) {
+	for perfCat, strVals := range ntwPerfMap {
+		if productinfo.Contains(strVals, networkperf) {
+			return perfCat, nil
+		}
+	}
+	return "", fmt.Errorf("could not determine network performance for: [%s]", networkperf)
 }

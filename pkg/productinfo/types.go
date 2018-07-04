@@ -59,9 +59,6 @@ type ProductInfoer interface {
 
 	// GetCpuAttrName returns the provider representation of the cpu attribute
 	GetCpuAttrName() string
-
-	// GetNetworkPerformanceMapper returns the provider specific network performance mapper
-	GetNetworkPerformanceMapper() (NetworkPerfMapper, error)
 }
 
 // ProductInfo is the main entry point for retrieving vm type characteristics and pricing information on different cloud providers
@@ -92,9 +89,6 @@ type ProductInfo interface {
 
 	// GetPrice returns the on demand price and the zone averaged computed spot price for a given instance type in a given region
 	GetPrice(provider string, region string, instanceType string, zones []string) (float64, float64, error)
-
-	// GetNetworkPerfMapper retrieves the network performance mapper implementation
-	GetNetworkPerfMapper(provider string) (NetworkPerfMapper, error)
 }
 
 // CachingProductInfo is the module struct, holds configuration and cache
@@ -126,12 +120,6 @@ var (
 	// NTW_EXTRA the highest network performance category
 	NTW_EXTRA = "extra"
 )
-
-// NetworkPerfMapper operations related  to mapping between virtual machines to network performance categories
-type NetworkPerfMapper interface {
-	// MapNetworkPerf gets the network performance category for the given
-	MapNetworkPerf(vm VmInfo) (string, error)
-}
 
 // ZonePrice struct for displaying proce information per zone
 type ZonePrice struct {

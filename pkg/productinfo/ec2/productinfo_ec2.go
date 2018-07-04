@@ -167,6 +167,11 @@ func (e *Ec2Infoer) GetProducts(regionId string) ([]productinfo.VmInfo, error) {
 			log.Warn("could not parse network performance")
 			continue
 		}
+		ntwPerfCat, err := e.mapNetworkPerf(ntwPerf)
+		if err != nil {
+			log.Warn("could not get network category")
+			continue
+		}
 
 		onDemandPrice, _ := strconv.ParseFloat(odPriceStr, 64)
 		cpus, _ := strconv.ParseFloat(cpusStr, 64)
@@ -179,6 +184,7 @@ func (e *Ec2Infoer) GetProducts(regionId string) ([]productinfo.VmInfo, error) {
 			Mem:           mem,
 			Gpus:          gpus,
 			NtwPerf:       ntwPerf,
+			NtwPerfCat:    ntwPerfCat,
 		}
 		vms = append(vms, vm)
 	}
@@ -436,8 +442,33 @@ func (e *Ec2Infoer) GetCpuAttrName() string {
 	return Cpu
 }
 
-// GetNetworkPerformanceMapper gets the ec2 specific network performance mapper implementation
-func (e *Ec2Infoer) GetNetworkPerformanceMapper() (productinfo.NetworkPerfMapper, error) {
-	nm := newEc2NetworkMapper()
-	return &nm, nil
+var (
+	ntwPerfMap = map[string][]string{
+		// available categories
+		//"10 Gigabit"
+		//"20 Gigabit"
+		//"25 Gigabit"
+		//"High"
+		//"Low to Moderate"
+		//"Low"
+		//"Moderate"
+		//"NA"
+		//"Up to 10 Gigabit"
+		//"Very Low"
+
+		productinfo.NTW_LOW:    {"Very Low", "Low", "Low to Moderate"},
+		productinfo.NTW_MEDIUM: {"Moderate", "High"},
+		productinfo.NTW_HIGH:   {"Up to 10 Gigabit", "10 Gigabit"},
+		productinfo.NTW_EXTRA:  {"20 Gigabit", "25 Gigabit"},
+	}
+)
+
+// mapNetworkPerf maps the network performance of the ec2 to the category supported ny telescope
+func (e *Ec2Infoer) mapNetworkPerf(networkperf string) (string, error) {
+	for perfCat, strVals := range ntwPerfMap {
+		if productinfo.Contains(strVals, networkperf) {
+			return perfCat, nil
+		}
+	}
+	return "", fmt.Errorf("could not determine network performance for: [%s]", networkperf)
 }
