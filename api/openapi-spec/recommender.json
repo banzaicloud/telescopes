@@ -487,6 +487,11 @@
           "type": "string",
           "x-go-name": "NtwPerf"
         },
+        "ntwPerfCategory": {
+          "description": "ntw perf cat",
+          "type": "string",
+          "x-go-name": "NtwPerfCat"
+        },
         "onDemandPrice": {
           "description": "on demand price",
           "type": "number",
@@ -649,9 +654,14 @@
           "x-go-name": "Mem"
         },
         "networkPerf": {
-          "description": "NetworkPerf holds the network performance category",
+          "description": "NetworkPerf holds the network performance",
           "type": "string",
           "x-go-name": "NetworkPerf"
+        },
+        "networkPerfCategory": {
+          "description": "NetworkPerfCat holds the network performance category",
+          "type": "string",
+          "x-go-name": "NetworkPerfCat"
         },
         "onDemandPrice": {
           "description": "Regular price of the instance type",

@@ -376,7 +376,21 @@ func (a *AzureInfoer) GetCpuAttrName() string {
 	return cpu
 }
 
-// GetNetworkPerformanceMapper returns the network performance mappier implementation for this provider
-func (a *AzureInfoer) GetNetworkPerformanceMapper() (productinfo.NetworkPerfMapper, error) {
-	return newAzureNetworkMapper(), nil
+var (
+	// TODO
+	ntwPerfMap = map[string][]string{
+		productinfo.NTW_LOW:    {"Low"},
+		productinfo.NTW_MEDIUM: {"Moderate"},
+		productinfo.NTW_HIGH:   {""},
+	}
+)
+
+// mapNetworkPerf maps the network performance of the azure instance to the category supported by telescopes
+func mapNetworkPerf(networkperf string) (string, error) {
+	for perfCat, strVals := range ntwPerfMap {
+		if productinfo.Contains(strVals, networkperf) {
+			return perfCat, nil
+		}
+	}
+	return "", fmt.Errorf("could not determine network performance for: [%s]", networkperf)
 }

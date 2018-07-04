@@ -38,21 +38,13 @@ type VmInfo struct {
 	Mem           float64       `json:"memPerVm"`
 	Gpus          float64       `json:"gpusPerVm"`
 	NtwPerf       string        `json:"ntwPerf"`
+	NtwPerfCat    string        `json:"ntwPerfCategory"`
 }
 
 // IsBurst returns true if the EC2 instance vCPU is burst type
 // the decision is made based on the instance type
 func (vm VmInfo) IsBurst() bool {
 	return strings.HasPrefix(strings.ToUpper(vm.Type), "T")
-}
-
-//NetworkPerformance returns the network performance category for the vm
-func (vm VmInfo) NetworkPerformance(nm NetworkPerfMapper) string {
-	nc, err := nm.MapNetworkPerf(vm)
-	if err != nil {
-		log.Warnf("could not get network performance for vm [%s], error: [%s]", vm.Type, err.Error())
-	}
-	return nc
 }
 
 // NewCachingProductInfo creates a new CachingProductInfo instance
@@ -353,14 +345,6 @@ func (cpi *CachingProductInfo) GetZones(provider string, region string) ([]strin
 
 func (cpi *CachingProductInfo) getZonesKey(provider string, region string) string {
 	return fmt.Sprintf(ZoneKeyTemplate, provider, region)
-}
-
-// GetNetworkPerfMapper returns the provider specific network performance mapper
-func (cpi *CachingProductInfo) GetNetworkPerfMapper(provider string) (NetworkPerfMapper, error) {
-	if infoer, ok := cpi.productInfoers[provider]; ok {
-		return infoer.GetNetworkPerformanceMapper() // this also can return with err!
-	}
-	return nil, fmt.Errorf("could not retrieve network perf mapper for provider: [%s]", provider)
 }
 
 // GetRegions gets the regions for the provided provider
