@@ -1,8 +1,8 @@
 import {Component, OnInit, ViewChild} from '@angular/core';
 import {ProductService} from '../product.service';
-import {DisplayedProduct, Region} from "../product";
-import {Observable} from "rxjs/index";
-import {MatSort, MatSortable, MatTableDataSource} from "@angular/material";
+import {DisplayedProduct, Region} from '../product';
+import {Observable} from 'rxjs/index';
+import {MatSort, MatSortable, MatTableDataSource} from '@angular/material';
 
 @Component({
   selector: 'app-products',
@@ -14,7 +14,7 @@ export class ProductsComponent implements OnInit {
   columnsToDisplay = ['type', 'cpu', 'mem', 'ntwPerf', 'regularPrice', 'spotPrice'];
 
   regions: Region[];
-  provider: string = "ec2";
+  provider: string = 'ec2';
   region: string;
   products: MatTableDataSource<DisplayedProduct>;
 
@@ -31,7 +31,7 @@ export class ProductsComponent implements OnInit {
     return new Observable(observer => {
       this.productService.getRegions(this.provider)
         .subscribe(regions => {
-          this.regions = regions;
+          this.regions = this.sortRegions(regions);
           this.region = regions[0].id;
           observer.next(regions);
         });
@@ -56,5 +56,19 @@ export class ProductsComponent implements OnInit {
     filterValue = filterValue.trim();
     filterValue = filterValue.toLowerCase();
     this.products.filter = filterValue;
+  }
+
+  private sortRegions(regions: Region[]): Region[] {
+    return regions.sort((a, b) => {
+      const nameA = a.name.toUpperCase();
+      const nameB = b.name.toUpperCase();
+      if (nameA < nameB) {
+        return -1;
+      }
+      if (nameA > nameB) {
+        return 1;
+      }
+      return 0;
+    });
   }
 }
