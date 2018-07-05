@@ -565,8 +565,8 @@ func TestEngine_ntwPerformanceFilter(t *testing.T) {
 				NetworkPerf: &productinfo.NTW_LOW,
 			},
 			vm: VirtualMachine{
-				NetworkPerf: productinfo.NTW_LOW,
-				Type:        "instance type",
+				NetworkPerfCat: productinfo.NTW_LOW,
+				Type:           "instance type",
 			},
 			check: func(passed bool) {
 				assert.True(t, passed, "vm should pass the check")
@@ -579,8 +579,8 @@ func TestEngine_ntwPerformanceFilter(t *testing.T) {
 				NetworkPerf: &productinfo.NTW_LOW,
 			},
 			vm: VirtualMachine{
-				NetworkPerf: productinfo.NTW_HIGH,
-				Type:        "instance type",
+				NetworkPerfCat: productinfo.NTW_HIGH,
+				Type:           "instance type",
 			},
 			check: func(passed bool) {
 				assert.False(t, passed, "vm should not pass the check")
