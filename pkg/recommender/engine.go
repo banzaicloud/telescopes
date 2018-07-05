@@ -127,8 +127,10 @@ type VirtualMachine struct {
 	Gpus float64 `json:"gpusPerVm"`
 	// Burst signals a burst type instance
 	Burst bool `json:"burst"`
-	// NetworkPerf holds the network performance category
+	// NetworkPerf holds the network performance
 	NetworkPerf string `json:"networkPerf"`
+	// NetworkPerfCat holds the network performance category
+	NetworkPerfCat string `json:"networkPerfCategory"`
 }
 
 func (v *VirtualMachine) getAttrValue(attr string) float64 {
@@ -173,7 +175,7 @@ func (e *Engine) ntwPerformanceFilter(vm VirtualMachine, req ClusterRecommendati
 	if req.NetworkPerf == nil { //there is no filter set
 		return true
 	}
-	if vm.NetworkPerf == *req.NetworkPerf { //the network performance category matches the vm
+	if vm.NetworkPerfCat == *req.NetworkPerf { //the network performance category matches the vm
 		return true
 	}
 	return false
@@ -475,14 +477,15 @@ func (e *Engine) findVmsWithAttrValues(provider string, region string, zones []s
 
 		for _, p := range filteredProducts {
 			vm := VirtualMachine{
-				Type:          p.Type,
-				OnDemandPrice: p.OnDemandPrice,
-				AvgPrice:      avg(p.SpotPrice, zones),
-				Cpus:          p.Cpus,
-				Mem:           p.Mem,
-				Gpus:          p.Gpus,
-				Burst:         p.Burst,
-				NetworkPerf:   p.NtwPerf,
+				Type:           p.Type,
+				OnDemandPrice:  p.OnDemandPrice,
+				AvgPrice:       avg(p.SpotPrice, zones),
+				Cpus:           p.Cpus,
+				Mem:            p.Mem,
+				Gpus:           p.Gpus,
+				Burst:          p.Burst,
+				NetworkPerf:    p.NtwPerf,
+				NetworkPerfCat: p.NtwPerfCat,
 			}
 			vms = append(vms, vm)
 		}
