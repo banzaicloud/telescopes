@@ -1,11 +1,11 @@
 package recommender
 
 import (
-	"github.com/banzaicloud/telescopes/pkg/productinfo-client/client"
-	"github.com/banzaicloud/telescopes/pkg/productinfo-client/client/attributes"
-	"github.com/banzaicloud/telescopes/pkg/productinfo-client/client/products"
-	"github.com/banzaicloud/telescopes/pkg/productinfo-client/client/regions"
-	"github.com/banzaicloud/telescopes/pkg/productinfo-client/models"
+	"github.com/banzaicloud/productinfo/pkg/productinfo-client/client"
+	"github.com/banzaicloud/productinfo/pkg/productinfo-client/client/attributes"
+	"github.com/banzaicloud/productinfo/pkg/productinfo-client/client/products"
+	"github.com/banzaicloud/productinfo/pkg/productinfo-client/client/regions"
+	"github.com/banzaicloud/productinfo/pkg/productinfo-client/models"
 )
 
 // ProductInfoSource declares operations for retrieving information required for the recommender engine

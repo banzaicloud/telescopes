@@ -6,7 +6,7 @@ import (
 	"math"
 	"sort"
 
-	"github.com/banzaicloud/telescopes/pkg/productinfo-client/models"
+	"github.com/banzaicloud/productinfo/pkg/productinfo-client/models"
 	log "github.com/sirupsen/logrus"
 )
 
