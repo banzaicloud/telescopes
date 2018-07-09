@@ -61,7 +61,7 @@ type ClusterRecommendationReq struct {
 	// If true, recommended instance types will have a similar size
 	SameSize bool `json:"sameSize,omitempty"`
 	// Percentage of regular (on-demand) nodes in the recommended cluster
-	OnDemandPct int `json:"onDemandPct,omitempty" binding:"min=1,max=100"`
+	OnDemandPct int `json:"onDemandPct,omitempty" binding:"min=0,max=100"`
 	// Availability zones that the cluster should expand to
 	Zones []string `json:"zones,omitempty" binding:"dive,zone"`
 	// Total number of GPUs requested for the cluster
