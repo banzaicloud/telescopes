@@ -5,9 +5,9 @@ import (
 	"net/http"
 	"reflect"
 
-	"github.com/banzaicloud/telescopes/pkg/productinfo-client/client"
-	"github.com/banzaicloud/telescopes/pkg/productinfo-client/client/providers"
-	"github.com/banzaicloud/telescopes/pkg/productinfo-client/client/regions"
+	"github.com/banzaicloud/productinfo/pkg/productinfo-client/client"
+	"github.com/banzaicloud/productinfo/pkg/productinfo-client/client/providers"
+	"github.com/banzaicloud/productinfo/pkg/productinfo-client/client/regions"
 	"github.com/gin-gonic/gin"
 	"github.com/gin-gonic/gin/binding"
 	"github.com/sirupsen/logrus"
@@ -76,12 +76,12 @@ func ValidateRegionData(validate *validator.Validate) gin.HandlerFunc {
 
 func providerValidator(pc *client.Productinfo) validator.Func {
 	return func(v *validator.Validate, topStruct reflect.Value, currentStruct reflect.Value, field reflect.Value, fieldtype reflect.Type, fieldKind reflect.Kind, param string) bool {
-		providers, err := pc.Providers.GetProviders(providers.NewGetProvidersParams())
+		cProviders, err := pc.Providers.GetProviders(providers.NewGetProvidersParams())
 		if err != nil {
 			logrus.WithError(err).Errorf("failed to get providers")
 			return false
 		}
-		for _, p := range providers.Payload {
+		for _, p := range cProviders.Payload {
 			if p == field.String() {
 				return true
 			}

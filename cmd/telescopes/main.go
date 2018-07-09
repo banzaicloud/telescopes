@@ -17,7 +17,7 @@ import (
 	"os"
 	"strings"
 
-	"github.com/banzaicloud/telescopes/pkg/productinfo-client/client"
+	"github.com/banzaicloud/productinfo/pkg/productinfo-client/client"
 	"github.com/go-openapi/strfmt"
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/viper"
@@ -140,8 +140,8 @@ func main() {
 
 	ensureCfg()
 
-	url := parseProductInfoAddress()
-	transport := httptransport.New(url.Host, url.Path, []string{url.Scheme})
+	piUrl := parseProductInfoAddress()
+	transport := httptransport.New(piUrl.Host, piUrl.Path, []string{piUrl.Scheme})
 	pc := client.New(transport, strfmt.Default)
 
 	engine, err := recommender.NewEngine(recommender.NewProductInfoClient(pc))

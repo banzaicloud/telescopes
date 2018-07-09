@@ -2,37 +2,6 @@
 
 
 [[projects]]
-  name = "cloud.google.com/go"
-  packages = ["compute/metadata"]
-  revision = "0fd7230b2a7505833d5f69b75cbd6c9582401479"
-  version = "v0.23.0"
-
-[[projects]]
-  name = "github.com/Azure/azure-sdk-for-go"
-  packages = [
-    "services/compute/mgmt/2018-04-01/compute",
-    "services/preview/commerce/mgmt/2015-06-01-preview/commerce",
-    "services/resources/mgmt/2016-06-01/subscriptions",
-    "version"
-  ]
-  revision = "514bddd77de93dd0349ada5fbe250077ddc619ff"
-  version = "v17.1.0"
-
-[[projects]]
-  name = "github.com/Azure/go-autorest"
-  packages = [
-    "autorest",
-    "autorest/adal",
-    "autorest/azure",
-    "autorest/azure/auth",
-    "autorest/date",
-    "autorest/to",
-    "autorest/validation"
-  ]
-  revision = "4de44cd533576f3c7b44dcb08dc03754d217144d"
-  version = "v10.9.2"
-
-[[projects]]
   name = "github.com/PuerkitoBio/purell"
   packages = ["."]
   revision = "0bcb03f4b4d0a9428594752bd2a3b9aa0a9d4bd4"
@@ -51,43 +20,6 @@
   version = "v9"
 
 [[projects]]
-  name = "github.com/aws/aws-sdk-go"
-  packages = [
-    "aws",
-    "aws/awserr",
-    "aws/awsutil",
-    "aws/client",
-    "aws/client/metadata",
-    "aws/corehandlers",
-    "aws/credentials",
-    "aws/credentials/ec2rolecreds",
-    "aws/credentials/endpointcreds",
-    "aws/credentials/stscreds",
-    "aws/defaults",
-    "aws/ec2metadata",
-    "aws/endpoints",
-    "aws/request",
-    "aws/session",
-    "aws/signer/v4",
-    "internal/sdkio",
-    "internal/sdkrand",
-    "internal/shareddefaults",
-    "private/protocol",
-    "private/protocol/ec2query",
-    "private/protocol/json/jsonutil",
-    "private/protocol/jsonrpc",
-    "private/protocol/query",
-    "private/protocol/query/queryutil",
-    "private/protocol/rest",
-    "private/protocol/xml/xmlutil",
-    "service/ec2",
-    "service/pricing",
-    "service/sts"
-  ]
-  revision = "bd40d9f476190b2bd95120911312160641dba41e"
-  version = "v1.13.35"
-
-[[projects]]
   name = "github.com/banzaicloud/bank-vaults"
   packages = [
     "auth",
@@ -95,6 +27,19 @@
   ]
   revision = "cf4ca7f1732e669e10bcea939c42e21b3807aa43"
   version = "0.2.1"
+
+[[projects]]
+  branch = "productinfo"
+  name = "github.com/banzaicloud/productinfo"
+  packages = [
+    "pkg/productinfo-client/client",
+    "pkg/productinfo-client/client/attributes",
+    "pkg/productinfo-client/client/products",
+    "pkg/productinfo-client/client/providers",
+    "pkg/productinfo-client/client/regions",
+    "pkg/productinfo-client/models"
+  ]
+  revision = "56754dd663d7d7153a367ac02cab2f4dd4cd18c2"
 
 [[projects]]
   name = "github.com/davecgh/go-spew"
@@ -110,12 +55,6 @@
   ]
   revision = "06ea1031745cb8b3dab3f6a236daf2b0aa468b7e"
   version = "v3.2.0"
-
-[[projects]]
-  branch = "master"
-  name = "github.com/dimchansky/utfbom"
-  packages = ["."]
-  revision = "6c6132ff69f0f6c088739067407b5d32c52e1d0f"
 
 [[projects]]
   name = "github.com/fsnotify/fsnotify"
@@ -143,12 +82,6 @@
 
 [[projects]]
   branch = "master"
-  name = "github.com/gin-contrib/static"
-  packages = ["."]
-  revision = "73da7037e716e63aa2b0ffceb630dfa7be299086"
-
-[[projects]]
-  branch = "master"
   name = "github.com/gin-gonic/gin"
   packages = [
     ".",
@@ -157,12 +90,6 @@
     "render"
   ]
   revision = "caf3e350a548af1add9def68087ac53d1d000caa"
-
-[[projects]]
-  name = "github.com/go-ini/ini"
-  packages = ["."]
-  revision = "32e4c1e6bc4e7d0d8451aa6b75200d19e37a536a"
-  version = "v1.32.0"
 
 [[projects]]
   branch = "master"
@@ -357,11 +284,6 @@
   revision = "ed742868f2aebdb1c0c437bf4f7257f88834b66f"
 
 [[projects]]
-  name = "github.com/jmespath/go-jmespath"
-  packages = ["."]
-  revision = "0b12d6b5"
-
-[[projects]]
   name = "github.com/json-iterator/go"
   packages = ["."]
   revision = "ca39e5af3ece67bbcda3d0f4f56a8e24d9f2dad4"
@@ -420,12 +342,6 @@
   version = "1.0.0"
 
 [[projects]]
-  name = "github.com/patrickmn/go-cache"
-  packages = ["."]
-  revision = "a3647f8e31d79543b2d0f0ae2fe5c379d72cedc0"
-  version = "v2.1.0"
-
-[[projects]]
   name = "github.com/pelletier/go-toml"
   packages = ["."]
   revision = "acdc4509485b587f5e675510c4f2c63e90ff68a8"
@@ -436,20 +352,6 @@
   packages = ["difflib"]
   revision = "792786c7400a136282c1664665ae0a8db921c6c2"
   version = "v1.0.0"
-
-[[projects]]
-  name = "github.com/prometheus/client_golang"
-  packages = [
-    "api",
-    "api/prometheus/v1"
-  ]
-  revision = "967789050ba94deca04a5e84cce8ad472ce313c1"
-  version = "v0.9.0-pre1"
-
-[[projects]]
-  name = "github.com/prometheus/common"
-  packages = ["model"]
-  revision = "e5b036cc37a466a0af27d604d1ee500211d16d6a"
 
 [[projects]]
   branch = "master"
@@ -471,18 +373,6 @@
   packages = ["."]
   revision = "572520ed46dbddaed19ea3d9541bdd0494163693"
   version = "v0.1"
-
-[[projects]]
-  name = "github.com/satori/go.uuid"
-  packages = ["."]
-  revision = "f58768cc1a7a7e77a3bd49e98cdd21419399b6a3"
-  version = "v1.2.0"
-
-[[projects]]
-  name = "github.com/shopspring/decimal"
-  packages = ["."]
-  revision = "69b3a8ad1f5f2c8bd855cb6506d18593064a346b"
-  version = "1.0.1"
 
 [[projects]]
   name = "github.com/sirupsen/logrus"
@@ -538,11 +428,7 @@
 [[projects]]
   branch = "master"
   name = "golang.org/x/crypto"
-  packages = [
-    "pkcs12",
-    "pkcs12/internal/rc2",
-    "ssh/terminal"
-  ]
+  packages = ["ssh/terminal"]
   revision = "94eea52f7b742c7cbe0b03b22f0c4c8631ece122"
 
 [[projects]]
@@ -559,18 +445,6 @@
     "idna"
   ]
   revision = "1e491301e022f8f977054da4c2d852decd59571f"
-
-[[projects]]
-  branch = "master"
-  name = "golang.org/x/oauth2"
-  packages = [
-    ".",
-    "google",
-    "internal",
-    "jws",
-    "jwt"
-  ]
-  revision = "ec22f46f877b4505e0117eeaab541714644fdd28"
 
 [[projects]]
   branch = "master"
@@ -608,36 +482,6 @@
   name = "golang.org/x/time"
   packages = ["rate"]
   revision = "fbb02b2291d28baffd63558aa44b4b56f178d650"
-
-[[projects]]
-  branch = "master"
-  name = "google.golang.org/api"
-  packages = [
-    "cloudbilling/v1",
-    "compute/v1",
-    "gensupport",
-    "googleapi",
-    "googleapi/internal/uritemplates",
-    "googleapi/transport"
-  ]
-  revision = "f71c6d4abd9757df4168c39856698c341d07251f"
-
-[[projects]]
-  name = "google.golang.org/appengine"
-  packages = [
-    ".",
-    "internal",
-    "internal/app_identity",
-    "internal/base",
-    "internal/datastore",
-    "internal/log",
-    "internal/modules",
-    "internal/remote_api",
-    "internal/urlfetch",
-    "urlfetch"
-  ]
-  revision = "150dc57a1b433e64154302bdc40b6bb8aefa313a"
-  version = "v1.0.0"
 
 [[projects]]
   name = "gopkg.in/go-playground/validator.v8"
@@ -734,6 +578,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "022a22f3018eb7409992017b6a2a3d52d4d3436cabccda0227eda52d80f50bea"
+  inputs-digest = "1dabae0175c3e5c048d291b44bd4a497046c958d9a9915d297abd23eb840a85e"
   solver-name = "gps-cdcl"
   solver-version = 1

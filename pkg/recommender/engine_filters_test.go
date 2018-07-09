@@ -1,9 +1,9 @@
 package recommender
 
 import (
-	"github.com/banzaicloud/telescopes/pkg/productinfo"
-	"github.com/stretchr/testify/assert"
 	"testing"
+
+	"github.com/stretchr/testify/assert"
 )
 
 var (
@@ -551,6 +551,11 @@ func TestEngine_filterSpots(t *testing.T) {
 }
 
 func TestEngine_ntwPerformanceFilter(t *testing.T) {
+
+	var (
+		NTW_LOW  = "low"
+		NTW_HIGH = "high"
+	)
 	tests := []struct {
 		name   string
 		engine Engine
@@ -562,10 +567,10 @@ func TestEngine_ntwPerformanceFilter(t *testing.T) {
 			name:   "vm passes the network performance filter",
 			engine: Engine{},
 			req: ClusterRecommendationReq{
-				NetworkPerf: &productinfo.NTW_LOW,
+				NetworkPerf: &NTW_LOW,
 			},
 			vm: VirtualMachine{
-				NetworkPerfCat: productinfo.NTW_LOW,
+				NetworkPerfCat: NTW_LOW,
 				Type:           "instance type",
 			},
 			check: func(passed bool) {
@@ -576,10 +581,10 @@ func TestEngine_ntwPerformanceFilter(t *testing.T) {
 			name:   "vm doesn't pass the network performance filter",
 			engine: Engine{},
 			req: ClusterRecommendationReq{
-				NetworkPerf: &productinfo.NTW_LOW,
+				NetworkPerf: &NTW_LOW,
 			},
 			vm: VirtualMachine{
-				NetworkPerfCat: productinfo.NTW_HIGH,
+				NetworkPerfCat: NTW_HIGH,
 				Type:           "instance type",
 			},
 			check: func(passed bool) {
@@ -592,7 +597,7 @@ func TestEngine_ntwPerformanceFilter(t *testing.T) {
 			req:    ClusterRecommendationReq{ // filter is missing
 			},
 			vm: VirtualMachine{
-				NetworkPerf: productinfo.NTW_LOW,
+				NetworkPerf: NTW_LOW,
 				Type:        "instance type",
 			},
 			check: func(passed bool) {

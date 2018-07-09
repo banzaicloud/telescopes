@@ -5,7 +5,7 @@ import (
 	"testing"
 
 	"fmt"
-	"github.com/banzaicloud/telescopes/pkg/productinfo-client/models"
+	"github.com/banzaicloud/productinfo/pkg/productinfo-client/models"
 	"github.com/stretchr/testify/assert"
 )
 
