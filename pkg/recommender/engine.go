@@ -68,7 +68,7 @@ type ClusterRecommendationReq struct {
 	SumGpu int `json:"sumGpu,omitempty"`
 	// Are burst instances allowed in recommendation
 	AllowBurst *bool `json:"allowBurst,omitempty"`
-	// NertworkPerf specifies the network performance category
+	// NetworkPerf specifies the network performance category
 	NetworkPerf *string `json:"networkPerf" binding:"omitempty,network"`
 	// Excludes is a blacklist - a slice with vm types to be excluded from the recommendation
 	Excludes []string `json:"excludes,omitempty"`

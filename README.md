@@ -10,8 +10,10 @@
 
 # Telescopes
 
-The Banzai Cloud cluster recommender is a standalone project in the [Pipeline](https://github.com/banzaicloud/pipeline) ecosystem.
-It's main purpose is to recommend cluster instance types and full cluster layouts consisting EC2 spot or Google Cloud preemptible instances.
+The `Banzai Cloud Telescopes` is a cluster recommender application; its main purpose is to recommend cluster instance types and full cluster layouts consisting EC2 spot or Google Cloud preemptible instances. The application operates on cloud provider product information retrieved from the [Productinfo](https://github.com/banzaicloud/productinfo) application.
+
+`Banzai Cloud Telescopes` exposes a rest API for accepting `recommendation requests`
+
 
 ## Quick start
 
@@ -21,32 +23,31 @@ Building the project is as simple as running a go build command. The result is a
 go build .
 ```
 
-The following options can be configured when starting the exporter (with defaults):
+The application can be started with the following arguments:
 
 ```
-./telescopes --help
 Usage of ./telescopes:
-      --dev-mode                                 development mode, if true token based authentication is disabled, false by default
-      --gce-api-key string                       GCE API key to use for getting SKUs
-      --gce-project-id string                    GCE project ID to use
-      --help                                     print usage
-      --listen-address string                    the address the telescope listens to HTTP requests. (default ":9090")
-      --log-level string                         log level (default "info")
-      --product-info-renewal-interval duration   duration (in go syntax) between renewing the product information. Example: 2h30m (default 24h0m0s)
-      --prometheus-address string                http address of a Prometheus instance that has AWS spot price metrics via banzaicloud/spot-price-exporter. If empty, the recommender will use current spot prices queried directly from the AWS API.
-      --prometheus-query string                  advanced configuration: change the query used to query spot price info from Prometheus. (default "avg_over_time(aws_spot_current_price{region=\"%s\", product_description=\"Linux/UNIX\"}[1w])")
-      --provider strings                         cloud providers to be used for recommendation (default [ec2,gce])
-      --token-signing-key string                 string representing a shared secret with the token emitter component
-      --vault-address string                     the vault address for authentication token management, not used in development mode
+      --dev-mode                     development mode, if true token based authentication is disabled, false by default
+      --help                         print usage
+      --listen-address string        the address where the server listens to HTTP requests. (default ":9090")
+      --log-level string             log level (default "info")
+      --productinfo-address string   the address of the Product Info service to retrieve attribute and pricing info [format=scheme://host:port/basepath] (default "http://localhost:9090/api/v1")
+      --token-signing-key string     The token signing key for the authentication process
+      --vault-address string         The vault address for authentication token management
 ```
- 
-## API calls
 
-*For a complete OpenAPI 3.0 documentation, check out this [URL](https://editor.swagger.io/?url=https://raw.githubusercontent.com/banzaicloud/telescopes/master/docs/openapi/recommender.yaml).*
-
-> We have recently added Oauth2 (bearer) token based authentication to the `telescope` which is enabled by default. In order for this to work, the application needs to be connected to a component (eg.: http://github.com/banzaicloud/pipeline) capable to emit the `bearer token` The connection is made through a `vault` instance (which' address must be specified by the --vault-address flag) The --token-signing-key also must be specified in this case (this is a string secret that is shared with the token emitter component)
+> We have recently added Oauth2 (bearer) token based authentication to `telescopes` which is enabled by default. In order for this to work, the application needs to be connected to a component (eg.: [Banzai Cloud Pipeline ](http://github.com/banzaicloud/pipeline)) capable to emit the `bearer token` The connection is made through a `vault` instance (which' address must be specified by the --vault-address flag) The --token-signing-key also must be specified in this case (this is a string secret that is shared with the token emitter component)
 
 *The authentication can be switched off by starting the application in development mode (--dev-mode flag) - please note that other functionality can also be affected!*
+
+For more information on how to set up `Banzai Cloud Pipeline` instance for using it for authentication (emitting bearer tokens) please check the following documents:
+* https://github.com/banzaicloud/pipeline/blob/master/docs/github-app.md
+* https://github.com/banzaicloud/pipeline/blob/master/docs/pipeline-howto.md
+
+## API calls
+
+*For a complete OpenAPI 3.0 documentation, check out this [URL](https://editor.swagger.io/?url=https://raw.githubusercontent.com/banzaicloud/telescopes/master/api/openapi-spec/recommender.yaml).*
+
 
 #### `POST: api/v1/recommender/:provider/:region/cluster`
 
@@ -69,6 +70,15 @@ This endpoint returns a recommended cluster layout on a specific provider in a s
 `zones`: availability zones in the cluster - specifying multiple zones will recommend a multi-zone cluster
 
 `sameSize`: signals if the resulting instance types should be similarly sized, or can be completely diverse
+
+`allowBurst`: are burst instances allowed in recommendation
+
+`networkPerf`: networkPerf specifies the network performance category
+
+`excludes`: excludes is a blacklist - a list with vm types to be excluded from the recommendation
+
+`includes`: includes is a whitelist - a list with vm types to be contained in the recommendation
+
 
 
 **`cURL` example**
@@ -141,53 +151,8 @@ curl -sX -H 'Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ8.eyJhdWQi
 
 ## FAQ
 
-**1. How do I configure my AWS credentials with the project?**
 
-The project is using the standard [AWS SDK for Go](https://aws.amazon.com/sdk-for-go/), so credentials can be configured via
-environment variables, shared credential files and via AWS instance profiles. To learn more about that read the [Specifying Credentials](https://docs.aws.amazon.com/sdk-for-go/v1/developer-guide/configuring-sdk.html) section of the SDK docs.
-
-**2. Why do I see messages like `DEBU[0001] Getting available instance types from AWS API. [region=ap-northeast-2, memory=0.5]` when starting the recommender?**
-
-After the recommender is started, it takes ~2-3 minutes to cache all the product information (like instance types) from AWS (in memory).
-AWS is releasing new instance types and regions quite frequently and also changes on-demand pricing from time to time.
-So it is necessary to keep this info up-to-date without needing to modify it manually every time something changes on the AWS side.
-After the initial query, the recommender will parse this info from the AWS Pricing API once per day.
-The frequency of this querying and caching is configurable with the `-product-info-renewal-interval` switch and is set to `24h` by default.
-
-**3. What happens if the recommender cannot cache the AWS product info?**
-
-If caching fails, the recommender will try to reach the AWS Pricing List API on the fly when a request is sent (and it will also cache the resulting information).
-If that fails as well, the recommendation will return with an error.
-
-**4. What kind of AWS permissions do I need to use the project?**
-
-The recommender is querying the AWS [Pricing API](https://aws.amazon.com/blogs/aws/aws-price-list-api-update-new-query-and-metadata-functions/) to keep up-to-date info
-about instance types, regions and on-demand pricing.
-You'll need IAM access as described here in [example 11](https://docs.aws.amazon.com/awsaccountbilling/latest/aboutv2/billing-permissions-ref.html#example-policy-pe-api) of the AWS IAM docs.
-
-If you don't use Prometheus to track spot instance pricing, you'll need to be able to access the [spot price history](https://docs.aws.amazon.com/AWSEC2/latest/APIReference/API_DescribeSpotPriceHistory.html) from the AWS API as well with your IAM user.
-It means giving permission to `ec2:DescribeSpotPriceHistory`.
-
-**5. How are the spot prices determined?**
-
-The spot prices can be queried from 2 different sources. You can use Prometheus with our [spot price exporter](https://github.com/banzaicloud/spot-price-exporter) configured,
-or you can use the recommender without Prometheus.
-In that case the current spot prices will be queried from the AWS API and that will be the base of the recommendation.
-
-**6. What is the advantage of using Prometheus to determine spot prices?**
-
-Prometheus is becoming the de-facto monitoring solution in the cloud native world, and it includes a time series database as well.
-When using the Banzai Cloud [spot price exporter](https://github.com/banzaicloud/spot-price-exporter), spot price history will be collected as time series data and
-can be queried for averages, maximums and predictions.
-It gives a richer picture than relying on the current spot price that can be a spike, or on a downward or upward trend.
-You can fine tune your query (with the `-prometheus-query` switch) if you want to change the way spot instance prices are scored.
-By default the spot price averages of the last week are queried and instance types are sorted based on this score.
-
-**7. What happens if my Prometheus server cannot be reached or if it doesn't have the necessary spot price metrics?**
-
-If the recommender fails to reach the Prometheus query API, or it couldn't find proper metrics, it will fall back to querying the current spot prices from the AWS API.
-
-**8. How is this project different from EC2 Spot Advisor and Spot Fleet?**
+**1. How is this project different from EC2 Spot Advisor and Spot Fleet?**
 
 The recommender is similar to the EC2 Spot Advisor, it is also recommending different spot instance types for diverse clusters.
 But the EC2 Spot Advisor has no externally available API, it is only available from the AWS Console, and it is only available to create Spot Fleets.
@@ -198,64 +163,53 @@ and that model fits the recommendation perfectly.
 We also wanted to include on-demand instances to keep some part of the cluster completely safe.
 And although EC2 is the only supported platform for now, we'd like to add support for Google Cloud and other providers as well.
 
-**9. Will this project start instances on my behalf on my cloud provider?**
+**2. Will this project start instances on my behalf on my cloud provider?**
 
-No, this project will never start instances. It only uses the cloud credentials to query region, instance type and pricing information.
-The API response is a cluster description built from node pools of different instance types.
-It is the responsibility of the user to start and manage the autoscaling groups based on the response.
-The [Pipeline](https://github.com/banzaicloud/pipeline) and [Hollowtrees](https://github.com/banzaicloud/hollowtrees) projects are helping with that.
+No, this project will never start instances. The API response is a cluster description built from node pools of different instance types.It is the responsibility of the user to start and manage the autoscaling groups based on the response. The [Pipeline](https://github.com/banzaicloud/pipeline) and [Hollowtrees](https://github.com/banzaicloud/hollowtrees) projects are helping with that.
 
-**10. How does the recommender decide which instance types to include in the recommendation?**
+**3. How does the recommender decide which instance types to include in the recommendation?**
 
 The recommender will list one node pool that contains on-demand (regular) instances.
 The instance type of the on-demand node pool is decided based on price, and the CPU/memory ratio and the min/max cluster size in the request.
 For the spot type node pools: all the instance types in the region are getting a price score - based on the Prometheus or AWS API info - and are sorted by that score.
 Depending on the cluster's size the first N types are returned, and the number of instances are calculated to have about equal sized pools in terms of sum CPU/memory.
 
-**11. Why do I see node pools with `SumNodes=0` in the recommendation?**
+**4. Why do I see node pools with `SumNodes=0` in the recommendation?**
 
 Those instance types are the next best recommendations after the node pools that contain instances in the response, but it's not needed to further diversify the cluster with them.
 Because the response is only a recommendation and it won't start instances on the cloud provider, it is possible to fine tune the recommendation before creating a cluster.
 It means that a user can remove recommended node pools (e.g.: because they don't want burstable instance types, like `t2`) and can also add new ones.
 If they want to add new node pools (e.g. instead of a recommended one), it makes sense for them to include one of the 0-sized node pools and to increase the node count there.
 
-**12. How are availability zones handled?**
+**5. How are availability zones handled?**
 
 Requested availability zones must be sent in the API request. When listing multiple zones, the response will contain a multi-zone recommendation,
 and *all* node pools in the response are meant to span across multiple zones. Having different node pools in different zones are not supported.
 Because spot prices can be different across availability zones, in this case the instance type price score is averaged across availability zones.
 
-**13. Is there a Google Cloud implementation?**
-
-Yes, Google Cloud recommendations work as well, you should provide your GCE project id and the GCE api key as application flags to use it.
-
-**14. Is there an Azure implementation?**
-
-Yes, Azure recommendations work as well, you should provide your Azure credentials as application flags to use it.
-
-**15. There's no bid pricing on Google Cloud, what will the recommender take into account there?**
+**6. There's no bid pricing on Google Cloud, what will the recommender take into account there?**
 
 Even there's no bid pricing, Google Cloud can take your preemptible VMs away any time, and it still makes sense to diversify your node pools and minimize the risk
 of losing all your instances at once. Second, Google Cloud VM types are also complicated - there are standard, high-memory, high-cpu instances in different sizes,
 also special VM types, like shared-core and custom machine types, not to mention GPUs - so it makes sense to have a recommendation that takes these things into account as well.
 Managing a long-running cluster built from preemptible instances is also a hard task, we're working on that as well as part of the [Hollowtrees](https://github.com/banzaicloud/hollowtrees) project.
 
-**16. How is this project related to [Pipeline](https://github.com/banzaicloud/pipeline)?**
+**7. How is this project related to [Pipeline](https://github.com/banzaicloud/pipeline)?**
 
 Pipeline is able to start clusters with multiple node pools. This API is used in the Pipeline UI and CLI to recommend a cluster setup and to make it easy for
 a user to start a properly diversified spot instance based cluster. The recommender itself is not starting instances, it is the responsibility of Pipeline.
 The recommendation can also be customized on the UI and CLI before sending the cluster create request to Pipeline.
 
-Pipeline also provides the bearer token to be used when accessing the telescope API. (TBD)
+Pipeline also provides the bearer token to be used for authentication when accessing the telescope API.
 
-**17. Can the authentication be disabled from the telescopes API?**
+**8. Can the authentication be disabled from the telescopes API?**
 
 Authentication is enabled by default on the API. It *is* however possible to disable it by starting the application in development mode. (just start the app with the `--dev-mode` flag)
 
 Beware that (unrelated) behavior of the application may be affected in this mode (logging for example)
 It's not recommended to use the application in production with this flag!
 
-**18. How is this project related to [Hollowtrees](https://github.com/banzaicloud/hollowtrees)**
+**9. How is this project related to [Hollowtrees](https://github.com/banzaicloud/hollowtrees)**
 
 This project is only capable of recommending a static cluster layout that can be used to start a properly diversified spot cluster.
 But that is only one part of the whole picture: after the cluster is started it is still needed to be managed.
@@ -263,16 +217,16 @@ Spot instances can be taken away by the cloud provider or their price can change
 This maintenance work is done by Hollowtrees, that project is keeping the spot instance based cluster stable during its whole lifecycle.
 When some spot instances are taken away, Hollowtrees can ask the recommender to find substitutes based on the current layout.
 
-**19. What happens when the spot price of one of the instance types is rising after my cluster is running?**
+**10. What happens when the spot price of one of the instance types is rising after my cluster is running?**
 
 It is out of the scope of this project, but [Hollowtrees](https://github.com/banzaicloud/hollowtrees) will be able to handle that situtation.
 See the answer above for more information.
 
-**20. Is this project production ready?**
+**11. Is this project production ready?**
 
 Almost there. We are using this already internally and plan to GA it soon.
 
-**21. What is on the project roadmap for the near future?**
+**12. What is on the project roadmap for the near future?**
 
 The first priority is to stabilize the API and to make it production ready (see above).
 Other than that, these are the things we are planning to add soon:
