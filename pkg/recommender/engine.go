@@ -28,7 +28,7 @@ type ClusterRecommender interface {
 	// RecommendVms recommends a set of virtual machines based on the provided parameters
 	RecommendVms(provider string, region string, attr string, values []float64, filters []vmFilter, req ClusterRecommendationReq) ([]VirtualMachine, error)
 
-	// RecommendNodePools recommends a slice of node pools to be part of the caluster being recommended
+	// RecommendNodePools recommends a slice of node pools to be part of the cluster being recommended
 	RecommendNodePools(attr string, vms []VirtualMachine, values []float64, req ClusterRecommendationReq) ([]NodePool, error)
 
 	// RecommendCluster recommends a cluster layout on the given cloud provider, region and wanted resources
@@ -103,12 +103,16 @@ type NodePool struct {
 type ClusterRecommendationAccuracy struct {
 	// The summarised amount of memory in the recommended cluster
 	RecMem float64 `json:"memory"`
-	// The summarised amount of cpu in the recommended cluster
+	// Number of recommended cpus
 	RecCpu float64 `json:"cpu"`
-	// The summarised amount of node in the recommended cluster
+	// Number of recommended nodes
 	RecNode int `json:"node"`
 	// Availability zones in the recommendation
 	RecZone []string `json:"zone,omitempty"`
+	// Amount of regular instance type prices in the recommended cluster
+	RecRegularPrice float64 `json:"regularPrice"`
+	// Amount of spot instance type prices in the recommended cluster
+	RecSpotPrice float64 `json:"spotPrice"`
 }
 
 // VirtualMachine describes an instance type
@@ -300,17 +304,26 @@ func (req *ClusterRecommendationReq) findResponseSum(provider string, region str
 	var sumCpus float64
 	var sumMem float64
 	var sumNodes int
+	var sumRegularPrice float64
+	var sumSpotPrice float64
 	for _, nodePool := range nodePoolSet {
 		sumCpus += nodePool.getSum(Cpu)
 		sumMem += nodePool.getSum(Memory)
 		sumNodes += nodePool.SumNodes
+		if nodePool.VmClass == regular {
+			sumRegularPrice += float64(nodePool.SumNodes) * nodePool.VmType.OnDemandPrice
+		} else {
+			sumSpotPrice += float64(nodePool.SumNodes) * nodePool.VmType.AvgPrice
+		}
 	}
 
 	return ClusterRecommendationAccuracy{
-		RecCpu:  sumCpus,
-		RecMem:  sumMem,
-		RecNode: sumNodes,
-		RecZone: req.Zones,
+		RecCpu:          sumCpus,
+		RecMem:          sumMem,
+		RecNode:         sumNodes,
+		RecZone:         req.Zones,
+		RecRegularPrice: sumRegularPrice,
+		RecSpotPrice:    sumSpotPrice,
 	}
 }
 
