@@ -111,8 +111,14 @@ type ClusterRecommendationAccuracy struct {
 	RecZone []string `json:"zone,omitempty"`
 	// Amount of regular instance type prices in the recommended cluster
 	RecRegularPrice float64 `json:"regularPrice"`
+	// Number of regular instance type in the recommended cluster
+	RecRegularNode int `json:"regularNode"`
 	// Amount of spot instance type prices in the recommended cluster
 	RecSpotPrice float64 `json:"spotPrice"`
+	// Number of spot instance type in the recommended cluster
+	RecSpotNode int `json:"spotNode"`
+	// Total price in the recommended cluster
+	RecTotalPrice float64 `json:"totalPrice"`
 }
 
 // VirtualMachine describes an instance type
@@ -305,16 +311,22 @@ func (req *ClusterRecommendationReq) findResponseSum(provider string, region str
 	var sumMem float64
 	var sumNodes int
 	var sumRegularPrice float64
+	var sumRegularNode int
 	var sumSpotPrice float64
+	var sumSpotNode int
+	var sumTotalPrice float64
 	for _, nodePool := range nodePoolSet {
 		sumCpus += nodePool.getSum(Cpu)
 		sumMem += nodePool.getSum(Memory)
 		sumNodes += nodePool.SumNodes
 		if nodePool.VmClass == regular {
 			sumRegularPrice += nodePool.poolPrice()
+			sumRegularNode += nodePool.SumNodes
 		} else {
 			sumSpotPrice += nodePool.poolPrice()
+			sumSpotNode += nodePool.SumNodes
 		}
+		sumTotalPrice += nodePool.poolPrice()
 	}
 
 	return ClusterRecommendationAccuracy{
@@ -323,7 +335,10 @@ func (req *ClusterRecommendationReq) findResponseSum(provider string, region str
 		RecNode:         sumNodes,
 		RecZone:         req.Zones,
 		RecRegularPrice: sumRegularPrice,
+		RecRegularNode:  sumRegularNode,
 		RecSpotPrice:    sumSpotPrice,
+		RecSpotNode:     sumSpotNode,
+		RecTotalPrice:   sumTotalPrice,
 	}
 }
 
