@@ -31,7 +31,7 @@ func NewProductInfoClient(pic *client.Productinfo) *ProductInfoClient {
 	return &ProductInfoClient{Productinfo: pic}
 }
 
-// GetAttributeValues retrieves available attribute values on the proveder in the region for the attribute
+// GetAttributeValues retrieves available attribute values on the provider in the region for the attribute
 func (piCli *ProductInfoClient) GetAttributeValues(provider string, region string, attr string) ([]float64, error) {
 	attrParams := attributes.NewGetAttributeValuesParams().WithProvider(provider).WithRegion(region).WithAttribute(attr)
 	allValues, err := piCli.Attributes.GetAttributeValues(attrParams)

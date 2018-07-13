@@ -425,7 +425,7 @@ func TestEngine_RecommendCluster(t *testing.T) {
 				assert.Nil(t, err, "the error should be nil")
 				assert.Equal(t, float64(64), resp.Accuracy.RecMem)
 				assert.Equal(t, float64(16), resp.Accuracy.RecCpu)
-				assert.Equal(t, 1, resp.Accuracy.RecNode)
+				assert.Equal(t, 1, resp.Accuracy.RecNodes)
 			},
 		},
 		{
@@ -439,11 +439,15 @@ func TestEngine_RecommendCluster(t *testing.T) {
 				OnDemandPct: 0,
 			},
 			check: func(resp *ClusterRecommendationResp, err error) {
-				assert.Equal(t, 7, resp.Accuracy.RecNode)
+				assert.Equal(t, 7, resp.Accuracy.RecNodes)
 				assert.Equal(t, float64(112), resp.Accuracy.RecCpu)
 				assert.Equal(t, float64(352), resp.Accuracy.RecMem)
 				assert.Equal(t, 3, len(resp.NodePools))
 				assert.Nil(t, err, "the error should be nil")
+				assert.Equal(t, 7, resp.Accuracy.RecSpotNodes)
+				assert.Equal(t, 0, resp.Accuracy.RecRegularNodes)
+				assert.Equal(t, resp.Accuracy.RecSpotPrice, resp.Accuracy.RecTotalPrice)
+
 			},
 		},
 		{
@@ -457,7 +461,7 @@ func TestEngine_RecommendCluster(t *testing.T) {
 				Zones:    []string{"dummyZone1"},
 			},
 			check: func(resp *ClusterRecommendationResp, err error) {
-				assert.Equal(t, 7, resp.Accuracy.RecNode)
+				assert.Equal(t, 7, resp.Accuracy.RecNodes)
 				assert.Equal(t, float64(112), resp.Accuracy.RecCpu)
 				assert.Equal(t, float64(448), resp.Accuracy.RecMem)
 				assert.Equal(t, 2, len(resp.NodePools))
@@ -475,11 +479,14 @@ func TestEngine_RecommendCluster(t *testing.T) {
 				OnDemandPct: 100,
 			},
 			check: func(resp *ClusterRecommendationResp, err error) {
-				assert.Equal(t, 7, resp.Accuracy.RecNode)
+				assert.Equal(t, 7, resp.Accuracy.RecNodes)
 				assert.Equal(t, float64(112), resp.Accuracy.RecCpu)
 				assert.Equal(t, float64(224), resp.Accuracy.RecMem)
 				assert.Equal(t, 3, len(resp.NodePools))
 				assert.Nil(t, err, "the error should be nil")
+				assert.Equal(t, 0, resp.Accuracy.RecSpotNodes)
+				assert.Equal(t, 7, resp.Accuracy.RecRegularNodes)
+				assert.Equal(t, resp.Accuracy.RecRegularPrice, resp.Accuracy.RecTotalPrice)
 			},
 		},
 		{
@@ -492,7 +499,7 @@ func TestEngine_RecommendCluster(t *testing.T) {
 				SumCpu:   100,
 			},
 			check: func(resp *ClusterRecommendationResp, err error) {
-				assert.Equal(t, 7, resp.Accuracy.RecNode)
+				assert.Equal(t, 7, resp.Accuracy.RecNodes)
 				assert.Equal(t, float64(112), resp.Accuracy.RecCpu)
 				assert.Equal(t, float64(352), resp.Accuracy.RecMem)
 				assert.Equal(t, 3, len(resp.NodePools))
@@ -509,7 +516,7 @@ func TestEngine_RecommendCluster(t *testing.T) {
 				SumCpu:   1,
 			},
 			check: func(resp *ClusterRecommendationResp, err error) {
-				assert.Equal(t, 7, resp.Accuracy.RecNode)
+				assert.Equal(t, 7, resp.Accuracy.RecNodes)
 				assert.Equal(t, float64(40), resp.Accuracy.RecCpu)
 				assert.Equal(t, float64(112), resp.Accuracy.RecMem)
 				assert.Equal(t, 3, len(resp.NodePools))
@@ -526,7 +533,7 @@ func TestEngine_RecommendCluster(t *testing.T) {
 				SumCpu:   100,
 			},
 			check: func(resp *ClusterRecommendationResp, err error) {
-				assert.Equal(t, 7, resp.Accuracy.RecNode)
+				assert.Equal(t, 7, resp.Accuracy.RecNodes)
 				assert.Equal(t, float64(112), resp.Accuracy.RecCpu)
 				assert.Equal(t, float64(352), resp.Accuracy.RecMem)
 				assert.Equal(t, 3, len(resp.NodePools))
@@ -543,7 +550,7 @@ func TestEngine_RecommendCluster(t *testing.T) {
 				SumCpu:   1000000,
 			},
 			check: func(resp *ClusterRecommendationResp, err error) {
-				assert.Equal(t, 62500, resp.Accuracy.RecNode)
+				assert.Equal(t, 62500, resp.Accuracy.RecNodes)
 				assert.Equal(t, float64(1e+06), resp.Accuracy.RecCpu)
 				assert.Equal(t, float64(3e+06), resp.Accuracy.RecMem)
 				assert.Equal(t, 3, len(resp.NodePools))
