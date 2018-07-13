@@ -106,17 +106,17 @@ type ClusterRecommendationAccuracy struct {
 	// Number of recommended cpus
 	RecCpu float64 `json:"cpu"`
 	// Number of recommended nodes
-	RecNode int `json:"node"`
+	RecNodes int `json:"nodes"`
 	// Availability zones in the recommendation
 	RecZone []string `json:"zone,omitempty"`
 	// Amount of regular instance type prices in the recommended cluster
 	RecRegularPrice float64 `json:"regularPrice"`
 	// Number of regular instance type in the recommended cluster
-	RecRegularNode int `json:"regularNode"`
+	RecRegularNodes int `json:"regularNodes"`
 	// Amount of spot instance type prices in the recommended cluster
 	RecSpotPrice float64 `json:"spotPrice"`
 	// Number of spot instance type in the recommended cluster
-	RecSpotNode int `json:"spotNode"`
+	RecSpotNodes int `json:"spotNodes"`
 	// Total price in the recommended cluster
 	RecTotalPrice float64 `json:"totalPrice"`
 }
@@ -311,9 +311,9 @@ func (req *ClusterRecommendationReq) findResponseSum(provider string, region str
 	var sumMem float64
 	var sumNodes int
 	var sumRegularPrice float64
-	var sumRegularNode int
+	var sumRegularNodes int
 	var sumSpotPrice float64
-	var sumSpotNode int
+	var sumSpotNodes int
 	var sumTotalPrice float64
 	for _, nodePool := range nodePoolSet {
 		sumCpus += nodePool.getSum(Cpu)
@@ -321,10 +321,10 @@ func (req *ClusterRecommendationReq) findResponseSum(provider string, region str
 		sumNodes += nodePool.SumNodes
 		if nodePool.VmClass == regular {
 			sumRegularPrice += nodePool.poolPrice()
-			sumRegularNode += nodePool.SumNodes
+			sumRegularNodes += nodePool.SumNodes
 		} else {
 			sumSpotPrice += nodePool.poolPrice()
-			sumSpotNode += nodePool.SumNodes
+			sumSpotNodes += nodePool.SumNodes
 		}
 		sumTotalPrice += nodePool.poolPrice()
 	}
@@ -332,12 +332,12 @@ func (req *ClusterRecommendationReq) findResponseSum(provider string, region str
 	return ClusterRecommendationAccuracy{
 		RecCpu:          sumCpus,
 		RecMem:          sumMem,
-		RecNode:         sumNodes,
+		RecNodes:        sumNodes,
 		RecZone:         req.Zones,
 		RecRegularPrice: sumRegularPrice,
-		RecRegularNode:  sumRegularNode,
+		RecRegularNodes: sumRegularNodes,
 		RecSpotPrice:    sumSpotPrice,
-		RecSpotNode:     sumSpotNode,
+		RecSpotNodes:    sumSpotNodes,
 		RecTotalPrice:   sumTotalPrice,
 	}
 }
