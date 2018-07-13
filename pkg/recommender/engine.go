@@ -311,9 +311,9 @@ func (req *ClusterRecommendationReq) findResponseSum(provider string, region str
 		sumMem += nodePool.getSum(Memory)
 		sumNodes += nodePool.SumNodes
 		if nodePool.VmClass == regular {
-			sumRegularPrice += float64(nodePool.SumNodes) * nodePool.VmType.OnDemandPrice
+			sumRegularPrice += nodePool.poolPrice()
 		} else {
-			sumSpotPrice += float64(nodePool.SumNodes) * nodePool.VmType.AvgPrice
+			sumSpotPrice += nodePool.poolPrice()
 		}
 	}
 
