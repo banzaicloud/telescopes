@@ -74,6 +74,8 @@ type ClusterRecommendationReq struct {
 	Excludes []string `json:"excludes,omitempty"`
 	// Includes is a whitelist - a slice with vm types to be contained in the recommendation
 	Includes []string `json:"includes,omitempty"`
+	// AllowOlderGen allow older generations of virtual machines (applies for EC2 only)
+	AllowOlderGen *bool `json:"allowOlderGen,omitempty"`
 }
 
 // ClusterRecommendationResp encapsulates recommendation result data
@@ -141,6 +143,8 @@ type VirtualMachine struct {
 	NetworkPerf string `json:"networkPerf"`
 	// NetworkPerfCat holds the network performance category
 	NetworkPerfCat string `json:"networkPerfCategory"`
+	// CurrentGen the vm is of current generation
+	CurrentGen bool `json:"currentGen"`
 }
 
 func (v *VirtualMachine) getAttrValue(attr string) float64 {
@@ -152,80 +156,6 @@ func (v *VirtualMachine) getAttrValue(attr string) float64 {
 	default:
 		return 0
 	}
-}
-
-type vmFilter func(vm VirtualMachine, req ClusterRecommendationReq) bool
-
-func (e *Engine) minMemRatioFilter(vm VirtualMachine, req ClusterRecommendationReq) bool {
-	minMemToCpuRatio := req.SumMem / req.SumCpu
-	if vm.Mem/vm.Cpus < minMemToCpuRatio {
-		return false
-	}
-	return true
-}
-
-func (e *Engine) burstFilter(vm VirtualMachine, req ClusterRecommendationReq) bool {
-	// if not specified in req or it's allowed the filter passes
-	if (req.AllowBurst == nil) || *(req.AllowBurst) {
-		return true
-	}
-	// burst is not allowed
-	return !vm.Burst
-}
-
-func (e *Engine) minCpuRatioFilter(vm VirtualMachine, req ClusterRecommendationReq) bool {
-	minCpuToMemRatio := req.SumCpu / req.SumMem
-	if vm.Cpus/vm.Mem < minCpuToMemRatio {
-		return false
-	}
-	return true
-}
-
-func (e *Engine) ntwPerformanceFilter(vm VirtualMachine, req ClusterRecommendationReq) bool {
-	if req.NetworkPerf == nil { //there is no filter set
-		return true
-	}
-	if vm.NetworkPerfCat == *req.NetworkPerf { //the network performance category matches the vm
-		return true
-	}
-	return false
-}
-
-// excludeFilter checks for the vm type in the request' exclude list, the filter  passes if the type is not excluded
-func (e *Engine) excludesFilter(vm VirtualMachine, req ClusterRecommendationReq) bool {
-	if req.Excludes == nil || len(req.Excludes) == 0 {
-		log.Debugf("no blacklist provided - all vm types are welcome")
-		return true
-	}
-	if contains(req.Excludes, vm.Type) {
-		log.Debugf("the vm type [%s] is blacklisted", vm.Type)
-		return false
-	}
-	return true
-}
-
-// includesFilter checks whether the vm type is in the includes list; the filter passes if the type is in the list
-func (e *Engine) includesFilter(vm VirtualMachine, req ClusterRecommendationReq) bool {
-	if req.Includes == nil || len(req.Includes) == 0 {
-		log.Debugf("no whitelist specified - all vm types are welcome")
-		return true
-	}
-	if contains(req.Includes, vm.Type) {
-		log.Debugf("the vm type [%s] is whitelisted", vm.Type)
-		return true
-	}
-	return false
-}
-
-// filterSpots selects vm-s that potentially can be part of "spot" node pools
-func (e *Engine) filterSpots(vms []VirtualMachine) []VirtualMachine {
-	fvms := make([]VirtualMachine, 0)
-	for _, vm := range vms {
-		if vm.AvgPrice != 0 {
-			fvms = append(fvms, vm)
-		}
-	}
-	return fvms
 }
 
 // ByAvgPricePerCpu type for custom sorting of a slice of vms
@@ -514,6 +444,7 @@ func (e *Engine) findVmsWithAttrValues(provider string, region string, zones []s
 				Burst:          p.Burst,
 				NetworkPerf:    p.NtwPerf,
 				NetworkPerfCat: p.NtwPerfCat,
+				CurrentGen:     p.CurrentGen,
 			}
 			vms = append(vms, vm)
 		}
@@ -578,9 +509,9 @@ func (e *Engine) RecommendAttrValues(provider string, region string, attr string
 func (e *Engine) filtersForAttr(attr string) ([]vmFilter, error) {
 	switch attr {
 	case Cpu:
-		return []vmFilter{e.ntwPerformanceFilter, e.minMemRatioFilter, e.burstFilter, e.includesFilter, e.excludesFilter}, nil
+		return []vmFilter{e.currentGenFilter, e.ntwPerformanceFilter, e.minMemRatioFilter, e.burstFilter, e.includesFilter, e.excludesFilter}, nil
 	case Memory:
-		return []vmFilter{e.ntwPerformanceFilter, e.minCpuRatioFilter, e.burstFilter, e.includesFilter, e.excludesFilter}, nil
+		return []vmFilter{e.currentGenFilter, e.ntwPerformanceFilter, e.minCpuRatioFilter, e.burstFilter, e.includesFilter, e.excludesFilter}, nil
 	default:
 		return nil, fmt.Errorf("unsupported attribute: [%s]", attr)
 	}

@@ -25,18 +25,6 @@ paths:
         specific region.
       operationId: recommendClusterSetup
       parameters:
-        - x-go-name: Provider
-          name: provider
-          in: path
-          required: true
-          schema:
-            type: string
-        - x-go-name: Region
-          name: region
-          in: path
-          required: true
-          schema:
-            type: string
         - x-go-name: SumCpu
           description: Total number of CPUs requested for the cluster
           name: sumCpu
@@ -100,7 +88,7 @@ paths:
           schema:
             type: boolean
         - x-go-name: NetworkPerf
-          description: NertworkPerf specifies the network performance category
+          description: NetworkPerf specifies the network performance category
           name: networkPerf
           in: query
           schema:
@@ -125,6 +113,26 @@ paths:
             type: array
             items:
               type: string
+        - x-go-name: AllowOlderGen
+          description: >-
+            AllowOlderGen allow older generations of virtual machines (applies
+            for EC2 only)
+          name: allowOlderGen
+          in: query
+          schema:
+            type: boolean
+        - x-go-name: Provider
+          name: provider
+          in: path
+          required: true
+          schema:
+            type: string
+        - x-go-name: Region
+          name: region
+          in: path
+          required: true
+          schema:
+            type: string
       responses:
         '200':
           description: RecommendationResponse
@@ -151,7 +159,8 @@ components:
             type: number
             format: double
           x-go-name: AttributeValues
-      x-go-package: github.com/banzaicloud/telescopes/pkg/productinfo-client/models
+      x-go-package: >-
+        github.com/banzaicloud/telescopes/vendor/github.com/banzaicloud/productinfo/pkg/productinfo-client/models
     ByAvgPricePerCpu:
       description: ByAvgPricePerCpu type for custom sorting of a slice of vms
       type: array
@@ -169,7 +178,7 @@ components:
       type: object
       properties:
         cpu:
-          description: The summarised amount of cpu in the recommended cluster
+          description: Number of recommended cpus
           type: number
           format: double
           x-go-name: RecCpu
@@ -178,11 +187,36 @@ components:
           type: number
           format: double
           x-go-name: RecMem
-        node:
-          description: The summarised amount of node in the recommended cluster
+        nodes:
+          description: Number of recommended nodes
           type: integer
           format: int64
-          x-go-name: RecNode
+          x-go-name: RecNodes
+        regularNodes:
+          description: Number of regular instance type in the recommended cluster
+          type: integer
+          format: int64
+          x-go-name: RecRegularNodes
+        regularPrice:
+          description: Amount of regular instance type prices in the recommended cluster
+          type: number
+          format: double
+          x-go-name: RecRegularPrice
+        spotNodes:
+          description: Number of spot instance type in the recommended cluster
+          type: integer
+          format: int64
+          x-go-name: RecSpotNodes
+        spotPrice:
+          description: Amount of spot instance type prices in the recommended cluster
+          type: number
+          format: double
+          x-go-name: RecSpotPrice
+        totalPrice:
+          description: Total price in the recommended cluster
+          type: number
+          format: double
+          x-go-name: RecTotalPrice
         zone:
           description: Availability zones in the recommendation
           type: array
@@ -198,6 +232,12 @@ components:
           description: Are burst instances allowed in recommendation
           type: boolean
           x-go-name: AllowBurst
+        allowOlderGen:
+          description: >-
+            AllowOlderGen allow older generations of virtual machines (applies
+            for EC2 only)
+          type: boolean
+          x-go-name: AllowOlderGen
         excludes:
           description: >-
             Excludes is a blacklist - a slice with vm types to be excluded from
@@ -225,7 +265,7 @@ components:
           format: int64
           x-go-name: MinNodes
         networkPerf:
-          description: NertworkPerf specifies the network performance category
+          description: NetworkPerf specifies the network performance category
           type: string
           x-go-name: NetworkPerf
         onDemandPct:
@@ -287,7 +327,8 @@ components:
           description: 'in:path'
           type: string
           x-go-name: Region
-      x-go-package: github.com/banzaicloud/telescopes/pkg/productinfo-client/models
+      x-go-package: >-
+        github.com/banzaicloud/telescopes/vendor/github.com/banzaicloud/productinfo/pkg/productinfo-client/models
     GetProductDetailsParams:
       description: >-
         GetProductDetailsParams GetProductDetailsParams is a placeholder for the
@@ -302,7 +343,8 @@ components:
           description: 'in:path'
           type: string
           x-go-name: Region
-      x-go-package: github.com/banzaicloud/telescopes/pkg/productinfo-client/models
+      x-go-package: >-
+        github.com/banzaicloud/telescopes/vendor/github.com/banzaicloud/productinfo/pkg/productinfo-client/models
     GetRegionParams:
       description: >-
         GetRegionParams GetRegionParams is a placeholder for the get region
@@ -317,7 +359,8 @@ components:
           description: 'in:path'
           type: string
           x-go-name: Region
-      x-go-package: github.com/banzaicloud/telescopes/pkg/productinfo-client/models
+      x-go-package: >-
+        github.com/banzaicloud/telescopes/vendor/github.com/banzaicloud/productinfo/pkg/productinfo-client/models
     GetRegionResp:
       description: >-
         GetRegionResp GetRegionResp holds the detailed description of a specific
@@ -338,7 +381,8 @@ components:
           items:
             type: string
           x-go-name: Zones
-      x-go-package: github.com/banzaicloud/telescopes/pkg/productinfo-client/models
+      x-go-package: >-
+        github.com/banzaicloud/telescopes/vendor/github.com/banzaicloud/productinfo/pkg/productinfo-client/models
     GetRegionsParams:
       description: >-
         GetRegionsParams GetRegionsParams is a placeholder for the get regions
@@ -349,7 +393,8 @@ components:
           description: 'in:path'
           type: string
           x-go-name: Provider
-      x-go-package: github.com/banzaicloud/telescopes/pkg/productinfo-client/models
+      x-go-package: >-
+        github.com/banzaicloud/telescopes/vendor/github.com/banzaicloud/productinfo/pkg/productinfo-client/models
     GetRegionsResp:
       description: >-
         GetRegionsResp GetRegionsResp holds the list of available regions of a
@@ -364,7 +409,8 @@ components:
           description: name
           type: string
           x-go-name: Name
-      x-go-package: github.com/banzaicloud/telescopes/pkg/productinfo-client/models
+      x-go-package: >-
+        github.com/banzaicloud/telescopes/vendor/github.com/banzaicloud/productinfo/pkg/productinfo-client/models
     NodePool:
       description: NodePool represents a set of instances with a specific vm type
       type: object
@@ -398,6 +444,12 @@ components:
           type: number
           format: double
           x-go-name: Cpus
+        currentGen:
+          description: >-
+            CurrentGen signals whether the instance type generation is the
+            current one. Only applies for amazon
+          type: boolean
+          x-go-name: CurrentGen
         gpusPerVm:
           description: gpus
           type: number
@@ -431,7 +483,8 @@ components:
           description: type
           type: string
           x-go-name: Type
-      x-go-package: github.com/banzaicloud/telescopes/pkg/productinfo-client/models
+      x-go-package: >-
+        github.com/banzaicloud/telescopes/vendor/github.com/banzaicloud/productinfo/pkg/productinfo-client/models
     ProductDetailsResponse:
       description: >-
         ProductDetailsResponse ProductDetailsResponse Api object to be mapped to
@@ -446,7 +499,8 @@ components:
           items:
             $ref: '#/components/schemas/ProductDetails'
           x-go-name: Products
-      x-go-package: github.com/banzaicloud/telescopes/pkg/productinfo-client/models
+      x-go-package: >-
+        github.com/banzaicloud/telescopes/vendor/github.com/banzaicloud/productinfo/pkg/productinfo-client/models
     ProviderResponse:
       description: >-
         ProviderResponse ProviderResponse is the response used for the supported
@@ -454,7 +508,8 @@ components:
       type: array
       items:
         type: string
-      x-go-package: github.com/banzaicloud/telescopes/pkg/productinfo-client/models
+      x-go-package: >-
+        github.com/banzaicloud/telescopes/vendor/github.com/banzaicloud/productinfo/pkg/productinfo-client/models
     RecommendationResponse:
       description: ClusterRecommendationResp encapsulates recommendation result data
       type: object
@@ -493,7 +548,8 @@ components:
           description: name
           type: string
           x-go-name: Name
-      x-go-package: github.com/banzaicloud/telescopes/pkg/productinfo-client/models
+      x-go-package: >-
+        github.com/banzaicloud/telescopes/vendor/github.com/banzaicloud/productinfo/pkg/productinfo-client/models
     RegionResp:
       description: >-
         RegionResp RegionResp holds the list of available regions of a cloud
@@ -508,7 +564,8 @@ components:
           description: name
           type: string
           x-go-name: Name
-      x-go-package: github.com/banzaicloud/telescopes/pkg/productinfo-client/models
+      x-go-package: >-
+        github.com/banzaicloud/telescopes/vendor/github.com/banzaicloud/productinfo/pkg/productinfo-client/models
     RegionsResponse:
       description: >-
         RegionsResponse RegionsResponse holds the list of available regions of a
@@ -516,7 +573,8 @@ components:
       type: array
       items:
         $ref: '#/components/schemas/Region'
-      x-go-package: github.com/banzaicloud/telescopes/pkg/productinfo-client/models
+      x-go-package: >-
+        github.com/banzaicloud/telescopes/vendor/github.com/banzaicloud/productinfo/pkg/productinfo-client/models
     SpotPriceInfo:
       description: >-
         SpotPriceInfo SpotPriceInfo represents different prices per availability
@@ -525,7 +583,8 @@ components:
       additionalProperties:
         type: number
         format: double
-      x-go-package: github.com/banzaicloud/telescopes/pkg/productinfo-client/models
+      x-go-package: >-
+        github.com/banzaicloud/telescopes/vendor/github.com/banzaicloud/productinfo/pkg/productinfo-client/models
     VirtualMachine:
       description: VirtualMachine describes an instance type
       type: object
@@ -546,6 +605,10 @@ components:
           type: number
           format: double
           x-go-name: Cpus
+        currentGen:
+          description: CurrentGen the vm is of current generation
+          type: boolean
+          x-go-name: CurrentGen
         gpusPerVm:
           description: Number of GPUs in the instance type
           type: number
@@ -587,5 +650,6 @@ components:
           description: zone
           type: string
           x-go-name: Zone
-      x-go-package: github.com/banzaicloud/telescopes/pkg/productinfo-client/models
+      x-go-package: >-
+        github.com/banzaicloud/telescopes/vendor/github.com/banzaicloud/productinfo/pkg/productinfo-client/models
 

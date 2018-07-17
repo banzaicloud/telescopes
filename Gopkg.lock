@@ -29,7 +29,7 @@
   version = "0.2.1"
 
 [[projects]]
-  branch = "productinfo"
+  branch = "master"
   name = "github.com/banzaicloud/productinfo"
   packages = [
     "pkg/productinfo-client/client",
@@ -39,7 +39,7 @@
     "pkg/productinfo-client/client/regions",
     "pkg/productinfo-client/models"
   ]
-  revision = "56754dd663d7d7153a367ac02cab2f4dd4cd18c2"
+  revision = "ca156d5bd2cb843e5c457fc61a8a432e340be203"
 
 [[projects]]
   name = "github.com/davecgh/go-spew"
