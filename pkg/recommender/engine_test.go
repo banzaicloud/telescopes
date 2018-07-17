@@ -58,6 +58,7 @@ func (piCli *dummyProductInfoSource) GetProductDetails(provider string, region s
 		return []*models.ProductDetails{
 			{
 				Type:          "type-1",
+				CurrentGen:    true,
 				OnDemandPrice: 0.68,
 				Cpus:          16,
 				Mem:           32,
@@ -68,6 +69,7 @@ func (piCli *dummyProductInfoSource) GetProductDetails(provider string, region s
 		return []*models.ProductDetails{
 			{
 				Type:          "type-3",
+				CurrentGen:    true,
 				OnDemandPrice: 0.023,
 				Cpus:          1,
 				Mem:           2,
@@ -75,6 +77,7 @@ func (piCli *dummyProductInfoSource) GetProductDetails(provider string, region s
 			},
 			{
 				Type:          "type-4",
+				CurrentGen:    true,
 				OnDemandPrice: 0.096,
 				Cpus:          2,
 				Mem:           4,
@@ -82,6 +85,7 @@ func (piCli *dummyProductInfoSource) GetProductDetails(provider string, region s
 			},
 			{
 				Type:          "type-5",
+				CurrentGen:    true,
 				OnDemandPrice: 0.046,
 				Cpus:          2,
 				Mem:           4,
@@ -89,6 +93,7 @@ func (piCli *dummyProductInfoSource) GetProductDetails(provider string, region s
 			},
 			{
 				Type:          "type-6",
+				CurrentGen:    true,
 				OnDemandPrice: 0.096,
 				Cpus:          2,
 				Mem:           8,
@@ -96,6 +101,7 @@ func (piCli *dummyProductInfoSource) GetProductDetails(provider string, region s
 			},
 			{
 				Type:          "type-7",
+				CurrentGen:    true,
 				OnDemandPrice: 0.17,
 				Cpus:          4,
 				Mem:           8,
@@ -103,6 +109,7 @@ func (piCli *dummyProductInfoSource) GetProductDetails(provider string, region s
 			},
 			{
 				Type:          "type-8",
+				CurrentGen:    true,
 				OnDemandPrice: 0.186,
 				Cpus:          4,
 				Mem:           16,
@@ -110,6 +117,7 @@ func (piCli *dummyProductInfoSource) GetProductDetails(provider string, region s
 			},
 			{
 				Type:          "type-9",
+				CurrentGen:    true,
 				OnDemandPrice: 0.34,
 				Cpus:          8,
 				Mem:           16,
@@ -117,6 +125,7 @@ func (piCli *dummyProductInfoSource) GetProductDetails(provider string, region s
 			},
 			{
 				Type:          "type-10",
+				CurrentGen:    true,
 				OnDemandPrice: 0.68,
 				Cpus:          16,
 				Mem:           32,
@@ -124,6 +133,7 @@ func (piCli *dummyProductInfoSource) GetProductDetails(provider string, region s
 			},
 			{
 				Type:          "type-11",
+				CurrentGen:    true,
 				OnDemandPrice: 0.91,
 				Cpus:          16,
 				Mem:           64,
@@ -131,6 +141,7 @@ func (piCli *dummyProductInfoSource) GetProductDetails(provider string, region s
 			},
 			{
 				Type:          "type-12",
+				CurrentGen:    true,
 				OnDemandPrice: 1.872,
 				Cpus:          32,
 				Mem:           128,

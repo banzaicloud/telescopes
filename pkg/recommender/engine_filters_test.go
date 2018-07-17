@@ -26,7 +26,7 @@ func TestEngine_filtersApply(t *testing.T) {
 			// minRatio = SumCpu/SumMem = 0.5
 			req: ClusterRecommendationReq{SumCpu: 4, SumMem: float64(8), AllowBurst: &trueVal},
 			// ratio = Cpus/Mem = 1
-			vm:   VirtualMachine{Cpus: 4, Mem: float64(4), Burst: true},
+			vm:   VirtualMachine{Cpus: 4, Mem: float64(4), Burst: true, CurrentGen: true},
 			attr: Memory,
 			check: func(filtersApply bool) {
 				assert.Equal(t, true, filtersApply, "vm should pass all filters")
@@ -38,7 +38,7 @@ func TestEngine_filtersApply(t *testing.T) {
 			// minRatio = SumCpu/SumMem = 0.5
 			req: ClusterRecommendationReq{SumCpu: 4, SumMem: float64(8), AllowBurst: &falseVal},
 			// ratio = Cpus/Mem = 1
-			vm:   VirtualMachine{Cpus: 4, Mem: float64(4), Burst: true},
+			vm:   VirtualMachine{Cpus: 4, Mem: float64(4), Burst: true, CurrentGen: true},
 			attr: Cpu,
 			check: func(filtersApply bool) {
 				assert.Equal(t, false, filtersApply, "vm should not pass all filters")
@@ -50,7 +50,7 @@ func TestEngine_filtersApply(t *testing.T) {
 			// minRatio = AumMem/SumCpu = 2
 			req: ClusterRecommendationReq{SumMem: float64(8), SumCpu: 4, AllowBurst: &trueVal},
 			// ratio = Mem/Cpus = 1
-			vm:   VirtualMachine{Mem: float64(20), Cpus: 4, Burst: true},
+			vm:   VirtualMachine{Mem: float64(20), Cpus: 4, Burst: true, CurrentGen: true},
 			attr: Cpu,
 			check: func(filtersApply bool) {
 				assert.Equal(t, true, filtersApply, "vm should pass all filters")
@@ -62,7 +62,7 @@ func TestEngine_filtersApply(t *testing.T) {
 			// minRatio = AumMem/SumCpu = 2
 			req: ClusterRecommendationReq{SumMem: float64(8), SumCpu: 4, AllowBurst: &falseVal},
 			// ratio = Mem/Cpus = 1
-			vm:   VirtualMachine{Mem: float64(20), Cpus: 4, Burst: true},
+			vm:   VirtualMachine{Mem: float64(20), Cpus: 4, Burst: true, CurrentGen: true},
 			attr: Memory,
 			check: func(filtersApply bool) {
 				assert.Equal(t, false, filtersApply, "vm should not pass all filters")
@@ -608,6 +608,108 @@ func TestEngine_ntwPerformanceFilter(t *testing.T) {
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
 			test.check(test.engine.ntwPerformanceFilter(test.vm, test.req))
+		})
+	}
+}
+
+func boolPointer(b bool) *bool {
+	return &b
+}
+
+func TestEngine_CurrGenFilter(t *testing.T) {
+	tests := []struct {
+		name   string
+		engine Engine
+		req    ClusterRecommendationReq
+		vm     VirtualMachine
+		check  func(passed bool)
+	}{
+		{
+			name:   "filter should apply when AllowOlderGen IS NIL in the request and vm IS of current generation",
+			engine: Engine{},
+			req:    ClusterRecommendationReq{ // AllowOlderGen is nil;
+			},
+			vm: VirtualMachine{
+				Type:       "instance type",
+				CurrentGen: true,
+			},
+			check: func(passed bool) {
+				assert.True(t, passed, "vm should pass the check")
+			},
+		},
+		{
+			name:   "filter should not apply when AllowOlderGen IS NIL in the request and vm IS NOT of current generation",
+			engine: Engine{},
+			req:    ClusterRecommendationReq{ // AllowOlderGen is nil;
+			},
+			vm: VirtualMachine{
+				Type:       "instance type",
+				CurrentGen: false,
+			},
+			check: func(passed bool) {
+				assert.False(t, passed, "vm should fail the check")
+			},
+		},
+		{
+			name:   "filter should apply when AllowOlderGen is FALSE in the request and vm IS of current generation",
+			engine: Engine{},
+			req: ClusterRecommendationReq{
+				AllowOlderGen: boolPointer(false),
+			},
+			vm: VirtualMachine{
+				Type:       "instance type",
+				CurrentGen: true,
+			},
+			check: func(passed bool) {
+				assert.True(t, passed, "vm should pass the filter")
+			},
+		},
+		{
+			name:   "filter should not apply when AllowOlderGen is FALSE  in the request and vm IS NOT of current generation",
+			engine: Engine{},
+			req: ClusterRecommendationReq{
+				AllowOlderGen: boolPointer(false),
+			},
+			vm: VirtualMachine{
+				Type:       "instance type",
+				CurrentGen: false,
+			},
+			check: func(passed bool) {
+				assert.False(t, passed, "vm should not pass the filter")
+			},
+		},
+		{
+			name:   "filter should apply when AllowOlderGen is TRUE  in the request and vm IS of current generation",
+			engine: Engine{},
+			req: ClusterRecommendationReq{
+				AllowOlderGen: boolPointer(true),
+			},
+			vm: VirtualMachine{
+				Type:       "instance type",
+				CurrentGen: true,
+			},
+			check: func(passed bool) {
+				assert.True(t, passed, "vm should pass the filter")
+			},
+		},
+		{
+			name:   "filter should apply when AllowOlderGen is TRUE  in the request and vm IS NOT of current generation",
+			engine: Engine{},
+			req: ClusterRecommendationReq{
+				AllowOlderGen: boolPointer(true),
+			},
+			vm: VirtualMachine{
+				Type:       "instance type",
+				CurrentGen: false,
+			},
+			check: func(passed bool) {
+				assert.True(t, passed, "vm should pass the filter")
+			},
+		},
+	}
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			test.check(test.engine.currentGenFilter(test.vm, test.req))
 		})
 	}
 }
