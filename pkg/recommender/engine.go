@@ -75,7 +75,7 @@ type ClusterRecommendationReq struct {
 	// Includes is a whitelist - a slice with vm types to be contained in the recommendation
 	Includes []string `json:"includes,omitempty"`
 	// AllowOlderGen allow older generations of virtual machines (applies for EC2 only)
-	AllowOlderGen *bool
+	AllowOlderGen *bool `json:"allowOlderGen,omitempty"`
 }
 
 // ClusterRecommendationResp encapsulates recommendation result data
