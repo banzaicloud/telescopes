@@ -7,6 +7,7 @@ import (
 	"sort"
 
 	"github.com/banzaicloud/productinfo/pkg/productinfo-client/models"
+	"github.com/banzaicloud/telescopes/pkg/recommender/focus"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -302,39 +303,6 @@ func (e *Engine) findCheapestNodePoolSet(nodePoolSets map[string][]NodePool) []N
 	return cheapestNpSet
 }
 
-func (e *Engine) findValuesBetween(attrValues []float64, min float64, max float64) ([]float64, error) {
-	if len(attrValues) == 0 {
-		return nil, errors.New("no attribute values provided")
-	}
-
-	if min > max {
-		return nil, errors.New("min value cannot be larger than the max value")
-	}
-
-	log.Debugf("finding values between: [%v, %v]", min, max)
-	// sort attribute values in ascending order
-	sort.Float64s(attrValues)
-
-	if max < attrValues[0] {
-		log.Debug("returning smallest value: %v", attrValues[0])
-		return []float64{attrValues[0]}, nil
-	}
-
-	if min > attrValues[len(attrValues)-1] {
-		log.Debugf("returning largest value: %v", attrValues[len(attrValues)-1])
-		return []float64{attrValues[len(attrValues)-1]}, nil
-	}
-
-	var values []float64
-	for i, attrVal := range attrValues {
-		if attrVal >= min && attrVal <= max {
-			values = append(values, attrValues[i])
-		}
-	}
-
-	return values, nil
-}
-
 // avgNodeCount calculates the minimum number of nodes having the "average attribute value" required to fill up the
 // requested value of the given attribute
 func avgNodeCount(attrValues []float64, reqSum float64) int {
@@ -490,14 +458,7 @@ func (e *Engine) RecommendAttrValues(provider string, region string, attr string
 		return nil, err
 	}
 
-	minValuePerVm, err := req.minValuePerVm(attr)
-	if err != nil {
-		return nil, err
-	}
-
-	maxValuePerVm, _ := req.maxValuePerVm(attr)
-
-	values, err := e.findValuesBetween(allValues, minValuePerVm, maxValuePerVm)
+	values, err := focus.AttributeValues(allValues).SelectAttributeValues(req.minValuePerVm(attr), req.maxValuePerVm(attr), nil)
 	if err != nil {
 		return nil, err
 	}
@@ -518,7 +479,7 @@ func (e *Engine) filtersForAttr(attr string) ([]vmFilter, error) {
 }
 
 // sortByAttrValue returns the slice for
-func (e *Engine) sortByAttrValue(attr string, vms []VirtualMachine) error {
+func (e *Engine) sortByAttrValue(attr string, vms []VirtualMachine) {
 	// sort and cut
 	switch attr {
 	case Memory:
@@ -526,9 +487,8 @@ func (e *Engine) sortByAttrValue(attr string, vms []VirtualMachine) error {
 	case Cpu:
 		sort.Sort(ByAvgPricePerCpu(vms))
 	default:
-		return fmt.Errorf("unsupported attribute: [%s]", attr)
+		log.Errorf("unsupported attribute [%s], vms not sorted", attr)
 	}
-	return nil
 }
 
 // RecommendNodePools finds the slice of NodePools that may participate in the recommendation process
@@ -544,14 +504,10 @@ func (e *Engine) RecommendNodePools(attr string, vms []VirtualMachine, values []
 		}
 	}
 
-	requestedSum, err := req.sum(attr)
-	if err != nil {
-		return nil, fmt.Errorf("could not get sum for attr: [%s], cause: [%s]", attr, err.Error())
-	}
-	log.Debugf("requested sum for attribute [%s]: [%f]", attr, requestedSum)
+	log.Debugf("requested sum for attribute [%s]: [%f]", attr, req.sum(attr))
 
-	var sumOnDemandValue = requestedSum * float64(req.OnDemandPct) / 100
-	var sumSpotValue = requestedSum - sumOnDemandValue
+	var sumOnDemandValue = req.sum(attr) * float64(req.OnDemandPct) / 100
+	var sumSpotValue = req.sum(attr) - sumOnDemandValue
 
 	log.Debugf("on demand sum value for attr [%s]: [%f]", attr, sumOnDemandValue)
 	log.Debugf("spot sum value for attr [%s]: [%f]", attr, sumSpotValue)
@@ -572,10 +528,10 @@ func (e *Engine) RecommendNodePools(attr string, vms []VirtualMachine, values []
 	}
 
 	// vms are sorted by attribute value
-	err = e.sortByAttrValue(attr, vms)
+	e.sortByAttrValue(attr, vms)
 
 	// the "magic" number of machines for diversifying the types
-	N := int(math.Min(float64(findN(avgNodeCount(values, requestedSum))), float64(len(vms))))
+	N := int(math.Min(float64(findN(avgNodeCount(values, req.sum(attr)))), float64(len(vms))))
 
 	// the second "magic" number for diversifying the layout
 	M := int(math.Min(math.Ceil(float64(N)*1.5), float64(len(vms))))
@@ -622,38 +578,41 @@ func (e *Engine) RecommendNodePools(attr string, vms []VirtualMachine, values []
 }
 
 // maxValuePerVm calculates the maximum value per node for the given attribute
-func (req *ClusterRecommendationReq) maxValuePerVm(attr string) (float64, error) {
+func (req *ClusterRecommendationReq) maxValuePerVm(attr string) float64 {
 	switch attr {
 	case Cpu:
-		return req.SumCpu / float64(req.MinNodes), nil
+		return req.SumCpu / float64(req.MinNodes)
 	case Memory:
-		return req.SumMem / float64(req.MinNodes), nil
+		return req.SumMem / float64(req.MinNodes)
 	default:
-		return 0, fmt.Errorf("unsupported attribute: [%s]", attr)
+		log.Error("unsupported attribute: [%s]", attr)
+		return 0
 	}
 }
 
 // minValuePerVm calculates the minimum value per node for the given attribute
-func (req *ClusterRecommendationReq) minValuePerVm(attr string) (float64, error) {
+func (req *ClusterRecommendationReq) minValuePerVm(attr string) float64 {
 	switch attr {
 	case Cpu:
-		return req.SumCpu / float64(req.MaxNodes), nil
+		return req.SumCpu / float64(req.MaxNodes)
 	case Memory:
-		return req.SumMem / float64(req.MaxNodes), nil
+		return req.SumMem / float64(req.MaxNodes)
 	default:
-		return 0, fmt.Errorf("unsupported attribute: [%s]", attr)
+		log.Error("unsupported attribute: [%s]", attr)
+		return 0
 	}
 }
 
 // gets the requested sum for the attribute value
-func (req *ClusterRecommendationReq) sum(attr string) (float64, error) {
+func (req *ClusterRecommendationReq) sum(attr string) float64 {
 	switch attr {
 	case Cpu:
-		return req.SumCpu, nil
+		return req.SumCpu
 	case Memory:
-		return req.SumMem, nil
+		return req.SumMem
 	default:
-		return 0, fmt.Errorf("unsupported attribute: [%s]", attr)
+		log.Error("unsupported attribute: [%s]", attr)
+		return 0
 	}
 }
 
