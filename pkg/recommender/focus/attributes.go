@@ -28,47 +28,32 @@ func (av AttributeValues) SelectAttributeValues(min float64, max float64) ([]flo
 	if len(av) == 0 {
 		return nil, fmt.Errorf("empty attribute values")
 	}
-
-	var selectedValues []float64
-	// sort the slice in increasing order
-	av.sort()
-	logrus.Debugf("sorted attributes: [%f]", av)
-
-	// min is greater than the highest value
-	if min > av[len(av)-1] {
-		// return the highest value
-		return []float64{av[len(av)-1]}, nil
-	}
-
-	// max is less than the lowest value
-	if max < av[0] {
-		// return the lowest value
-		return []float64{av[0]}, nil
-	}
-
 	var (
+		// holds the selected values
+		selectedValues []float64
 		// vars representing "distances" to the max from the "left" and right
 		lDist, rDist = math.MaxFloat64, math.MaxFloat64
 		// indexes of the "closest" values to max in the values slice
 		rIdx, lIdx = -1, -1
 	)
+	// sort the slice in increasing order
+	av.sort()
+	logrus.Debugf("sorted attributes: [%f]", av)
 
 	for i, v := range av {
-
 		if v < max {
-			// distance to from max from "left"
+			// distance to max from "left"
 			if lDist > max-v {
 				lDist = max - v
 				lIdx = i
 			}
 		} else {
-			// distance to from max from "right"
+			// distance to max from "right"
 			if rDist > v-max {
 				rDist = v - max
 				rIdx = i
 			}
 		}
-
 		if min <= v && v <= max {
 			logrus.Debugf("found value between min[%f]-max[%f]: [%f], index: [%d]", min, max, v, i)
 			selectedValues = append(selectedValues, v)
@@ -78,13 +63,14 @@ func (av AttributeValues) SelectAttributeValues(min float64, max float64) ([]flo
 	logrus.Debugf("lower-closest index: [%d], higher-closest index: [%d]", lIdx, rIdx)
 	if len(selectedValues) == 0 {
 		// there are no values between the two limits
-		// todo currently the "higher-closest" value is only considered when no values found in the interval
-		if rIdx > -1 {
-			// if there is higher values than the max, return the closest to it
-			return []float64{av[rIdx]}, nil
+		if rIdx == -1 {
+			//there are no values higher than max, return the closest less value
+			// this covers the case when the [min, max] interval is out of range of the value set
+			// the left index is either 0 or len(av)-1 in the above case
+			return []float64{av[lIdx]}, nil
 		}
-
-		return nil, fmt.Errorf("could not find any attribute values")
+		// the right index is higher than -1 -> there are higher values than the max, return the closest to it
+		return []float64{av[rIdx]}, nil
 	}
 	return selectedValues, nil
 }
