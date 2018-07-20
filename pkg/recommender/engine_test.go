@@ -174,7 +174,6 @@ func TestEngine_RecommendAttrValues(t *testing.T) {
 				assert.Nil(t, err, "should not get error when recommending attributes")
 				assert.Equal(t, 3, len(values), "recommended number of values is not as expected")
 				assert.Equal(t, []float64{15, 16, 17}, values)
-
 			},
 		},
 		{
@@ -228,21 +227,6 @@ func TestEngine_RecommendAttrValues(t *testing.T) {
 			},
 		},
 		{
-			name: "error - min larger than max",
-			pi:   &dummyProductInfoSource{MinLargerThanMax},
-			request: ClusterRecommendationReq{
-				MinNodes: 10,
-				MaxNodes: 5,
-				SumMem:   100,
-				SumCpu:   100,
-			},
-			attribute: Cpu,
-			check: func(values []float64, err error) {
-				assert.Equal(t, err.Error(), "min value cannot be larger than the max value")
-
-			},
-		},
-		{
 			name: "error - attribute values could not be retrieved",
 			pi:   &dummyProductInfoSource{Error},
 			request: ClusterRecommendationReq{
@@ -258,30 +242,12 @@ func TestEngine_RecommendAttrValues(t *testing.T) {
 
 			},
 		},
-		{
-			name: "error - unsupported attribute",
-			pi:   &dummyProductInfoSource{},
-			request: ClusterRecommendationReq{
-				MinNodes: 5,
-				MaxNodes: 10,
-				SumMem:   100,
-				SumCpu:   100,
-			},
-			attribute: "error",
-			check: func(values []float64, err error) {
-				assert.Nil(t, values, "the values should be nil")
-				assert.EqualError(t, err, "unsupported attribute: [error]")
-
-			},
-		},
 	}
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
 			engine, err := NewEngine(test.pi)
 			assert.Nil(t, err, "the engine couldn't be created")
-
 			test.check(engine.RecommendAttrValues("dummy", "region", test.attribute, test.request))
-
 		})
 	}
 }
@@ -378,17 +344,6 @@ func TestEngine_RecommendNodePools(t *testing.T) {
 					{VmType: VirtualMachine{Type: "", AvgPrice: 99, OnDemandPrice: 10, Cpus: 10, Mem: 10, Gpus: 0, Burst: false}, SumNodes: 5, VmClass: "spot"}},
 					nps)
 				assert.Equal(t, 3, len(nps))
-
-			},
-		},
-		{
-			name: "attribute error",
-			pi:   &dummyProductInfoSource{},
-			vms:  vms,
-			attr: "error",
-			check: func(nps []NodePool, err error) {
-				assert.EqualError(t, err, "could not get sum for attr: [error], cause: [unsupported attribute: [error]]")
-				assert.Nil(t, nps, "the nps should be nil")
 
 			},
 		},
@@ -580,20 +535,6 @@ func TestEngine_RecommendCluster(t *testing.T) {
 			check: func(resp *ClusterRecommendationResp, err error) {
 				assert.Nil(t, resp, "the response should be nil")
 				assert.EqualError(t, err, "error while recommending node pools for attr: [cpu], cause: [no vms suitable for spot pools]")
-			},
-		},
-		{
-			name: "when minimum nodes larger than maximum nodes, could not select the attribute values, we should report an error",
-			pi:   &dummyProductInfoSource{},
-			request: ClusterRecommendationReq{
-				MinNodes: 15,
-				MaxNodes: 10,
-				SumMem:   100,
-				SumCpu:   100,
-			},
-			check: func(resp *ClusterRecommendationResp, err error) {
-				assert.Nil(t, resp, "the response should be nil")
-				assert.EqualError(t, err, "could not get values for attr: [cpu], cause: [min value cannot be larger than the max value]")
 			},
 		},
 		{
