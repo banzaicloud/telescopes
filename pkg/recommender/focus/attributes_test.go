@@ -66,7 +66,7 @@ func TestAttributeValues_SelectAttributeValues(t *testing.T) {
 	}
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
-			test.check(test.values.SelectAttributeValues(test.min, test.max, nil))
+			test.check(test.values.SelectAttributeValues(test.min, test.max))
 		})
 	}
 }

@@ -10,13 +10,7 @@ import (
 // AttributeValueSelector interface comprises attribute selection algorythm entrypoints
 type AttributeValueSelector interface {
 	// SelectAttributeValues selects a range of attributes from the given
-	SelectAttributeValues(min float64, max float64, focus Focuser) ([]float64, error)
-}
-
-// Focuser interface for decoupling attribute selection strategies
-type Focuser interface {
-	// Focus returns the attribute selection strategy
-	Focus() string
+	SelectAttributeValues(min float64, max float64) ([]float64, error)
 }
 
 // AttributeValues type representing a slice of attribute values
@@ -29,7 +23,7 @@ func (av AttributeValues) sort() {
 
 // SelectAttributeValues selects values between the min and max values considering the focus strategy
 // When the interval between min and max is "out of range" with respect to this slice the lowest or highest values are returned
-func (av AttributeValues) SelectAttributeValues(min float64, max float64, focus Focuser) ([]float64, error) {
+func (av AttributeValues) SelectAttributeValues(min float64, max float64) ([]float64, error) {
 	logrus.Debugf("selecting attributes from %f, min [%f], max [%f]", av, min, max)
 	if len(av) == 0 {
 		return nil, fmt.Errorf("empty attribute values")
