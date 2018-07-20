@@ -1,4 +1,4 @@
-package focus
+package recommender
 
 import (
 	"github.com/stretchr/testify/assert"

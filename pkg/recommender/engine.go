@@ -7,7 +7,6 @@ import (
 	"sort"
 
 	"github.com/banzaicloud/productinfo/pkg/productinfo-client/models"
-	"github.com/banzaicloud/telescopes/pkg/recommender/focus"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -458,7 +457,7 @@ func (e *Engine) RecommendAttrValues(provider string, region string, attr string
 		return nil, err
 	}
 
-	values, err := focus.AttributeValues(allValues).SelectAttributeValues(req.minValuePerVm(attr), req.maxValuePerVm(attr))
+	values, err := AttributeValues(allValues).SelectAttributeValues(req.minValuePerVm(attr), req.maxValuePerVm(attr))
 	if err != nil {
 		return nil, err
 	}
