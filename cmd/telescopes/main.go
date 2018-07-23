@@ -22,6 +22,7 @@ import (
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/viper"
 
+	"github.com/banzaicloud/go-gin-prometheus"
 	"github.com/banzaicloud/telescopes/internal/app/telescopes/api"
 	"github.com/banzaicloud/telescopes/pkg/recommender"
 	"github.com/gin-gonic/gin"
@@ -41,6 +42,8 @@ const (
 	vaultAddrAlias       = "vault_addr"
 	vaultAddrFlag        = "vault-address"
 	helpFlag             = "help"
+	metricsEnabledFlag   = "metrics-enabled"
+	metricsAddressFlag   = "metrics-address"
 
 	cfgAppRole     = "telescopes-app-role"
 	defaultAppRole = "telescopes"
@@ -61,6 +64,8 @@ func defineFlags() {
 	flag.String(tokenSigningKeyFlag, "", "The token signing key for the authentication process")
 	flag.String(vaultAddrFlag, "", "The vault address for authentication token management")
 	flag.Bool(helpFlag, false, "print usage")
+	flag.Bool(metricsEnabledFlag, false, "internal metrics are exposed if enabled")
+	flag.String(metricsAddressFlag, ":9900", "the address where internal metrics are exposed")
 }
 
 // bindFlags binds parsed flags into viper
@@ -163,6 +168,13 @@ func main() {
 		appRole := viper.GetString(cfgAppRole)
 
 		routeHandler.EnableAuth(router, appRole, signingKey)
+	}
+
+	// add prometheus metric endpoint
+	if viper.GetBool(metricsEnabledFlag) {
+		p := ginprometheus.NewPrometheus("gin", []string{"provider", "region"})
+		p.SetListenAddress(viper.GetString(metricsAddressFlag))
+		p.Use(router)
 	}
 
 	log.Info("Initialized gin router")
