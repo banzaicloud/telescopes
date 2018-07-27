@@ -469,13 +469,14 @@ func (e *Engine) RecommendAttrValues(provider string, region string, attr string
 func (e *Engine) filtersForAttr(attr string, provider string) ([]vmFilter, error) {
 	var
 	// generic filters - not depending on providers and attributes
-	filters []vmFilter = []vmFilter{e.ntwPerformanceFilter, e.includesFilter, e.excludesFilter}
+	filters []vmFilter = []vmFilter{e.includesFilter, e.excludesFilter}
 
 	// provider specific filters
 	switch provider {
 	case "ec2":
-		// ec2 specific filters
-		filters = append(filters, e.currentGenFilter, e.burstFilter)
+		filters = append(filters, e.currentGenFilter, e.burstFilter, e.ntwPerformanceFilter)
+	case "gce":
+		filters = append(filters, e.ntwPerformanceFilter)
 	}
 
 	// attribute specific filters
