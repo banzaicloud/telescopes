@@ -197,7 +197,7 @@ func (e *Engine) RecommendCluster(provider string, region string, req ClusterRec
 		}
 		log.Debugf("recommended values for [%s]: count:[%d] , values: [%#v./te]", attr, len(values), values)
 
-		vmFilters, _ := e.filtersForAttr(attr)
+		vmFilters, _ := e.filtersForAttr(attr, provider)
 
 		filteredVms, err := e.RecommendVms(provider, region, attr, values, vmFilters, req)
 		if err != nil {
@@ -466,15 +466,29 @@ func (e *Engine) RecommendAttrValues(provider string, region string, attr string
 }
 
 // filtersForAttr returns the slice for
-func (e *Engine) filtersForAttr(attr string) ([]vmFilter, error) {
+func (e *Engine) filtersForAttr(attr string, provider string) ([]vmFilter, error) {
+	var
+	// generic filters - not depending on providers and attributes
+	filters []vmFilter = []vmFilter{e.ntwPerformanceFilter, e.includesFilter, e.excludesFilter}
+
+	// provider specific filters
+	switch provider {
+	case "ec2":
+		// ec2 specific filters
+		filters = append(filters, e.currentGenFilter, e.burstFilter)
+	}
+
+	// attribute specific filters
 	switch attr {
 	case Cpu:
-		return []vmFilter{e.currentGenFilter, e.ntwPerformanceFilter, e.minMemRatioFilter, e.burstFilter, e.includesFilter, e.excludesFilter}, nil
+		filters = append(filters, e.minMemRatioFilter)
 	case Memory:
-		return []vmFilter{e.currentGenFilter, e.ntwPerformanceFilter, e.minCpuRatioFilter, e.burstFilter, e.includesFilter, e.excludesFilter}, nil
+		filters = append(filters, e.minCpuRatioFilter)
 	default:
 		return nil, fmt.Errorf("unsupported attribute: [%s]", attr)
 	}
+
+	return filters, nil
 }
 
 // sortByAttrValue returns the slice for
