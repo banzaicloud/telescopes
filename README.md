@@ -151,41 +151,40 @@ curl -sX -H 'Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ8.eyJhdWQi
 
 ## FAQ
 
-
-**1. How is this project different from EC2 Spot Advisor and Spot Fleet?**
-
-The recommender is similar to the EC2 Spot Advisor, it is also recommending different spot instance types for diverse clusters.
-But the EC2 Spot Advisor has no externally available API, it is only available from the AWS Console, and it is only available to create Spot Fleets.
-We wanted to build an independent solution where the recommendation can be used in an arbitrary way and it doesn't require Spot Fleets to work.
-We are also keeping Kubernetes in mind - primarily to build our PaaS, [Pipeline](https://github.com/banzaicloud/pipeline) - and Kubernetes doesn't support
-Spot Fleets out of the box for starting clusters (via Kubicorn, kops or any other tool) or for autoscaling, rather it uses standard Auto Scaling Groups for node pools
-and that model fits the recommendation perfectly.
-We also wanted to include on-demand instances to keep some part of the cluster completely safe.
-And although EC2 is the only supported platform for now, we'd like to add support for Google Cloud and other providers as well.
-
-**2. Will this project start instances on my behalf on my cloud provider?**
+**1. Will this project start instances on my behalf on my cloud provider?**
 
 No, this project will never start instances. The API response is a cluster description built from node pools of different instance types.It is the responsibility of the user to start and manage the autoscaling groups based on the response. The [Pipeline](https://github.com/banzaicloud/pipeline) and [Hollowtrees](https://github.com/banzaicloud/hollowtrees) projects are helping with that.
 
-**3. How does the recommender decide which instance types to include in the recommendation?**
+**2. How does the recommender decide which instance types to include in the recommendation?**
 
 The recommender will list one node pool that contains on-demand (regular) instances.
 The instance type of the on-demand node pool is decided based on price, and the CPU/memory ratio and the min/max cluster size in the request.
 For the spot type node pools: all the instance types in the region are getting a price score - based on the Prometheus or AWS API info - and are sorted by that score.
 Depending on the cluster's size the first N types are returned, and the number of instances are calculated to have about equal sized pools in terms of sum CPU/memory.
 
-**4. Why do I see node pools with `SumNodes=0` in the recommendation?**
+**3. Why do I see node pools with `SumNodes=0` in the recommendation?**
 
 Those instance types are the next best recommendations after the node pools that contain instances in the response, but it's not needed to further diversify the cluster with them.
 Because the response is only a recommendation and it won't start instances on the cloud provider, it is possible to fine tune the recommendation before creating a cluster.
 It means that a user can remove recommended node pools (e.g.: because they don't want burstable instance types, like `t2`) and can also add new ones.
 If they want to add new node pools (e.g. instead of a recommended one), it makes sense for them to include one of the 0-sized node pools and to increase the node count there.
 
-**5. How are availability zones handled?**
+**4. How are availability zones handled?**
 
 Requested availability zones must be sent in the API request. When listing multiple zones, the response will contain a multi-zone recommendation,
 and *all* node pools in the response are meant to span across multiple zones. Having different node pools in different zones are not supported.
 Because spot prices can be different across availability zones, in this case the instance type price score is averaged across availability zones.
+
+**5. How is this project different from EC2 Spot Advisor and Spot Fleet?**
+
+The most important difference is that Telescopes is working across different cloud providers, instead of locking in to AWS.
+Otherwise the recommender is similar to the EC2 Spot Advisor, it is also recommending different spot instance types to have diverse clusters.
+But the EC2 Spot Advisor has no externally available API, it is only available from the AWS Console, and it is only available to create Spot Fleets.
+We wanted to build an independent solution where the recommendation can be used in an arbitrary way and it doesn't require Spot Fleets to work.
+We are also keeping Kubernetes in mind - primarily to build our PaaS, [Pipeline](https://github.com/banzaicloud/pipeline) - and Kubernetes doesn't support
+Spot Fleets out of the box for starting clusters (via Kubicorn, kops or any other tool) or for autoscaling, rather it uses standard Auto Scaling Groups for node pools
+and that model fits the recommendation perfectly.
+We also wanted to include on-demand instances to keep some part of the cluster completely safe.
 
 **6. There's no bid pricing on Google Cloud, what will the recommender take into account there?**
 
@@ -231,6 +230,5 @@ Almost there. We are using this already internally and plan to GA it soon.
 The first priority is to stabilize the API and to make it production ready (see above).
 Other than that, these are the things we are planning to add soon:
  - GPU support
- - filters for instance type I/O performance, network performance
+ - filters for instance type I/O performance
  - handle the sameSize switch to recommend similar types
- - Google Cloud Preemptible instances
