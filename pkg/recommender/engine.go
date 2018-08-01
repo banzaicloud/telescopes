@@ -210,6 +210,12 @@ func (e *Engine) RecommendCluster(provider string, region string, req ClusterRec
 		}
 		log.Debugf("recommended vms for [%s]: count:[%d] , values: [%#v]", attr, len(filteredVms), filteredVms)
 
+		//todo add request validation for interdependent request fields, eg: onDemandPct is always 100 when spot
+		// instances are not available for provider
+		if provider == "oracle" {
+			log.Warnf("onDemand percentage in the request ignored for provider [%s]", provider)
+			req.OnDemandPct = 100
+		}
 		nps, err := e.RecommendNodePools(attr, filteredVms, values, req)
 		if err != nil {
 			return nil, fmt.Errorf("error while recommending node pools for attr: [%s], cause: [%s]", attr, err.Error())
@@ -535,10 +541,13 @@ func (e *Engine) RecommendNodePools(attr string, vms []VirtualMachine, values []
 
 	nps = append(nps, onDemandPool)
 
-	// retain only the nodes that are available as spot instances
-	vms = e.filterSpots(vms)
-	if len(vms) == 0 {
-		return nil, errors.New("no vms suitable for spot pools")
+	// if spot price pools requested
+	if req.OnDemandPct < 100 {
+		// retain only the nodes that are available as spot instances
+		vms = e.filterSpots(vms)
+		if len(vms) == 0 {
+			return nil, errors.New("no vms suitable for spot pools")
+		}
 	}
 
 	// vms are sorted by attribute value

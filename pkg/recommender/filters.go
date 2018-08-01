@@ -69,6 +69,7 @@ func (e *Engine) includesFilter(vm VirtualMachine, req ClusterRecommendationReq)
 
 // filterSpots selects vm-s that potentially can be part of "spot" node pools
 func (e *Engine) filterSpots(vms []VirtualMachine) []VirtualMachine {
+	log.Debugf("selecting spot instances for recommending spot pools")
 	fvms := make([]VirtualMachine, 0)
 	for _, vm := range vms {
 		if vm.AvgPrice != 0 {
