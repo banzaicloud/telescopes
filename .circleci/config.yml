@@ -10,6 +10,29 @@ jobs:
     working_directory: /go/src/github.com/banzaicloud/telescopes
     steps:
       - checkout
+
+      - restore_cache:
+          name: Restore license cache
+          keys:
+          - licensei-v1-{{ .Branch }}-{{ checksum "Gopkg.lock" }}
+          - licensei-v1-{{ .Branch }}
+          - licensei-v1-master
+          - licensei-v1
+
+      - run:
+          name: Download license information for dependencies
+          command: make license-cache
+
+      - save_cache:
+          name: Save license cache
+          key: licensei-v1-{{ .Branch }}-{{ checksum "Gopkg.lock" }}
+          paths:
+          - .licensei.cache
+
+      - run:
+          name: Check dependency licenses
+          command: make license-check
+      
       - run:
           name: Build
           command:
