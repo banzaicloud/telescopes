@@ -22,6 +22,20 @@ all: clean deps fmt vet docker push
 clean:
 	go clean -i ./...
 
+LICENSEI_VERSION = 0.0.6
+bin/licensei: ## Install license checker
+	@mkdir -p ./bin/
+	curl -sfL https://raw.githubusercontent.com/goph/licensei/master/install.sh | bash -s v${LICENSEI_VERSION}
+
+.PHONY: license-check
+license-check: bin/licensei ## Run license check
+	@bin/licensei check
+
+.PHONY: license-cache
+license-cache: bin/licensei ## Generate license cache
+	@bin/licensei cache
+
+
 deps-swagger:
 ifeq ($(shell which swagger),)
 	go get -u github.com/go-swagger/go-swagger/cmd/swagger
