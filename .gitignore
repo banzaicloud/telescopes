@@ -8,3 +8,4 @@ conf/config.toml
 *.swp
 test.txt
 test-results
+/.licensei.cache
