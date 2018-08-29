@@ -12,6 +12,32 @@ jobs:
       - checkout
 
       - restore_cache:
+          name: Restore build dependencies
+          keys:
+          - build-deps-v1-{{ .Branch }}-{{ checksum "Makefile" }}
+          - build-deps-v1-{{ .Branch }}
+          - build-deps-v1-master
+          - build-deps-v1
+
+      - restore_cache:
+          name: Restore dependencies
+          keys:
+          - gopkg-v1-{{ .Branch }}-{{ checksum "Gopkg.lock" }}
+          - gopkg-v1-{{ .Branch }}
+          - gopkg-v1-master
+          - gopkg-v1
+
+      - run:
+          name: Install dependencies
+          command: make vendor
+
+      - save_cache:
+          name: Save dependencies
+          key: gopkg-v1-{{ .Branch }}-{{ checksum "Gopkg.lock" }}
+          paths:
+          - vendor/
+
+      - restore_cache:
           name: Restore license cache
           keys:
           - licensei-v1-{{ .Branch }}-{{ checksum "Gopkg.lock" }}
@@ -32,47 +58,47 @@ jobs:
       - run:
           name: Check dependency licenses
           command: make license-check
-      
+
       - run:
           name: Build
-          command:
-              make build
+          command: make build
+
       - run:
           name: Run go vet
-          command:
-              make vet
+          command: make vet
+
       - run:
           name: Run fmt
-          command:
-              make check-fmt
+          command: make check-fmt
+
       - run:
           name: Run golint
-          command:
-              make lint
+          command: make lint
+
       - run:
           name: Run misspell
-          command:
-              make check-misspell
+          command: make check-misspell
+
       - run:
           name: Run ineffassign
-          command:
-              make ineffassign
+          command: make ineffassign
+
       - run:
           name: Run gocyclo
-          command:
-              make gocyclo
+          command: make gocyclo
+
       - run:
           name: Run tests
-          command:
-              make test
+          command: make test
+
       - run:
           name: Generate test reports
-          command:
-              make go-junit-report
+          command: make go-junit-report
           when: always
 
       - store_test_results:
           path: test-results/
+
       - store_artifacts:
           path: test-results/
 
