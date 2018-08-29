@@ -608,7 +608,7 @@ func (req *ClusterRecommendationReq) maxValuePerVm(attr string) float64 {
 	case Memory:
 		return req.SumMem / float64(req.MinNodes)
 	default:
-		log.Error("unsupported attribute: [%s]", attr)
+		log.Errorf("unsupported attribute: [%s]", attr)
 		return 0
 	}
 }
@@ -621,7 +621,7 @@ func (req *ClusterRecommendationReq) minValuePerVm(attr string) float64 {
 	case Memory:
 		return req.SumMem / float64(req.MaxNodes)
 	default:
-		log.Error("unsupported attribute: [%s]", attr)
+		log.Errorf("unsupported attribute: [%s]", attr)
 		return 0
 	}
 }
@@ -634,7 +634,7 @@ func (req *ClusterRecommendationReq) sum(attr string) float64 {
 	case Memory:
 		return req.SumMem
 	default:
-		log.Error("unsupported attribute: [%s]", attr)
+		log.Errorf("unsupported attribute: [%s]", attr)
 		return 0
 	}
 }
