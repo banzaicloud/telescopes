@@ -22,6 +22,15 @@ all: clean deps fmt vet docker push
 clean:
 	go clean -i ./...
 
+DEP_VERSION = 0.5.0
+bin/dep:
+	@mkdir -p ./bin/
+	@curl https://raw.githubusercontent.com/golang/dep/master/install.sh | INSTALL_DIRECTORY=./bin DEP_RELEASE_TAG=v${DEP_VERSION} sh
+
+.PHONY: vendor
+vendor: bin/dep ## Install dependencies
+	bin/dep ensure -vendor-only
+
 LICENSEI_VERSION = 0.0.7
 bin/licensei: ## Install license checker
 	@mkdir -p ./bin/

@@ -9,3 +9,4 @@ conf/config.toml
 test.txt
 test-results
 /.licensei.cache
+/vendor/
