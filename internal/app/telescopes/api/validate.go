@@ -81,8 +81,8 @@ func providerValidator(pc *client.Productinfo) validator.Func {
 			logrus.WithError(err).Errorf("failed to get providers")
 			return false
 		}
-		for _, p := range cProviders.Payload {
-			if p == field.String() {
+		for _, p := range cProviders.Payload.Providers {
+			if p.Provider == field.String() {
 				return true
 			}
 		}
