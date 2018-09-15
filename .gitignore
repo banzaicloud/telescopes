@@ -1,7 +1,6 @@
 .idea*
 .DS_Store
 bin/*
-.idea/
 /telescopes
 /productinfo
 conf/config.toml
@@ -10,3 +9,13 @@ test.txt
 test-results
 /.licensei.cache
 /vendor/
+
+# IDE integration
+/.idea/*
+!/.idea/copyright/
+!/.idea/*.iml
+!/.idea/externalDependencies.xml
+!/.idea/go.imports.xml
+!/.idea/modules.xml
+!/.idea/runConfigurations/
+!/.idea/scopes/
