@@ -43,7 +43,7 @@ func (piCli *ProductInfoClient) GetAttributeValues(provider string, region strin
 
 // GetRegion describes the region (eventually returns the zones in the region)
 func (piCli *ProductInfoClient) GetRegion(provider string, region string) ([]string, error) {
-	grp := regions.NewGetRegionParams().WithProvider(provider).WithRegion(region)
+	grp := regions.NewGetRegionParams().WithProvider(provider).WithService("compute").WithRegion(region)
 	r, err := piCli.Regions.GetRegion(grp)
 	if err != nil {
 		return nil, err
