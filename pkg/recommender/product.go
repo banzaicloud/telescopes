@@ -47,8 +47,8 @@ func NewProductInfoClient(pic *client.Productinfo) *ProductInfoClient {
 
 // GetAttributeValues retrieves available attribute values on the provider in the region for the attribute
 func (piCli *ProductInfoClient) GetAttributeValues(provider string, region string, attr string) ([]float64, error) {
-	attrParams := attributes.NewGetAttributeValuesParams().WithProvider(provider).WithRegion(region).WithAttribute(attr)
-	allValues, err := piCli.Attributes.GetAttributeValues(attrParams)
+	attrParams := attributes.NewGetAttrValuesParams().WithProvider(provider).WithRegion(region).WithAttribute(attr).WithService("compute")
+	allValues, err := piCli.Attributes.GetAttrValues(attrParams)
 	if err != nil {
 		return nil, err
 	}
@@ -57,7 +57,7 @@ func (piCli *ProductInfoClient) GetAttributeValues(provider string, region strin
 
 // GetRegion describes the region (eventually returns the zones in the region)
 func (piCli *ProductInfoClient) GetRegion(provider string, region string) ([]string, error) {
-	grp := regions.NewGetRegionParams().WithProvider(provider).WithRegion(region)
+	grp := regions.NewGetRegionParams().WithProvider(provider).WithService("compute").WithRegion(region)
 	r, err := piCli.Regions.GetRegion(grp)
 	if err != nil {
 		return nil, err
@@ -67,8 +67,8 @@ func (piCli *ProductInfoClient) GetRegion(provider string, region string) ([]str
 
 // GetProductDetails gets the available product details from the provider in the region
 func (piCli *ProductInfoClient) GetProductDetails(provider string, region string) ([]*models.ProductDetails, error) {
-	gpdp := products.NewGetProductDetailsParams().WithRegion(region).WithProvider(provider)
-	allProducts, err := piCli.Products.GetProductDetails(gpdp)
+	gpdp := products.NewGetProductsParams().WithRegion(region).WithProvider(provider).WithService("compute")
+	allProducts, err := piCli.Products.GetProducts(gpdp)
 	if err != nil {
 		return nil, err
 	}
