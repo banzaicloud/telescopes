@@ -15,6 +15,8 @@
 package api
 
 import (
+	"context"
+	"github.com/banzaicloud/productinfo/pkg/logger"
 	"net/http"
 	"os"
 
@@ -23,7 +25,6 @@ import (
 	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
 	"github.com/gin-gonic/gin/binding"
-	log "github.com/sirupsen/logrus"
 	"gopkg.in/go-playground/validator.v8"
 )
 
@@ -61,8 +62,9 @@ func getCorsConfig() cors.Config {
 }
 
 // ConfigureRoutes configures the gin engine, defines the rest API for this application
-func (r *RouteHandler) ConfigureRoutes(router *gin.Engine) {
-	log.Info("configuring routes")
+func (r *RouteHandler) ConfigureRoutes(ctx context.Context, router *gin.Engine) {
+	ctxLog := logger.Extract(ctx)
+	ctxLog.Info("configuring routes")
 
 	v := binding.Validator.Engine().(*validator.Validate)
 

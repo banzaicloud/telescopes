@@ -27,6 +27,8 @@
 package main
 
 import (
+	"context"
+	"github.com/banzaicloud/productinfo/pkg/logger"
 	"net/url"
 	"os"
 	"strings"
@@ -152,6 +154,10 @@ func switchFlagsToAliases() {
 
 func main() {
 
+	// application context, intended to hold extra information
+	appCtx := logger.ToContext(context.Background(), logger.NewLogCtxBuilder().WithField("application", "telescope").Build())
+	ctxLog := logger.Extract(appCtx)
+
 	if viper.GetBool(helpFlag) {
 		flag.Usage()
 		return
@@ -164,11 +170,11 @@ func main() {
 	pc := client.New(transport, strfmt.Default)
 
 	engine, err := recommender.NewEngine(recommender.NewProductInfoClient(pc))
-	quitOnError("failed to start telescopes", err)
+	quitOnError(appCtx, "failed to start telescopes", err)
 
 	// configure the gin validator
 	err = api.ConfigureValidator(pc)
-	quitOnError("failed to start telescopes", err)
+	quitOnError(appCtx, "failed to start telescopes", err)
 
 	routeHandler := api.NewRouteHandler(engine)
 
@@ -177,7 +183,7 @@ func main() {
 
 	// enable authentication if not dev-mode
 	if !viper.GetBool(devModeFlag) {
-		log.Debug("enable authentication")
+		ctxLog.Debug("enable authentication")
 		signingKey := viper.GetString(tokenSigningKeyAlias)
 		appRole := viper.GetString(cfgAppRole)
 
@@ -191,9 +197,9 @@ func main() {
 		p.Use(router)
 	}
 
-	log.Info("Initialized gin router")
-	routeHandler.ConfigureRoutes(router)
-	log.Info("Configured routes")
+	ctxLog.Info("Initialized gin router")
+	routeHandler.ConfigureRoutes(appCtx, router)
+	ctxLog.Info("Configured routes")
 
 	router.Run(viper.GetString(listenAddressFlag))
 }
@@ -207,9 +213,9 @@ func parseProductInfoAddress() *url.URL {
 	return u
 }
 
-func quitOnError(msg string, err error) {
+func quitOnError(ctx context.Context, msg string, err error) {
 	if err != nil {
-		log.Errorf("%s : %s", msg, err.Error())
+		logger.Extract(ctx).WithField("cause", msg).WithError(err)
 		flag.Usage()
 		os.Exit(-1)
 	}
