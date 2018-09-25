@@ -98,10 +98,3 @@ func (r *RouteHandler) EnableAuth(router *gin.Engine, role string, sgnKey string
 func (r *RouteHandler) signalStatus(c *gin.Context) {
 	c.JSON(http.StatusOK, "ok")
 }
-
-// RequestWrapper internal struct for passing provider/zone info to the validator
-type RequestWrapper struct {
-	recommender.ClusterRecommendationReq
-	Provider string
-	Region   string
-}

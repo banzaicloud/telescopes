@@ -14,6 +14,8 @@
 
 package api
 
+import "github.com/banzaicloud/telescopes/pkg/recommender"
+
 // GetRecommendationParams is a placeholder for the recommendation route's path parameters
 // swagger:parameters recommendClusterSetup
 type GetRecommendationParams struct {
@@ -25,4 +27,9 @@ type GetRecommendationParams struct {
 
 	// in:path
 	Region string `binding:"region" json:"region"`
+}
+
+// RecommendationResponse encapsulates the recommendation response
+type RecommendationResponse struct {
+	recommender.ClusterRecommendationResp
 }

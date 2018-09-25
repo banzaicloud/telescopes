@@ -16,6 +16,7 @@ package api
 
 import (
 	"fmt"
+	"github.com/banzaicloud/telescopes/pkg/recommender"
 	"github.com/gin-gonic/gin"
 	"github.com/mitchellh/mapstructure"
 	"github.com/sirupsen/logrus"
@@ -52,7 +53,7 @@ func (r *RouteHandler) recommendClusterSetup(c *gin.Context) {
 	}
 
 	// request decorated with provider and region - used to validate the request
-	req := RequestWrapper{Provider: pathParams.Provider, Region: pathParams.Region}
+	req := recommender.ClusterRecommendationReq{}
 
 	if err := c.BindJSON(&req); err != nil {
 		logrus.Errorf("failed to bind request body: %s", err.Error())
@@ -64,8 +65,7 @@ func (r *RouteHandler) recommendClusterSetup(c *gin.Context) {
 		return
 	}
 
-	// todo duplicated params in signature / embedded in the req
-	if response, err := r.engine.RecommendCluster(pathParams.Provider, pathParams.Region, req.ClusterRecommendationReq); err != nil {
+	if response, err := r.engine.RecommendCluster(pathParams.Provider, pathParams.Region, req); err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"status": http.StatusInternalServerError, "message": fmt.Sprintf("%s", err)})
 	} else {
 		c.JSON(http.StatusOK, *response)
