@@ -25,13 +25,13 @@ import (
 // ProductInfoSource declares operations for retrieving information required for the recommender engine
 type ProductInfoSource interface {
 	// GetAttributeValues retrieves attribute values based on the given arguments
-	GetAttributeValues(provider string, region string, attr string) ([]float64, error)
+	GetAttributeValues(provider string, service string, region string, attr string) ([]float64, error)
 
 	// GetRegion describes the given region fof the given provider
-	GetRegion(provider string, region string) ([]string, error)
+	GetRegion(provider string, service string, region string) ([]string, error)
 
 	// GetProductDetails retrieves the product details for the provider and region
-	GetProductDetails(provider string, region string) ([]*models.ProductDetails, error)
+	GetProductDetails(provider string, service string, region string) ([]*models.ProductDetails, error)
 }
 
 // ProductInfoClient application struct to retrieve data for the recommender; wraps the generated product info client
@@ -46,8 +46,8 @@ func NewProductInfoClient(pic *client.Productinfo) *ProductInfoClient {
 }
 
 // GetAttributeValues retrieves available attribute values on the provider in the region for the attribute
-func (piCli *ProductInfoClient) GetAttributeValues(provider string, region string, attr string) ([]float64, error) {
-	attrParams := attributes.NewGetAttrValuesParams().WithProvider(provider).WithRegion(region).WithAttribute(attr).WithService("compute")
+func (piCli *ProductInfoClient) GetAttributeValues(provider string, service string, region string, attr string) ([]float64, error) {
+	attrParams := attributes.NewGetAttrValuesParams().WithProvider(provider).WithRegion(region).WithAttribute(attr).WithService(service)
 	allValues, err := piCli.Attributes.GetAttrValues(attrParams)
 	if err != nil {
 		return nil, err
@@ -56,8 +56,8 @@ func (piCli *ProductInfoClient) GetAttributeValues(provider string, region strin
 }
 
 // GetRegion describes the region (eventually returns the zones in the region)
-func (piCli *ProductInfoClient) GetRegion(provider string, region string) ([]string, error) {
-	grp := regions.NewGetRegionParams().WithProvider(provider).WithService("compute").WithRegion(region)
+func (piCli *ProductInfoClient) GetRegion(provider string, service string, region string) ([]string, error) {
+	grp := regions.NewGetRegionParams().WithProvider(provider).WithService(service).WithRegion(region)
 	r, err := piCli.Regions.GetRegion(grp)
 	if err != nil {
 		return nil, err
@@ -66,8 +66,8 @@ func (piCli *ProductInfoClient) GetRegion(provider string, region string) ([]str
 }
 
 // GetProductDetails gets the available product details from the provider in the region
-func (piCli *ProductInfoClient) GetProductDetails(provider string, region string) ([]*models.ProductDetails, error) {
-	gpdp := products.NewGetProductsParams().WithRegion(region).WithProvider(provider).WithService("compute")
+func (piCli *ProductInfoClient) GetProductDetails(provider string, service string, region string) ([]*models.ProductDetails, error) {
+	gpdp := products.NewGetProductsParams().WithRegion(region).WithProvider(provider).WithService(service)
 	allProducts, err := piCli.Products.GetProducts(gpdp)
 	if err != nil {
 		return nil, err

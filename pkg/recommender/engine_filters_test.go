@@ -15,6 +15,7 @@
 package recommender
 
 import (
+	"context"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -455,7 +456,7 @@ func TestEngine_findCheapestNodePoolSet(t *testing.T) {
 	}
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
-			test.check(test.engine.findCheapestNodePoolSet(test.nodePools))
+			test.check(test.engine.findCheapestNodePoolSet(context.TODO(), test.nodePools))
 		})
 	}
 }
@@ -538,7 +539,7 @@ func TestEngine_ntwPerformanceFilter(t *testing.T) {
 		{
 			name:   "vm passes the network performance filter - no filter in req",
 			engine: Engine{},
-			req:    ClusterRecommendationReq{ // filter is missing
+			req: ClusterRecommendationReq{ // filter is missing
 			},
 			vm: VirtualMachine{
 				NetworkPerf: NTW_LOW,
@@ -571,7 +572,7 @@ func TestEngine_CurrGenFilter(t *testing.T) {
 		{
 			name:   "filter should apply when AllowOlderGen IS NIL in the request and vm IS of current generation",
 			engine: Engine{},
-			req:    ClusterRecommendationReq{ // AllowOlderGen is nil;
+			req: ClusterRecommendationReq{ // AllowOlderGen is nil;
 			},
 			vm: VirtualMachine{
 				Type:       "instance type",
@@ -584,7 +585,7 @@ func TestEngine_CurrGenFilter(t *testing.T) {
 		{
 			name:   "filter should not apply when AllowOlderGen IS NIL in the request and vm IS NOT of current generation",
 			engine: Engine{},
-			req:    ClusterRecommendationReq{ // AllowOlderGen is nil;
+			req: ClusterRecommendationReq{ // AllowOlderGen is nil;
 			},
 			vm: VirtualMachine{
 				Type:       "instance type",

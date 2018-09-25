@@ -99,6 +99,7 @@ func (r *RouteHandler) signalStatus(c *gin.Context) {
 	c.JSON(http.StatusOK, "ok")
 }
 
+// GetBaseCtx gets the base context to be used for derived contexts
 func (r *RouteHandler) GetBaseCtx() context.Context {
 	return r.baseCtx
 }

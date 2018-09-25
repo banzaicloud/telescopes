@@ -38,16 +38,16 @@ const (
 // ClusterRecommender defines operations for cluster recommendations
 type ClusterRecommender interface {
 	// RecommendAttrValues recommends attributes based on the input
-	RecommendAttrValues(ctx context.Context, provider string, attr string, req ClusterRecommendationReq) ([]float64, error)
+	RecommendAttrValues(ctx context.Context, provider string, service string, attr string, req ClusterRecommendationReq) ([]float64, error)
 
 	// RecommendVms recommends a set of virtual machines based on the provided parameters
-	RecommendVms(ctx context.Context, provider string, region string, attr string, values []float64, filters []vmFilter, req ClusterRecommendationReq) ([]VirtualMachine, error)
+	RecommendVms(ctx context.Context, provider string, service string, region string, attr string, values []float64, filters []vmFilter, req ClusterRecommendationReq) ([]VirtualMachine, error)
 
 	// RecommendNodePools recommends a slice of node pools to be part of the cluster being recommended
 	RecommendNodePools(ctx context.Context, attr string, vms []VirtualMachine, values []float64, req ClusterRecommendationReq) ([]NodePool, error)
 
 	// RecommendCluster recommends a cluster layout on the given cloud provider, region and wanted resources
-	RecommendCluster(ctx context.Context, provider string, region string, req ClusterRecommendationReq) (*ClusterRecommendationResp, error)
+	RecommendCluster(ctx context.Context, provider string, service string, region string, req ClusterRecommendationReq) (*ClusterRecommendationResp, error)
 }
 
 // Engine represents the recommendation engine, it operates on a map of provider -> VmRegistry
@@ -196,7 +196,7 @@ func (a ByAvgPricePerMemory) Less(i, j int) bool {
 }
 
 // RecommendCluster performs recommendation based on the provided arguments
-func (e *Engine) RecommendCluster(ctx context.Context, provider string, region string, req ClusterRecommendationReq) (*ClusterRecommendationResp, error) {
+func (e *Engine) RecommendCluster(ctx context.Context, provider string, service string, region string, req ClusterRecommendationReq) (*ClusterRecommendationResp, error) {
 	log := logger.Extract(ctx)
 
 	log.Infof("recommending cluster configuration. Provider: [%s], region: [%s], recommendation request: [%#v]",
@@ -207,7 +207,7 @@ func (e *Engine) RecommendCluster(ctx context.Context, provider string, region s
 
 	for _, attr := range attributes {
 
-		values, err := e.RecommendAttrValues(ctx, provider, region, attr, req)
+		values, err := e.RecommendAttrValues(ctx, provider, service, region, attr, req)
 		if err != nil {
 			return nil, fmt.Errorf("could not get values for attr: [%s], cause: [%s]", attr, err.Error())
 		}
@@ -215,7 +215,7 @@ func (e *Engine) RecommendCluster(ctx context.Context, provider string, region s
 
 		vmFilters, _ := e.filtersForAttr(attr, provider)
 
-		filteredVms, err := e.RecommendVms(ctx, provider, region, attr, values, vmFilters, req)
+		filteredVms, err := e.RecommendVms(ctx, provider, service, region, attr, values, vmFilters, req)
 		if err != nil {
 			return nil, fmt.Errorf("could not get virtual machines for attr: [%s], cause: [%s]", attr, err.Error())
 		}
@@ -362,11 +362,11 @@ func findN(avg int) int {
 }
 
 // RecommendVms selects a slice of VirtualMachines for the given attribute and requirements in the request
-func (e *Engine) RecommendVms(ctx context.Context, provider string, region string, attr string, values []float64, filters []vmFilter, req ClusterRecommendationReq) ([]VirtualMachine, error) {
+func (e *Engine) RecommendVms(ctx context.Context, provider string, service string, region string, attr string, values []float64, filters []vmFilter, req ClusterRecommendationReq) ([]VirtualMachine, error) {
 	log := logger.Extract(ctx)
 	log.Infof("recommending virtual machines for attribute: [%s]", attr)
 
-	vmsInRange, err := e.findVmsWithAttrValues(ctx, provider, region, req.Zones, attr, values)
+	vmsInRange, err := e.findVmsWithAttrValues(ctx, provider, service, region, req.Zones, attr, values)
 	if err != nil {
 		return nil, err
 	}
@@ -385,7 +385,7 @@ func (e *Engine) RecommendVms(ctx context.Context, provider string, region strin
 	return filteredVms, nil
 }
 
-func (e *Engine) findVmsWithAttrValues(ctx context.Context, provider string, region string, zones []string, attr string, values []float64) ([]VirtualMachine, error) {
+func (e *Engine) findVmsWithAttrValues(ctx context.Context, provider string, service string, region string, zones []string, attr string, values []float64) ([]VirtualMachine, error) {
 	log := logger.Extract(ctx)
 	log.Infof("looking for instance types and on demand prices with value %v, attribute %s", values, attr)
 	var (
@@ -393,7 +393,7 @@ func (e *Engine) findVmsWithAttrValues(ctx context.Context, provider string, reg
 	)
 
 	if zones == nil || len(zones) == 0 {
-		if z, err := e.piSource.GetRegion(provider, region); err == nil {
+		if z, err := e.piSource.GetRegion(provider, service, region); err == nil {
 			zones = z
 		} else {
 			log.WithError(err).Debugf("couldn't describe region: %s, provider: %s", region, provider)
@@ -401,7 +401,7 @@ func (e *Engine) findVmsWithAttrValues(ctx context.Context, provider string, reg
 		}
 	}
 
-	allProducts, err := e.piSource.GetProductDetails(provider, region)
+	allProducts, err := e.piSource.GetProductDetails(provider, service, region)
 	if err != nil {
 		log.WithError(err).Debugf("couldn't get product details. region: %s, provider: %s", region, provider)
 		return nil, err
@@ -475,9 +475,9 @@ func (e *Engine) filtersApply(vm VirtualMachine, filters []vmFilter, req Cluster
 }
 
 // RecommendAttrValues selects the attribute values allowed to participate in the recommendation process
-func (e *Engine) RecommendAttrValues(ctx context.Context, provider string, region string, attr string, req ClusterRecommendationReq) ([]float64, error) {
+func (e *Engine) RecommendAttrValues(ctx context.Context, provider string, service string, region string, attr string, req ClusterRecommendationReq) ([]float64, error) {
 
-	allValues, err := e.piSource.GetAttributeValues(provider, region, attr)
+	allValues, err := e.piSource.GetAttributeValues(provider, service, region, attr)
 	if err != nil {
 		return nil, err
 	}
@@ -493,8 +493,8 @@ func (e *Engine) RecommendAttrValues(ctx context.Context, provider string, regio
 // filtersForAttr returns the slice for
 func (e *Engine) filtersForAttr(attr string, provider string) ([]vmFilter, error) {
 	var
-	// generic filters - not depending on providers and attributes
-	filters []vmFilter = []vmFilter{e.includesFilter, e.excludesFilter}
+		// generic filters - not depending on providers and attributes
+		filters []vmFilter = []vmFilter{e.includesFilter, e.excludesFilter}
 
 	// provider specific filters
 	switch provider {

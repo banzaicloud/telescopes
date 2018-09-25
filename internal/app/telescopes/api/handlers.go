@@ -72,7 +72,7 @@ func (r *RouteHandler) recommendClusterSetup(c *gin.Context) {
 		WithRegion(pathParams.Region).
 		Build())
 
-	if response, err := r.engine.RecommendCluster(recCtx, pathParams.Provider, pathParams.Region, req); err != nil {
+	if response, err := r.engine.RecommendCluster(recCtx, pathParams.Provider, pathParams.Service, pathParams.Region, req); err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"status": http.StatusInternalServerError, "message": fmt.Sprintf("%s", err)})
 	} else {
 		c.JSON(http.StatusOK, *response)
