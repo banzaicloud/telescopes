@@ -18,7 +18,11 @@ package api
 // swagger:parameters recommendClusterSetup
 type GetRecommendationParams struct {
 	// in:path
-	Provider string `json:"provider"`
+	Provider string `binding:"provider" json:"provider"`
+
 	// in:path
-	Region string `json:"region"`
+	Service string `binding:"service" json:"service"`
+
+	// in:path
+	Region string `binding:"region" json:"region"`
 }

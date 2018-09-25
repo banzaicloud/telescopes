@@ -16,6 +16,8 @@ package api
 
 import (
 	"fmt"
+	"github.com/banzaicloud/productinfo/pkg/productinfo-client/client/service"
+	"github.com/mitchellh/mapstructure"
 	"net/http"
 	"reflect"
 
@@ -39,6 +41,7 @@ const (
 func ConfigureValidator(pc *client.Productinfo) error {
 	v := binding.Validator.Engine().(*validator.Validate)
 	v.RegisterValidation("provider", providerValidator(pc))
+	v.RegisterValidation("service", serviceValidator(pc))
 	v.RegisterValidation("region", regionValidator(pc))
 	v.RegisterValidation("zone", zoneValidator(pc))
 	v.RegisterValidation("network", networkPerfValidator())
@@ -65,23 +68,25 @@ func ValidatePathParam(name string, validate *validator.Validate, tags ...string
 	}
 }
 
-// ValidateRegionData middleware function to validate region information in the request path
-func ValidateRegionData(validate *validator.Validate) gin.HandlerFunc {
-	const (
-		providerParam = "provider"
-		regionParam   = "region"
-	)
+// ValidatePathData middleware function to validate region information in the request path
+func ValidatePathData(validate *validator.Validate) gin.HandlerFunc {
 	return func(c *gin.Context) {
-		regionData := newRegionData(c.Param(providerParam), c.Param(regionParam))
-		logrus.Debugf("region data being validated: %s", regionData)
-		err := validate.Struct(regionData)
+
+		// extract the path parameter data into the param struct
+		pathData := &GetRecommendationParams{}
+		mapstructure.Decode(getPathParamMap(c), pathData)
+
+		logrus.Debugf("region data being validated: %s", pathData)
+
+		// invoke validation on the param struct
+		err := validate.Struct(pathData)
 		if err != nil {
 			logrus.Errorf("validation failed. err: %s", err.Error())
 			c.Abort()
 			c.JSON(http.StatusBadRequest, gin.H{
 				"code":    "bad_params",
-				"message": fmt.Sprintf("invalid region in path: %s", regionData),
-				"params":  regionData,
+				"message": fmt.Sprintf("invalid path data: %s", pathData),
+				"params":  pathData,
 			})
 			return
 		}
@@ -104,32 +109,15 @@ func providerValidator(pc *client.Productinfo) validator.Func {
 	}
 }
 
-// regionData struct encapsulating data for region validation in the request path
-type regionData struct {
-	// Provider the cloud provider from the request path
-	Provider string `binding:"required"`
-	// Region the region in the request path
-	Region string `binding:"region"`
-}
-
-// String representation of the path data
-func (rd *regionData) String() string {
-	return fmt.Sprintf("Provider: %s, Region: %s", rd.Provider, rd.Region)
-}
-
-// newRegionData constructs a new
-func newRegionData(provider string, region string) regionData {
-	return regionData{Provider: provider, Region: region}
-}
-
 // validationFn validation logic for the region data to be registered with the validator
 func regionValidator(pc *client.Productinfo) validator.Func {
 
 	return func(v *validator.Validate, topStruct reflect.Value, currentStruct reflect.Value, field reflect.Value, fieldtype reflect.Type, fieldKind reflect.Kind, param string) bool {
-		currentProvider := currentStruct.FieldByName("Provider").String()
-		currentRegion := currentStruct.FieldByName("Region").String()
+		currentProvider := digValueForName(currentStruct, "Provider")
+		currentService := digValueForName(currentStruct, "Service")
+		currentRegion := digValueForName(currentStruct, "Region")
 
-		response, err := pc.Regions.GetRegions(regions.NewGetRegionsParams().WithProvider(currentProvider))
+		response, err := pc.Regions.GetRegions(regions.NewGetRegionsParams().WithProvider(currentProvider).WithService(currentService))
 		if err != nil {
 			logrus.WithError(err).Errorf("could not get regions for provider: %s", currentProvider)
 			return false
@@ -174,4 +162,35 @@ func networkPerfValidator() validator.Func {
 		}
 		return false
 	}
+}
+
+// serviceValidator validates the `service` path parameter
+func serviceValidator(pc *client.Productinfo) validator.Func {
+
+	return func(v *validator.Validate, topStruct reflect.Value, currentStruct reflect.Value, field reflect.Value, fieldtype reflect.Type, fieldKind reflect.Kind, param string) bool {
+
+		currentProvider := digValueForName(currentStruct, "Provider")
+		currentService := digValueForName(currentStruct, "Service")
+
+		svcOk, err := pc.Service.GetService(service.NewGetServiceParams().WithProvider(currentProvider).WithService(currentService))
+
+		logrus.Debugf("svcOK: %s", svcOk)
+
+		if err != nil {
+			return false
+		}
+
+		return true
+	}
+}
+
+func digValueForName(value reflect.Value, field string) string {
+	var ret string
+	switch value.Kind() {
+	case reflect.Struct:
+		ret = value.FieldByName(field).String()
+	case reflect.Ptr:
+		ret = value.Elem().FieldByName(field).String()
+	}
+	return ret
 }

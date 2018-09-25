@@ -61,7 +61,7 @@
     "pkg/productinfo-client/models",
   ]
   pruneopts = "NUT"
-  revision = "d4bc13517f218af73f7bcfb5c664dd6ede167dca"
+  revision = "a1e83990bfd1febbb4176faadaa1dd4cedfca28a"
 
 [[projects]]
   branch = "master"
@@ -804,12 +804,14 @@
     "github.com/banzaicloud/productinfo/pkg/productinfo-client/client/products",
     "github.com/banzaicloud/productinfo/pkg/productinfo-client/client/providers",
     "github.com/banzaicloud/productinfo/pkg/productinfo-client/client/regions",
+    "github.com/banzaicloud/productinfo/pkg/productinfo-client/client/service",
     "github.com/banzaicloud/productinfo/pkg/productinfo-client/models",
     "github.com/gin-contrib/cors",
     "github.com/gin-gonic/gin",
     "github.com/gin-gonic/gin/binding",
     "github.com/go-openapi/runtime/client",
     "github.com/go-openapi/strfmt",
+    "github.com/mitchellh/mapstructure",
     "github.com/sirupsen/logrus",
     "github.com/spf13/pflag",
     "github.com/spf13/viper",

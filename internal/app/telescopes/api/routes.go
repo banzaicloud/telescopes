@@ -15,7 +15,6 @@
 package api
 
 import (
-	"fmt"
 	"net/http"
 	"os"
 
@@ -29,6 +28,8 @@ import (
 )
 
 const (
+	// environment variable name to override base path if necessary
+	appBasePath   = "TELESCOPES_BASEPATH"
 	providerParam = "provider"
 	regionParam   = "region"
 )
@@ -66,7 +67,8 @@ func (r *RouteHandler) ConfigureRoutes(router *gin.Engine) {
 	v := binding.Validator.Engine().(*validator.Validate)
 
 	basePath := "/"
-	if basePathFromEnv := os.Getenv("TELESCOPES_BASEPATH"); basePathFromEnv != "" {
+
+	if basePathFromEnv := os.Getenv(appBasePath); basePathFromEnv != "" {
 		basePath = basePathFromEnv
 	}
 
@@ -78,11 +80,11 @@ func (r *RouteHandler) ConfigureRoutes(router *gin.Engine) {
 	}
 
 	v1 := base.Group("/api/v1")
-	v1.Use(ValidatePathParam(providerParam, v, "provider"))
-	v1.Use(ValidateRegionData(v))
+	v1.Use(ValidatePathData(v))
+
 	recGroup := v1.Group("/recommender")
 	{
-		recGroup.POST("/:provider/:region/cluster/", r.recommendClusterSetup)
+		recGroup.POST("/:provider/:service/:region/cluster", r.recommendClusterSetup)
 	}
 }
 
@@ -93,47 +95,6 @@ func (r *RouteHandler) EnableAuth(router *gin.Engine, role string, sgnKey string
 
 func (r *RouteHandler) signalStatus(c *gin.Context) {
 	c.JSON(http.StatusOK, "ok")
-}
-
-// swagger:route POST /recommender/:provider/:region/cluster recommend recommendClusterSetup
-//
-// Provides a recommended set of node pools on a given provider in a specific region.
-//
-//     Consumes:
-//     - application/json
-//
-//     Produces:
-//     - application/json
-//
-//     Schemes: http
-//
-//     Security:
-//
-//     Responses:
-//       200: RecommendationResponse
-func (r *RouteHandler) recommendClusterSetup(c *gin.Context) {
-	log.Info("recommend cluster setup")
-	provider := c.Param(providerParam)
-	region := c.Param(regionParam)
-
-	// request decorated with provider and region
-	req := RequestWrapper{Provider: provider, Region: region}
-
-	if err := c.BindJSON(&req); err != nil {
-		log.Errorf("failed to bind request body: %s", err.Error())
-		c.JSON(http.StatusBadRequest, gin.H{
-			"code":    "bad_params",
-			"message": "validation failed",
-			"cause":   err.Error(),
-		})
-		return
-	}
-
-	if response, err := r.engine.RecommendCluster(provider, region, req.ClusterRecommendationReq); err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"status": http.StatusInternalServerError, "message": fmt.Sprintf("%s", err)})
-	} else {
-		c.JSON(http.StatusOK, *response)
-	}
 }
 
 // RequestWrapper internal struct for passing provider/zone info to the validator
