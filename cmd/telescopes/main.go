@@ -120,7 +120,7 @@ func init() {
 // ensureCfg ensures that the application configuration is available
 // currently this only refers to configuration as environment variable
 // to be extended for app critical entries (flags, config files ...)
-func ensureCfg() {
+func ensureCfg(ctx context.Context) {
 
 	for _, envVar := range cfgEnvVars {
 		// bind the env var
@@ -129,7 +129,7 @@ func ensureCfg() {
 		// read the env var value
 		if nil == viper.Get(envVar) {
 			flag.Usage()
-			log.Fatalf("application is missing configuration: %s", envVar)
+			logger.Extract(ctx).Fatal("application is missing configuration:", envVar)
 		}
 	}
 
@@ -163,9 +163,9 @@ func main() {
 		return
 	}
 
-	ensureCfg()
+	ensureCfg(appCtx)
 
-	piUrl := parseProductInfoAddress()
+	piUrl := parseProductInfoAddress(appCtx)
 	transport := httptransport.New(piUrl.Host, piUrl.Path, []string{piUrl.Scheme})
 	pc := client.New(transport, strfmt.Default)
 
@@ -197,18 +197,17 @@ func main() {
 		p.Use(router)
 	}
 
-	ctxLog.Info("Initialized gin router")
 	routeHandler.ConfigureRoutes(appCtx, router)
-	ctxLog.Info("Configured routes")
+	ctxLog.Info("configured routes")
 
 	router.Run(viper.GetString(listenAddressFlag))
 }
 
-func parseProductInfoAddress() *url.URL {
+func parseProductInfoAddress(ctx context.Context) *url.URL {
 	productInfoAddress := viper.GetString(productInfoFlag)
 	u, err := url.ParseRequestURI(productInfoAddress)
 	if err != nil {
-		log.Fatalf("%s is not a valid URI", productInfoFlag)
+		logger.Extract(ctx).Fatal("invalid URI: ", productInfoFlag)
 	}
 	return u
 }

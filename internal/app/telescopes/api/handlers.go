@@ -15,7 +15,9 @@
 package api
 
 import (
+	"context"
 	"fmt"
+	"github.com/banzaicloud/productinfo/pkg/logger"
 	"github.com/banzaicloud/telescopes/pkg/recommender"
 	"github.com/gin-gonic/gin"
 	"github.com/mitchellh/mapstructure"
@@ -39,8 +41,9 @@ import (
 //
 //     Responses:
 //       200: RecommendationResponse
-func (r *RouteHandler) recommendClusterSetup(c *gin.Context) {
-	logrus.Info("recommend cluster setup")
+func (r *RouteHandler) recommendClusterSetup(ctx context.Context, c *gin.Context) {
+	log := logger.Extract(ctx)
+	log.Info("recommend cluster setup")
 
 	pathParams := GetRecommendationParams{}
 	err := mapstructure.Decode(getPathParamMap(c), &pathParams)
