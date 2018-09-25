@@ -15,11 +15,12 @@
 package recommender
 
 import (
+	"context"
 	"fmt"
 	"math"
 	"sort"
 
-	"github.com/sirupsen/logrus"
+	"github.com/banzaicloud/productinfo/pkg/logger"
 )
 
 // AttributeValueSelector interface comprises attribute selection algorythm entrypoints
@@ -38,8 +39,9 @@ func (av AttributeValues) sort() {
 
 // SelectAttributeValues selects values between the min and max values considering the focus strategy
 // When the interval between min and max is "out of range" with respect to this slice the lowest or highest values are returned
-func (av AttributeValues) SelectAttributeValues(min float64, max float64) ([]float64, error) {
-	logrus.Debugf("selecting attributes from %f, min [%f], max [%f]", av, min, max)
+func (av AttributeValues) SelectAttributeValues(ctx context.Context, min float64, max float64) ([]float64, error) {
+	ctxLog := logger.Extract(ctx)
+	ctxLog.Debugf("selecting attributes from %f, min [%f], max [%f]", av, min, max)
 	if len(av) == 0 {
 		return nil, fmt.Errorf("empty attribute values")
 	}
@@ -53,7 +55,7 @@ func (av AttributeValues) SelectAttributeValues(min float64, max float64) ([]flo
 	)
 	// sort the slice in increasing order
 	av.sort()
-	logrus.Debugf("sorted attributes: [%f]", av)
+	ctxLog.Debugf("sorted attributes: [%f]", av)
 
 	for i, v := range av {
 		if v < max {
@@ -70,12 +72,12 @@ func (av AttributeValues) SelectAttributeValues(min float64, max float64) ([]flo
 			}
 		}
 		if min <= v && v <= max {
-			logrus.Debugf("found value between min[%f]-max[%f]: [%f], index: [%d]", min, max, v, i)
+			ctxLog.Debugf("found value between min[%f]-max[%f]: [%f], index: [%d]", min, max, v, i)
 			selectedValues = append(selectedValues, v)
 		}
 	}
 
-	logrus.Debugf("lower-closest index: [%d], higher-closest index: [%d]", lIdx, rIdx)
+	ctxLog.Debugf("lower-closest index: [%d], higher-closest index: [%d]", lIdx, rIdx)
 	if len(selectedValues) == 0 {
 		// there are no values between the two limits
 		if rIdx == -1 {

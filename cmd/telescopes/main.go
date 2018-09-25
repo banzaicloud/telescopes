@@ -48,6 +48,7 @@ const (
 	// the list of flags supported by the application
 	// these constants can be used to retrieve the passed in values or defaults via viper
 	logLevelFlag         = "log-level"
+	logFormatFlag        = "log-format"
 	listenAddressFlag    = "listen-address"
 	productInfoFlag      = "productinfo-address"
 	devModeFlag          = "dev-mode"
@@ -72,6 +73,7 @@ var (
 // defineFlags defines supported flags and makes them available for viper
 func defineFlags() {
 	flag.String(logLevelFlag, "info", "log level")
+	flag.String(logFormatFlag, "", "log format")
 	flag.String(listenAddressFlag, ":9090", "the address where the server listens to HTTP requests.")
 	flag.String(productInfoFlag, "http://localhost:9090/api/v1", "the address of the Product Info service to retrieve attribute and pricing info [format=scheme://host:port/basepath]")
 	flag.Bool(devModeFlag, false, "development mode, if true token based authentication is disabled, false by default")
@@ -90,7 +92,7 @@ func bindFlags() {
 
 // setLogLevel sets the log level
 func setLogLevel() {
-	logger.InitLogger(viper.GetString("log-level"), "")
+	logger.InitLogger(viper.GetString(logLevelFlag), viper.GetString(logFormatFlag))
 }
 func init() {
 
@@ -166,7 +168,7 @@ func main() {
 	quitOnError(appCtx, "failed to start telescopes", err)
 
 	// configure the gin validator
-	err = api.ConfigureValidator(pc)
+	err = api.ConfigureValidator(appCtx, pc)
 	quitOnError(appCtx, "failed to start telescopes", err)
 
 	routeHandler := api.NewRouteHandler(appCtx, engine)
@@ -185,7 +187,7 @@ func main() {
 
 	// add prometheus metric endpoint
 	if viper.GetBool(metricsEnabledFlag) {
-		p := ginprometheus.NewPrometheus("gin", []string{"provider", "region"})
+		p := ginprometheus.NewPrometheus("gin", []string{"provider", "service", "region"})
 		p.SetListenAddress(viper.GetString(metricsAddressFlag))
 		p.Use(router)
 	}

@@ -30,7 +30,10 @@ Usage of ./telescopes:
       --dev-mode                     development mode, if true token based authentication is disabled, false by default
       --help                         print usage
       --listen-address string        the address where the server listens to HTTP requests. (default ":9090")
+      --log-format string            log format
       --log-level string             log level (default "info")
+      --metrics-address string       the address where internal metrics are exposed (default ":9900")
+      --metrics-enabled              internal metrics are exposed if enabled
       --productinfo-address string   the address of the Product Info service to retrieve attribute and pricing info [format=scheme://host:port/basepath] (default "http://localhost:9090/api/v1")
       --token-signing-key string     The token signing key for the authentication process
       --vault-address string         The vault address for authentication token management
@@ -49,7 +52,7 @@ For more information on how to set up `Banzai Cloud Pipeline` instance for using
 *For a complete OpenAPI 3.0 documentation, check out this [URL](https://editor.swagger.io/?url=https://raw.githubusercontent.com/banzaicloud/telescopes/master/api/openapi-spec/recommender.yaml).*
 
 
-#### `POST: api/v1/recommender/:provider/:region/cluster`
+#### `POST: api/v1/recommender/:provider/:service/:region/cluster`
 
 This endpoint returns a recommended cluster layout on a specific provider in a specific region, that contains on-demand and spot priced node pools.
 
@@ -84,12 +87,12 @@ This endpoint returns a recommended cluster layout on a specific provider in a s
 **`cURL` example**
 
 ```
-curl -sX -H 'Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ8.eyJhdWQiOiJodHRwczovL3BpcGVsaW5lLmJhbnphaWNsb3VkLmNvbSIsImp0aSI6IjUxMWE1ODQyLWYxMmUtNDk1NC04YTg2LTVjNmUyOWRmZTg5YiIsImlhdCI6MTUyODE5MTM0MSwiaXNzIjoiaHR0cHM6Ly9iYW56YWljbG91ZC5jb20vIiwic3ViIjoiMSIsInNjb3BlIjoiYXBpOmludm9rZSIsInR5cGUiOiJ1c2VyIiwidGV4dCI6ImxwdXNrYXMifQ.azhx0MbuLp7vQ1XmwPYrOqFG5vWZVh-hkzmHig8nnvs' \POST -d '{"sumCpu": 100, "sumMem":200, "sumGpu":0, "minNodes":10, "maxNodes":30, "sameSize":true, "onDemandPct":30, "zones":[]}' "localhost:9092/api/v1/recommender/ec2/eu-west-1/cluster" | jq .
+curl -sX -H 'Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ8.eyJhdWQiOiJodHRwczovL3BpcGVsaW5lLmJhbnphaWNsb3VkLmNvbSIsImp0aSI6IjUxMWE1ODQyLWYxMmUtNDk1NC04YTg2LTVjNmUyOWRmZTg5YiIsImlhdCI6MTUyODE5MTM0MSwiaXNzIjoiaHR0cHM6Ly9iYW56YWljbG91ZC5jb20vIiwic3ViIjoiMSIsInNjb3BlIjoiYXBpOmludm9rZSIsInR5cGUiOiJ1c2VyIiwidGV4dCI6ImxwdXNrYXMifQ.azhx0MbuLp7vQ1XmwPYrOqFG5vWZVh-hkzmHig8nnvs' \POST -d '{"sumCpu": 100, "sumMem":200, "sumGpu":0, "minNodes":10, "maxNodes":30, "sameSize":true, "onDemandPct":30, "zones":[]}' "localhost:9090/api/v1/recommender/amazon/compute/eu-central-1/cluster" | jq .
 ```
 **Sample response:**
 ```
 {
-  "Provider": "aws",
+  "Provider": "amazon",
   "zones": [
       "eu-west-1a",
       "eu-west-1b",

@@ -82,7 +82,7 @@ func (r *RouteHandler) ConfigureRoutes(ctx context.Context, router *gin.Engine) 
 	}
 
 	v1 := base.Group("/api/v1")
-	v1.Use(ValidatePathData(v))
+	v1.Use(ValidatePathData(ctx, v))
 
 	recGroup := v1.Group("/recommender")
 	{

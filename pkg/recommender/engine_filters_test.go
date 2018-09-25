@@ -91,9 +91,9 @@ func TestEngine_filtersApply(t *testing.T) {
 	}
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
-			filters, err := test.engine.filtersForAttr(test.attr, test.provider)
+			filters, err := test.engine.filtersForAttr(context.TODO(), test.attr, test.provider)
 			assert.Nil(t, err, "should get filters for attribute")
-			test.check(test.engine.filtersApply(test.vm, filters, test.req))
+			test.check(test.engine.filtersApply(context.TODO(), test.vm, filters, test.req))
 		})
 	}
 }
@@ -135,7 +135,7 @@ func TestEngine_minCpuRatioFilter(t *testing.T) {
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
 
-			test.check(test.engine.minCpuRatioFilter(test.vm, test.req))
+			test.check(test.engine.minCpuRatioFilter(context.TODO(), test.vm, test.req))
 
 		})
 	}
@@ -178,7 +178,7 @@ func TestEngine_minMemRatioFilter(t *testing.T) {
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
 
-			test.check(test.engine.minMemRatioFilter(test.vm, test.req))
+			test.check(test.engine.minMemRatioFilter(context.TODO(), test.vm, test.req))
 
 		})
 	}
@@ -233,7 +233,7 @@ func TestEngine_burstFilter(t *testing.T) {
 	}
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
-			test.check(test.engine.burstFilter(test.vm, test.req))
+			test.check(test.engine.burstFilter(context.TODO(), test.vm, test.req))
 		})
 	}
 }
@@ -299,7 +299,7 @@ func TestEngine_ExcludesFilter(t *testing.T) {
 	}
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
-			test.check(test.engine.excludesFilter(test.vm, test.req))
+			test.check(test.engine.excludesFilter(context.TODO(), test.vm, test.req))
 		})
 	}
 }
@@ -365,7 +365,7 @@ func TestEngine_IncludesFilter(t *testing.T) {
 	}
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
-			test.check(test.engine.includesFilter(test.vm, test.req))
+			test.check(test.engine.includesFilter(context.TODO(), test.vm, test.req))
 		})
 	}
 }
@@ -490,7 +490,7 @@ func TestEngine_filterSpots(t *testing.T) {
 	}
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
-			test.check(test.engine.filterSpots(test.vms))
+			test.check(test.engine.filterSpots(context.TODO(), test.vms))
 		})
 	}
 }
@@ -552,7 +552,7 @@ func TestEngine_ntwPerformanceFilter(t *testing.T) {
 	}
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
-			test.check(test.engine.ntwPerformanceFilter(test.vm, test.req))
+			test.check(test.engine.ntwPerformanceFilter(context.TODO(), test.vm, test.req))
 		})
 	}
 }
@@ -654,7 +654,7 @@ func TestEngine_CurrGenFilter(t *testing.T) {
 	}
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
-			test.check(test.engine.currentGenFilter(test.vm, test.req))
+			test.check(test.engine.currentGenFilter(context.TODO(), test.vm, test.req))
 		})
 	}
 }

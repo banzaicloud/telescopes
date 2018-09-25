@@ -279,7 +279,7 @@ func TestEngine_RecommendVms(t *testing.T) {
 	}{
 		{
 			name: "could not describe region",
-			filters: []vmFilter{func(vm VirtualMachine, req ClusterRecommendationReq) bool {
+			filters: []vmFilter{func(ctx context.Context, vm VirtualMachine, req ClusterRecommendationReq) bool {
 				return true
 			}},
 			pi:     &dummyProductInfoSource{DescribeRegionError},
@@ -291,7 +291,7 @@ func TestEngine_RecommendVms(t *testing.T) {
 		},
 		{
 			name: "could not get product details",
-			filters: []vmFilter{func(vm VirtualMachine, req ClusterRecommendationReq) bool {
+			filters: []vmFilter{func(ctx context.Context, vm VirtualMachine, req ClusterRecommendationReq) bool {
 				return true
 			}},
 			pi:     &dummyProductInfoSource{ProductDetailsError},
@@ -303,7 +303,7 @@ func TestEngine_RecommendVms(t *testing.T) {
 		},
 		{
 			name: "recommend three vm-s",
-			filters: []vmFilter{func(vm VirtualMachine, req ClusterRecommendationReq) bool {
+			filters: []vmFilter{func(ctx context.Context, vm VirtualMachine, req ClusterRecommendationReq) bool {
 				return true
 			}},
 			pi:        &dummyProductInfoSource{},
@@ -586,7 +586,7 @@ func TestEngine_RecommendCluster(t *testing.T) {
 			engine, err := NewEngine(test.pi)
 			assert.Nil(t, err, "the engine couldn't be created")
 
-			test.check(engine.RecommendCluster(context.TODO(), "dummy", "d=ummyService", "dummyRegion", test.request))
+			test.check(engine.RecommendCluster(context.TODO(), "dummy", "dummyService", "dummyRegion", test.request))
 		})
 	}
 }

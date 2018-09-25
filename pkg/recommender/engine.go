@@ -213,7 +213,7 @@ func (e *Engine) RecommendCluster(ctx context.Context, provider string, service 
 		}
 		log.Debugf("recommended values for [%s]: count:[%d] , values: [%#v./te]", attr, len(values), values)
 
-		vmFilters, _ := e.filtersForAttr(attr, provider)
+		vmFilters, _ := e.filtersForAttr(ctx, attr, provider)
 
 		filteredVms, err := e.RecommendVms(ctx, provider, service, region, attr, values, vmFilters, req)
 		if err != nil {
@@ -373,7 +373,7 @@ func (e *Engine) RecommendVms(ctx context.Context, provider string, service stri
 
 	var filteredVms []VirtualMachine
 	for _, vm := range vmsInRange {
-		if e.filtersApply(vm, filters, req) {
+		if e.filtersApply(ctx, vm, filters, req) {
 			filteredVms = append(filteredVms, vm)
 		}
 	}
@@ -462,10 +462,10 @@ func avg(prices []*models.ZonePrice, recZones []string) float64 {
 }
 
 // filtersApply returns true if all the filters apply for the given vm
-func (e *Engine) filtersApply(vm VirtualMachine, filters []vmFilter, req ClusterRecommendationReq) bool {
+func (e *Engine) filtersApply(ctx context.Context, vm VirtualMachine, filters []vmFilter, req ClusterRecommendationReq) bool {
 
 	for _, filter := range filters {
-		if !filter(vm, req) {
+		if !filter(ctx, vm, req) {
 			// one of the filters doesn't apply - quit the iteration
 			return false
 		}
@@ -482,7 +482,7 @@ func (e *Engine) RecommendAttrValues(ctx context.Context, provider string, servi
 		return nil, err
 	}
 
-	values, err := AttributeValues(allValues).SelectAttributeValues(req.minValuePerVm(ctx, attr), req.maxValuePerVm(ctx, attr))
+	values, err := AttributeValues(allValues).SelectAttributeValues(ctx, req.minValuePerVm(ctx, attr), req.maxValuePerVm(ctx, attr))
 	if err != nil {
 		return nil, err
 	}
@@ -491,16 +491,16 @@ func (e *Engine) RecommendAttrValues(ctx context.Context, provider string, servi
 }
 
 // filtersForAttr returns the slice for
-func (e *Engine) filtersForAttr(attr string, provider string) ([]vmFilter, error) {
+func (e *Engine) filtersForAttr(ctx context.Context, attr string, provider string) ([]vmFilter, error) {
 	var
 	// generic filters - not depending on providers and attributes
-	filters []vmFilter = []vmFilter{e.includesFilter, e.excludesFilter}
+	filters = []vmFilter{e.includesFilter, e.excludesFilter}
 
 	// provider specific filters
 	switch provider {
-	case "ec2":
+	case "amazon":
 		filters = append(filters, e.currentGenFilter, e.burstFilter, e.ntwPerformanceFilter)
-	case "gce":
+	case "google":
 		filters = append(filters, e.ntwPerformanceFilter)
 	}
 
@@ -563,7 +563,7 @@ func (e *Engine) RecommendNodePools(ctx context.Context, attr string, vms []Virt
 	// if spot price pools requested
 	if req.OnDemandPct < 100 {
 		// retain only the nodes that are available as spot instances
-		vms = e.filterSpots(vms)
+		vms = e.filterSpots(ctx, vms)
 		if len(vms) == 0 {
 			return nil, errors.New("no vms suitable for spot pools")
 		}

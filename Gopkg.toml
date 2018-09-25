@@ -8,10 +8,6 @@
   branch = "master"
 
 [[constraint]]
-  name = "github.com/sirupsen/logrus"
-  version = "1.0.4"
-
-[[constraint]]
   name = "github.com/banzaicloud/productinfo"
   branch = "master"
 
