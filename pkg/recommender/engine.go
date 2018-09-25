@@ -493,8 +493,8 @@ func (e *Engine) RecommendAttrValues(ctx context.Context, provider string, servi
 // filtersForAttr returns the slice for
 func (e *Engine) filtersForAttr(attr string, provider string) ([]vmFilter, error) {
 	var
-		// generic filters - not depending on providers and attributes
-		filters []vmFilter = []vmFilter{e.includesFilter, e.excludesFilter}
+	// generic filters - not depending on providers and attributes
+	filters []vmFilter = []vmFilter{e.includesFilter, e.excludesFilter}
 
 	// provider specific filters
 	switch provider {

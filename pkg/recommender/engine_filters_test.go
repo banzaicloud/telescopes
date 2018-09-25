@@ -539,7 +539,7 @@ func TestEngine_ntwPerformanceFilter(t *testing.T) {
 		{
 			name:   "vm passes the network performance filter - no filter in req",
 			engine: Engine{},
-			req: ClusterRecommendationReq{ // filter is missing
+			req:    ClusterRecommendationReq{ // filter is missing
 			},
 			vm: VirtualMachine{
 				NetworkPerf: NTW_LOW,
@@ -572,7 +572,7 @@ func TestEngine_CurrGenFilter(t *testing.T) {
 		{
 			name:   "filter should apply when AllowOlderGen IS NIL in the request and vm IS of current generation",
 			engine: Engine{},
-			req: ClusterRecommendationReq{ // AllowOlderGen is nil;
+			req:    ClusterRecommendationReq{ // AllowOlderGen is nil;
 			},
 			vm: VirtualMachine{
 				Type:       "instance type",
@@ -585,7 +585,7 @@ func TestEngine_CurrGenFilter(t *testing.T) {
 		{
 			name:   "filter should not apply when AllowOlderGen IS NIL in the request and vm IS NOT of current generation",
 			engine: Engine{},
-			req: ClusterRecommendationReq{ // AllowOlderGen is nil;
+			req:    ClusterRecommendationReq{ // AllowOlderGen is nil;
 			},
 			vm: VirtualMachine{
 				Type:       "instance type",
