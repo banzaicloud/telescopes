@@ -15,13 +15,14 @@
 package recommender
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"math"
 	"sort"
 
+	"github.com/banzaicloud/productinfo/pkg/logger"
 	"github.com/banzaicloud/productinfo/pkg/productinfo-client/models"
-	log "github.com/sirupsen/logrus"
 )
 
 const (
@@ -37,16 +38,16 @@ const (
 // ClusterRecommender defines operations for cluster recommendations
 type ClusterRecommender interface {
 	// RecommendAttrValues recommends attributes based on the input
-	RecommendAttrValues(provider string, attr string, req ClusterRecommendationReq) ([]float64, error)
+	RecommendAttrValues(ctx context.Context, provider string, attr string, req ClusterRecommendationReq) ([]float64, error)
 
 	// RecommendVms recommends a set of virtual machines based on the provided parameters
-	RecommendVms(provider string, region string, attr string, values []float64, filters []vmFilter, req ClusterRecommendationReq) ([]VirtualMachine, error)
+	RecommendVms(ctx context.Context, provider string, region string, attr string, values []float64, filters []vmFilter, req ClusterRecommendationReq) ([]VirtualMachine, error)
 
 	// RecommendNodePools recommends a slice of node pools to be part of the cluster being recommended
-	RecommendNodePools(attr string, vms []VirtualMachine, values []float64, req ClusterRecommendationReq) ([]NodePool, error)
+	RecommendNodePools(ctx context.Context, attr string, vms []VirtualMachine, values []float64, req ClusterRecommendationReq) ([]NodePool, error)
 
 	// RecommendCluster recommends a cluster layout on the given cloud provider, region and wanted resources
-	RecommendCluster(provider string, region string, req ClusterRecommendationReq) (*ClusterRecommendationResp, error)
+	RecommendCluster(ctx context.Context, provider string, region string, req ClusterRecommendationReq) (*ClusterRecommendationResp, error)
 }
 
 // Engine represents the recommendation engine, it operates on a map of provider -> VmRegistry
@@ -195,7 +196,8 @@ func (a ByAvgPricePerMemory) Less(i, j int) bool {
 }
 
 // RecommendCluster performs recommendation based on the provided arguments
-func (e *Engine) RecommendCluster(provider string, region string, req ClusterRecommendationReq) (*ClusterRecommendationResp, error) {
+func (e *Engine) RecommendCluster(ctx context.Context, provider string, region string, req ClusterRecommendationReq) (*ClusterRecommendationResp, error) {
+	log := logger.Extract(ctx)
 
 	log.Infof("recommending cluster configuration. Provider: [%s], region: [%s], recommendation request: [%#v]",
 		provider, region, req)
@@ -205,7 +207,7 @@ func (e *Engine) RecommendCluster(provider string, region string, req ClusterRec
 
 	for _, attr := range attributes {
 
-		values, err := e.RecommendAttrValues(provider, region, attr, req)
+		values, err := e.RecommendAttrValues(ctx, provider, region, attr, req)
 		if err != nil {
 			return nil, fmt.Errorf("could not get values for attr: [%s], cause: [%s]", attr, err.Error())
 		}
@@ -213,7 +215,7 @@ func (e *Engine) RecommendCluster(provider string, region string, req ClusterRec
 
 		vmFilters, _ := e.filtersForAttr(attr, provider)
 
-		filteredVms, err := e.RecommendVms(provider, region, attr, values, vmFilters, req)
+		filteredVms, err := e.RecommendVms(ctx, provider, region, attr, values, vmFilters, req)
 		if err != nil {
 			return nil, fmt.Errorf("could not get virtual machines for attr: [%s], cause: [%s]", attr, err.Error())
 		}
@@ -227,10 +229,10 @@ func (e *Engine) RecommendCluster(provider string, region string, req ClusterRec
 		//todo add request validation for interdependent request fields, eg: onDemandPct is always 100 when spot
 		// instances are not available for provider
 		if provider == "oracle" {
-			log.Warnf("onDemand percentage in the request ignored for provider [%s]", provider)
+			log.Warn("onDemand percentage in the request ignored for provider ", provider)
 			req.OnDemandPct = 100
 		}
-		nps, err := e.RecommendNodePools(attr, filteredVms, values, req)
+		nps, err := e.RecommendNodePools(ctx, attr, filteredVms, values, req)
 		if err != nil {
 			return nil, fmt.Errorf("error while recommending node pools for attr: [%s], cause: [%s]", attr, err.Error())
 		}
@@ -244,7 +246,7 @@ func (e *Engine) RecommendCluster(provider string, region string, req ClusterRec
 		return nil, errors.New("could not recommend cluster with the requested resources")
 	}
 
-	cheapestNodePoolSet := e.findCheapestNodePoolSet(nodePools)
+	cheapestNodePoolSet := e.findCheapestNodePoolSet(ctx, nodePools)
 
 	accuracy := req.findResponseSum(provider, region, cheapestNodePoolSet)
 
@@ -293,7 +295,8 @@ func (req *ClusterRecommendationReq) findResponseSum(provider string, region str
 }
 
 // findCheapestNodePoolSet looks up the "cheapest" node pool set from the provided map
-func (e *Engine) findCheapestNodePoolSet(nodePoolSets map[string][]NodePool) []NodePool {
+func (e *Engine) findCheapestNodePoolSet(ctx context.Context, nodePoolSets map[string][]NodePool) []NodePool {
+	log := logger.Extract(ctx)
 	log.Info("finding  cheapest pool set...")
 	var cheapestNpSet []NodePool
 	var bestPrice float64
@@ -359,10 +362,11 @@ func findN(avg int) int {
 }
 
 // RecommendVms selects a slice of VirtualMachines for the given attribute and requirements in the request
-func (e *Engine) RecommendVms(provider string, region string, attr string, values []float64, filters []vmFilter, req ClusterRecommendationReq) ([]VirtualMachine, error) {
+func (e *Engine) RecommendVms(ctx context.Context, provider string, region string, attr string, values []float64, filters []vmFilter, req ClusterRecommendationReq) ([]VirtualMachine, error) {
+	log := logger.Extract(ctx)
 	log.Infof("recommending virtual machines for attribute: [%s]", attr)
 
-	vmsInRange, err := e.findVmsWithAttrValues(provider, region, req.Zones, attr, values)
+	vmsInRange, err := e.findVmsWithAttrValues(ctx, provider, region, req.Zones, attr, values)
 	if err != nil {
 		return nil, err
 	}
@@ -381,8 +385,9 @@ func (e *Engine) RecommendVms(provider string, region string, attr string, value
 	return filteredVms, nil
 }
 
-func (e *Engine) findVmsWithAttrValues(provider string, region string, zones []string, attr string, values []float64) ([]VirtualMachine, error) {
-	log.Infof("Getting instance types and on demand prices with %v %s", values, attr)
+func (e *Engine) findVmsWithAttrValues(ctx context.Context, provider string, region string, zones []string, attr string, values []float64) ([]VirtualMachine, error) {
+	log := logger.Extract(ctx)
+	log.Infof("looking for instance types and on demand prices with value %v, attribute %s", values, attr)
 	var (
 		vms []VirtualMachine
 	)
@@ -391,14 +396,14 @@ func (e *Engine) findVmsWithAttrValues(provider string, region string, zones []s
 		if z, err := e.piSource.GetRegion(provider, region); err == nil {
 			zones = z
 		} else {
-			log.Errorf("couldn't describe region: %s, provider: %s", region, provider)
+			log.WithError(err).Debugf("couldn't describe region: %s, provider: %s", region, provider)
 			return nil, err
 		}
 	}
 
 	allProducts, err := e.piSource.GetProductDetails(provider, region)
 	if err != nil {
-		log.Errorf("couldn't get product details. region: %s, provider: %s", region, provider)
+		log.WithError(err).Debugf("couldn't get product details. region: %s, provider: %s", region, provider)
 		return nil, err
 	}
 
@@ -470,14 +475,14 @@ func (e *Engine) filtersApply(vm VirtualMachine, filters []vmFilter, req Cluster
 }
 
 // RecommendAttrValues selects the attribute values allowed to participate in the recommendation process
-func (e *Engine) RecommendAttrValues(provider string, region string, attr string, req ClusterRecommendationReq) ([]float64, error) {
+func (e *Engine) RecommendAttrValues(ctx context.Context, provider string, region string, attr string, req ClusterRecommendationReq) ([]float64, error) {
 
 	allValues, err := e.piSource.GetAttributeValues(provider, region, attr)
 	if err != nil {
 		return nil, err
 	}
 
-	values, err := AttributeValues(allValues).SelectAttributeValues(req.minValuePerVm(attr), req.maxValuePerVm(attr))
+	values, err := AttributeValues(allValues).SelectAttributeValues(req.minValuePerVm(ctx, attr), req.maxValuePerVm(ctx, attr))
 	if err != nil {
 		return nil, err
 	}
@@ -513,7 +518,7 @@ func (e *Engine) filtersForAttr(attr string, provider string) ([]vmFilter, error
 }
 
 // sortByAttrValue returns the slice for
-func (e *Engine) sortByAttrValue(attr string, vms []VirtualMachine) {
+func (e *Engine) sortByAttrValue(ctx context.Context, attr string, vms []VirtualMachine) {
 	// sort and cut
 	switch attr {
 	case Memory:
@@ -521,13 +526,13 @@ func (e *Engine) sortByAttrValue(attr string, vms []VirtualMachine) {
 	case Cpu:
 		sort.Sort(ByAvgPricePerCpu(vms))
 	default:
-		log.Errorf("unsupported attribute [%s], vms not sorted", attr)
+		logger.Extract(ctx).Error("unsupported attribute: ", attr)
 	}
 }
 
 // RecommendNodePools finds the slice of NodePools that may participate in the recommendation process
-func (e *Engine) RecommendNodePools(attr string, vms []VirtualMachine, values []float64, req ClusterRecommendationReq) ([]NodePool, error) {
-
+func (e *Engine) RecommendNodePools(ctx context.Context, attr string, vms []VirtualMachine, values []float64, req ClusterRecommendationReq) ([]NodePool, error) {
+	log := logger.Extract(ctx)
 	var nps []NodePool
 
 	// find cheapest onDemand instance from the list - based on price per attribute
@@ -538,10 +543,10 @@ func (e *Engine) RecommendNodePools(attr string, vms []VirtualMachine, values []
 		}
 	}
 
-	log.Debugf("requested sum for attribute [%s]: [%f]", attr, req.sum(attr))
+	log.Debugf("requested sum for attribute [%s]: [%f]", attr, req.sum(ctx, attr))
 
-	var sumOnDemandValue = req.sum(attr) * float64(req.OnDemandPct) / 100
-	var sumSpotValue = req.sum(attr) - sumOnDemandValue
+	var sumOnDemandValue = req.sum(ctx, attr) * float64(req.OnDemandPct) / 100
+	var sumSpotValue = req.sum(ctx, attr) - sumOnDemandValue
 
 	log.Debugf("on demand sum value for attr [%s]: [%f]", attr, sumOnDemandValue)
 	log.Debugf("spot sum value for attr [%s]: [%f]", attr, sumSpotValue)
@@ -565,10 +570,10 @@ func (e *Engine) RecommendNodePools(attr string, vms []VirtualMachine, values []
 	}
 
 	// vms are sorted by attribute value
-	e.sortByAttrValue(attr, vms)
+	e.sortByAttrValue(ctx, attr, vms)
 
 	// the "magic" number of machines for diversifying the types
-	N := int(math.Min(float64(findN(avgNodeCount(values, req.sum(attr)))), float64(len(vms))))
+	N := int(math.Min(float64(findN(avgNodeCount(values, req.sum(ctx, attr)))), float64(len(vms))))
 
 	// the second "magic" number for diversifying the layout
 	M := int(math.Min(math.Ceil(float64(N)*1.5), float64(len(vms))))
@@ -615,40 +620,40 @@ func (e *Engine) RecommendNodePools(attr string, vms []VirtualMachine, values []
 }
 
 // maxValuePerVm calculates the maximum value per node for the given attribute
-func (req *ClusterRecommendationReq) maxValuePerVm(attr string) float64 {
+func (req *ClusterRecommendationReq) maxValuePerVm(ctx context.Context, attr string) float64 {
 	switch attr {
 	case Cpu:
 		return req.SumCpu / float64(req.MinNodes)
 	case Memory:
 		return req.SumMem / float64(req.MinNodes)
 	default:
-		log.Errorf("unsupported attribute: [%s]", attr)
+		logger.Extract(ctx).Error("unsupported attribute: ", attr)
 		return 0
 	}
 }
 
 // minValuePerVm calculates the minimum value per node for the given attribute
-func (req *ClusterRecommendationReq) minValuePerVm(attr string) float64 {
+func (req *ClusterRecommendationReq) minValuePerVm(ctx context.Context, attr string) float64 {
 	switch attr {
 	case Cpu:
 		return req.SumCpu / float64(req.MaxNodes)
 	case Memory:
 		return req.SumMem / float64(req.MaxNodes)
 	default:
-		log.Errorf("unsupported attribute: [%s]", attr)
+		logger.Extract(ctx).Error("unsupported attribute: ", attr)
 		return 0
 	}
 }
 
 // gets the requested sum for the attribute value
-func (req *ClusterRecommendationReq) sum(attr string) float64 {
+func (req *ClusterRecommendationReq) sum(ctx context.Context, attr string) float64 {
 	switch attr {
 	case Cpu:
 		return req.SumCpu
 	case Memory:
 		return req.SumMem
 	default:
-		log.Errorf("unsupported attribute: [%s]", attr)
+		logger.Extract(ctx).Error("unsupported attribute: ", attr)
 		return 0
 	}
 }

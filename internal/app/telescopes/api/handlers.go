@@ -15,14 +15,13 @@
 package api
 
 import (
-	"context"
 	"fmt"
+	"net/http"
+
 	"github.com/banzaicloud/productinfo/pkg/logger"
 	"github.com/banzaicloud/telescopes/pkg/recommender"
 	"github.com/gin-gonic/gin"
 	"github.com/mitchellh/mapstructure"
-	"github.com/sirupsen/logrus"
-	"net/http"
 )
 
 // swagger:route POST /recommender/:provider/:region/cluster recommend recommendClusterSetup
@@ -41,8 +40,8 @@ import (
 //
 //     Responses:
 //       200: RecommendationResponse
-func (r *RouteHandler) recommendClusterSetup(ctx context.Context, c *gin.Context) {
-	log := logger.Extract(ctx)
+func (r *RouteHandler) recommendClusterSetup(c *gin.Context) {
+	log := logger.Extract(r.baseCtx)
 	log.Info("recommend cluster setup")
 
 	pathParams := GetRecommendationParams{}
@@ -59,7 +58,7 @@ func (r *RouteHandler) recommendClusterSetup(ctx context.Context, c *gin.Context
 	req := recommender.ClusterRecommendationReq{}
 
 	if err := c.BindJSON(&req); err != nil {
-		logrus.Errorf("failed to bind request body: %s", err.Error())
+		log.Error("failed to bind request body: ", err.Error())
 		c.JSON(http.StatusBadRequest, gin.H{
 			"code":    "bad_params",
 			"message": "validation failed",
@@ -67,8 +66,13 @@ func (r *RouteHandler) recommendClusterSetup(ctx context.Context, c *gin.Context
 		})
 		return
 	}
+	recCtx := logger.ToContext(r.baseCtx, logger.NewLogCtxBuilder().
+		WithProvider(pathParams.Provider).
+		WithService(pathParams.Service).
+		WithRegion(pathParams.Region).
+		Build())
 
-	if response, err := r.engine.RecommendCluster(pathParams.Provider, pathParams.Region, req); err != nil {
+	if response, err := r.engine.RecommendCluster(recCtx, pathParams.Provider, pathParams.Region, req); err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"status": http.StatusInternalServerError, "message": fmt.Sprintf("%s", err)})
 	} else {
 		c.JSON(http.StatusOK, *response)

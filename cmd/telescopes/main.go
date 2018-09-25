@@ -28,22 +28,20 @@ package main
 
 import (
 	"context"
-	"github.com/banzaicloud/productinfo/pkg/logger"
 	"net/url"
 	"os"
 	"strings"
 
-	"github.com/banzaicloud/productinfo/pkg/productinfo-client/client"
-	"github.com/go-openapi/strfmt"
-	log "github.com/sirupsen/logrus"
-	"github.com/spf13/viper"
-
 	"github.com/banzaicloud/go-gin-prometheus"
+	"github.com/banzaicloud/productinfo/pkg/logger"
+	"github.com/banzaicloud/productinfo/pkg/productinfo-client/client"
 	"github.com/banzaicloud/telescopes/internal/app/telescopes/api"
 	"github.com/banzaicloud/telescopes/pkg/recommender"
 	"github.com/gin-gonic/gin"
 	httptransport "github.com/go-openapi/runtime/client"
+	"github.com/go-openapi/strfmt"
 	flag "github.com/spf13/pflag"
+	"github.com/spf13/viper"
 )
 
 const (
@@ -92,13 +90,7 @@ func bindFlags() {
 
 // setLogLevel sets the log level
 func setLogLevel() {
-	parsedLevel, err := log.ParseLevel(viper.GetString("log-level"))
-	if err != nil {
-		log.WithError(err).Warnf("Couldn't parse log level, using default: %s", log.GetLevel())
-	} else {
-		log.SetLevel(parsedLevel)
-		log.Debugf("Set log level to %s", parsedLevel)
-	}
+	logger.InitLogger(viper.GetString("log-level"), "")
 }
 func init() {
 
@@ -134,13 +126,14 @@ func ensureCfg(ctx context.Context) {
 	}
 
 	// translating flags to aliases for supporting legacy env vars
-	switchFlagsToAliases()
+	switchFlagsToAliases(ctx)
 
 }
 
 // switchFlagsToAliases sets the environment variables required by legacy components from application flags
 // todo investigate if there's a better way for this
-func switchFlagsToAliases() {
+func switchFlagsToAliases(ctx context.Context) {
+	log := logger.Extract(ctx)
 	// vault signing token hack / need to support legacy components (vault, auth)
 	os.Setenv(strings.ToUpper(vaultAddrAlias), viper.GetString(vaultAddrFlag))
 	os.Setenv(strings.ToUpper(tokenSigningKeyAlias), viper.GetString(tokenSigningKeyFlag))
@@ -176,7 +169,7 @@ func main() {
 	err = api.ConfigureValidator(pc)
 	quitOnError(appCtx, "failed to start telescopes", err)
 
-	routeHandler := api.NewRouteHandler(engine)
+	routeHandler := api.NewRouteHandler(appCtx, engine)
 
 	// new default gin engine (recovery, logger middleware)
 	router := gin.Default()

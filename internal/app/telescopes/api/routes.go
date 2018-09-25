@@ -16,11 +16,11 @@ package api
 
 import (
 	"context"
-	"github.com/banzaicloud/productinfo/pkg/logger"
 	"net/http"
 	"os"
 
 	"github.com/banzaicloud/bank-vaults/auth"
+	"github.com/banzaicloud/productinfo/pkg/logger"
 	"github.com/banzaicloud/telescopes/pkg/recommender"
 	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
@@ -30,20 +30,20 @@ import (
 
 const (
 	// environment variable name to override base path if necessary
-	appBasePath   = "TELESCOPES_BASEPATH"
-	providerParam = "provider"
-	regionParam   = "region"
+	appBasePath = "TELESCOPES_BASEPATH"
 )
 
 // RouteHandler struct that wraps the recommender engine
 type RouteHandler struct {
-	engine *recommender.Engine
+	engine  *recommender.Engine
+	baseCtx context.Context
 }
 
 // NewRouteHandler creates a new RouteHandler and returns a reference to it
-func NewRouteHandler(e *recommender.Engine) *RouteHandler {
+func NewRouteHandler(baseCtx context.Context, e *recommender.Engine) *RouteHandler {
 	return &RouteHandler{
-		engine: e,
+		engine:  e,
+		baseCtx: baseCtx,
 	}
 }
 
@@ -97,4 +97,8 @@ func (r *RouteHandler) EnableAuth(router *gin.Engine, role string, sgnKey string
 
 func (r *RouteHandler) signalStatus(c *gin.Context) {
 	c.JSON(http.StatusOK, "ok")
+}
+
+func (r *RouteHandler) GetBaseCtx() context.Context {
+	return r.baseCtx
 }

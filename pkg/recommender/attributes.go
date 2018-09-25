@@ -16,9 +16,10 @@ package recommender
 
 import (
 	"fmt"
-	"github.com/sirupsen/logrus"
 	"math"
 	"sort"
+
+	"github.com/sirupsen/logrus"
 )
 
 // AttributeValueSelector interface comprises attribute selection algorythm entrypoints
