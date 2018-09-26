@@ -232,7 +232,7 @@ func (e *Engine) RecommendCluster(ctx context.Context, provider string, service 
 			log.Warn("onDemand percentage in the request ignored for provider ", provider)
 			req.OnDemandPct = 100
 		}
-		nps, err := e.RecommendNodePools(ctx, attr, filteredVms, values, req)
+		nps, err := e.RecommendNodePools(ctx, attr, service, filteredVms, values, req)
 		if err != nil {
 			return nil, fmt.Errorf("error while recommending node pools for attr: [%s], cause: [%s]", attr, err.Error())
 		}
@@ -531,7 +531,7 @@ func (e *Engine) sortByAttrValue(ctx context.Context, attr string, vms []Virtual
 }
 
 // RecommendNodePools finds the slice of NodePools that may participate in the recommendation process
-func (e *Engine) RecommendNodePools(ctx context.Context, attr string, vms []VirtualMachine, values []float64, req ClusterRecommendationReq) ([]NodePool, error) {
+func (e *Engine) RecommendNodePools(ctx context.Context, attr, service string, vms []VirtualMachine, values []float64, req ClusterRecommendationReq) ([]NodePool, error) {
 	log := logger.Extract(ctx)
 	var nps []NodePool
 
@@ -614,6 +614,18 @@ func (e *Engine) RecommendNodePools(ctx context.Context, attr string, vms []Virt
 			sumValueInPools += nps[nodePoolIdx].VmType.getAttrValue(attr)
 			log.Debugf("adding vm to the [%d]th node pool sum value in pools: [%f]", nodePoolIdx, sumValueInPools)
 		}
+	}
+
+	if service == "eks" {
+		EKSmaster := NodePool{
+			SumNodes: 1,
+			VmClass:  regular,
+			VmType: VirtualMachine{
+				Type:          "EKS Control Plane",
+				OnDemandPrice: 0.2,
+			},
+		}
+		nps = append(nps, EKSmaster)
 	}
 
 	return nps, nil
