@@ -37,27 +37,6 @@
         "operationId": "recommendClusterSetup",
         "parameters": [
           {
-            "type": "string",
-            "x-go-name": "Provider",
-            "name": "provider",
-            "in": "path",
-            "required": true
-          },
-          {
-            "type": "string",
-            "x-go-name": "Service",
-            "name": "service",
-            "in": "path",
-            "required": true
-          },
-          {
-            "type": "string",
-            "x-go-name": "Region",
-            "name": "region",
-            "in": "path",
-            "required": true
-          },
-          {
             "type": "number",
             "format": "double",
             "x-go-name": "SumCpu",
@@ -162,6 +141,27 @@
             "description": "AllowOlderGen allow older generations of virtual machines (applies for EC2 only)",
             "name": "allowOlderGen",
             "in": "query"
+          },
+          {
+            "type": "string",
+            "x-go-name": "Provider",
+            "name": "provider",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "x-go-name": "Service",
+            "name": "service",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "x-go-name": "Region",
+            "name": "region",
+            "in": "path",
+            "required": true
           }
         ],
         "responses": {

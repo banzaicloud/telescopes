@@ -72,6 +72,8 @@ func (r *RouteHandler) ConfigureRoutes(ctx context.Context, router *gin.Engine) 
 		basePath = basePathFromEnv
 	}
 
+	router.Use(logger.MiddlewareCorrelationId())
+	router.Use(logger.Middleware())
 	router.Use(cors.New(getCorsConfig()))
 
 	base := router.Group(basePath)

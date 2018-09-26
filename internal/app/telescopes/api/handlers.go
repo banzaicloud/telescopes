@@ -42,10 +42,8 @@ import (
 //       200: RecommendationResponse
 func (r *RouteHandler) recommendClusterSetup(ctx context.Context) gin.HandlerFunc {
 	return func(c *gin.Context) {
-		log := logger.Extract(ctx)
-		log.Info("recommend cluster setup")
-
 		pathParams := GetRecommendationParams{}
+
 		err := mapstructure.Decode(getPathParamMap(c), &pathParams)
 		if err != nil {
 			c.JSON(http.StatusBadRequest, gin.H{
@@ -55,11 +53,21 @@ func (r *RouteHandler) recommendClusterSetup(ctx context.Context) gin.HandlerFun
 			})
 		}
 
+		ctxLog := logger.ToContext(ctx, logger.NewLogCtxBuilder().
+			WithProvider(pathParams.Provider).
+			WithService(pathParams.Service).
+			WithRegion(pathParams.Region).
+			WithCorrelationId(logger.GetCorrelationId(c)).
+			Build())
+
+		log := logger.Extract(ctxLog)
+		log.Info("recommend cluster setup")
+
 		// request decorated with provider and region - used to validate the request
 		req := recommender.ClusterRecommendationReq{}
 
 		if err := c.BindJSON(&req); err != nil {
-			log.Error("failed to bind request body: ", err.Error())
+			log.WithError(err).Error("failed to bind request body")
 			c.JSON(http.StatusBadRequest, gin.H{
 				"code":    "bad_params",
 				"message": "validation failed",
@@ -67,13 +75,8 @@ func (r *RouteHandler) recommendClusterSetup(ctx context.Context) gin.HandlerFun
 			})
 			return
 		}
-		recCtx := logger.ToContext(ctx, logger.NewLogCtxBuilder().
-			WithProvider(pathParams.Provider).
-			WithService(pathParams.Service).
-			WithRegion(pathParams.Region).
-			Build())
 
-		if response, err := r.engine.RecommendCluster(recCtx, pathParams.Provider, pathParams.Service, pathParams.Region, req); err != nil {
+		if response, err := r.engine.RecommendCluster(ctxLog, pathParams.Provider, pathParams.Service, pathParams.Region, req); err != nil {
 			c.JSON(http.StatusInternalServerError, gin.H{"status": http.StatusInternalServerError, "message": fmt.Sprintf("%s", err)})
 		} else {
 			c.JSON(http.StatusOK, *response)

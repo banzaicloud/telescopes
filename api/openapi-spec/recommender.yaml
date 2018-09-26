@@ -25,24 +25,6 @@ paths:
         specific region.
       operationId: recommendClusterSetup
       parameters:
-        - x-go-name: Provider
-          name: provider
-          in: path
-          required: true
-          schema:
-            type: string
-        - x-go-name: Service
-          name: service
-          in: path
-          required: true
-          schema:
-            type: string
-        - x-go-name: Region
-          name: region
-          in: path
-          required: true
-          schema:
-            type: string
         - x-go-name: SumCpu
           description: Total number of CPUs requested for the cluster
           name: sumCpu
@@ -139,6 +121,24 @@ paths:
           in: query
           schema:
             type: boolean
+        - x-go-name: Provider
+          name: provider
+          in: path
+          required: true
+          schema:
+            type: string
+        - x-go-name: Service
+          name: service
+          in: path
+          required: true
+          schema:
+            type: string
+        - x-go-name: Region
+          name: region
+          in: path
+          required: true
+          schema:
+            type: string
       responses:
         '200':
           description: RecommendationResponse
