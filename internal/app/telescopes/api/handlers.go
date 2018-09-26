@@ -15,13 +15,13 @@
 package api
 
 import (
+	"context"
 	"fmt"
-	"net/http"
-
 	"github.com/banzaicloud/productinfo/pkg/logger"
 	"github.com/banzaicloud/telescopes/pkg/recommender"
 	"github.com/gin-gonic/gin"
 	"github.com/mitchellh/mapstructure"
+	"net/http"
 )
 
 // swagger:route POST /recommender/:provider/:region/cluster recommend recommendClusterSetup
@@ -40,42 +40,44 @@ import (
 //
 //     Responses:
 //       200: RecommendationResponse
-func (r *RouteHandler) recommendClusterSetup(c *gin.Context) {
-	log := logger.Extract(r.baseCtx)
-	log.Info("recommend cluster setup")
+func (r *RouteHandler) recommendClusterSetup(ctx context.Context) gin.HandlerFunc {
+	return func(c *gin.Context) {
+		log := logger.Extract(ctx)
+		log.Info("recommend cluster setup")
 
-	pathParams := GetRecommendationParams{}
-	err := mapstructure.Decode(getPathParamMap(c), &pathParams)
-	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{
-			"code":    "bad_params",
-			"message": "could not decode path params",
-			"cause":   err.Error(),
-		})
-	}
+		pathParams := GetRecommendationParams{}
+		err := mapstructure.Decode(getPathParamMap(c), &pathParams)
+		if err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{
+				"code":    "bad_params",
+				"message": "could not decode path params",
+				"cause":   err.Error(),
+			})
+		}
 
-	// request decorated with provider and region - used to validate the request
-	req := recommender.ClusterRecommendationReq{}
+		// request decorated with provider and region - used to validate the request
+		req := recommender.ClusterRecommendationReq{}
 
-	if err := c.BindJSON(&req); err != nil {
-		log.Error("failed to bind request body: ", err.Error())
-		c.JSON(http.StatusBadRequest, gin.H{
-			"code":    "bad_params",
-			"message": "validation failed",
-			"cause":   err.Error(),
-		})
-		return
-	}
-	recCtx := logger.ToContext(r.baseCtx, logger.NewLogCtxBuilder().
-		WithProvider(pathParams.Provider).
-		WithService(pathParams.Service).
-		WithRegion(pathParams.Region).
-		Build())
+		if err := c.BindJSON(&req); err != nil {
+			log.Error("failed to bind request body: ", err.Error())
+			c.JSON(http.StatusBadRequest, gin.H{
+				"code":    "bad_params",
+				"message": "validation failed",
+				"cause":   err.Error(),
+			})
+			return
+		}
+		recCtx := logger.ToContext(ctx, logger.NewLogCtxBuilder().
+			WithProvider(pathParams.Provider).
+			WithService(pathParams.Service).
+			WithRegion(pathParams.Region).
+			Build())
 
-	if response, err := r.engine.RecommendCluster(recCtx, pathParams.Provider, pathParams.Service, pathParams.Region, req); err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"status": http.StatusInternalServerError, "message": fmt.Sprintf("%s", err)})
-	} else {
-		c.JSON(http.StatusOK, *response)
+		if response, err := r.engine.RecommendCluster(recCtx, pathParams.Provider, pathParams.Service, pathParams.Region, req); err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"status": http.StatusInternalServerError, "message": fmt.Sprintf("%s", err)})
+		} else {
+			c.JSON(http.StatusOK, *response)
+		}
 	}
 }
 

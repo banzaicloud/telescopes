@@ -171,7 +171,7 @@ func main() {
 	err = api.ConfigureValidator(appCtx, pc)
 	quitOnError(appCtx, "failed to start telescopes", err)
 
-	routeHandler := api.NewRouteHandler(appCtx, engine)
+	routeHandler := api.NewRouteHandler(engine)
 
 	// new default gin engine (recovery, logger middleware)
 	router := gin.Default()

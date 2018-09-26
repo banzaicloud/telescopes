@@ -35,15 +35,13 @@ const (
 
 // RouteHandler struct that wraps the recommender engine
 type RouteHandler struct {
-	engine  *recommender.Engine
-	baseCtx context.Context
+	engine *recommender.Engine
 }
 
 // NewRouteHandler creates a new RouteHandler and returns a reference to it
-func NewRouteHandler(baseCtx context.Context, e *recommender.Engine) *RouteHandler {
+func NewRouteHandler(e *recommender.Engine) *RouteHandler {
 	return &RouteHandler{
-		engine:  e,
-		baseCtx: baseCtx,
+		engine: e,
 	}
 }
 
@@ -86,7 +84,7 @@ func (r *RouteHandler) ConfigureRoutes(ctx context.Context, router *gin.Engine) 
 
 	recGroup := v1.Group("/recommender")
 	{
-		recGroup.POST("/:provider/:service/:region/cluster", r.recommendClusterSetup)
+		recGroup.POST("/:provider/:service/:region/cluster", r.recommendClusterSetup(ctx))
 	}
 }
 
@@ -97,9 +95,4 @@ func (r *RouteHandler) EnableAuth(router *gin.Engine, role string, sgnKey string
 
 func (r *RouteHandler) signalStatus(c *gin.Context) {
 	c.JSON(http.StatusOK, "ok")
-}
-
-// GetBaseCtx gets the base context to be used for derived contexts
-func (r *RouteHandler) GetBaseCtx() context.Context {
-	return r.baseCtx
 }
