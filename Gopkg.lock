@@ -26,15 +26,15 @@
   version = "v9"
 
 [[projects]]
-  digest = "1:aedf8874f42f8a9cec77120486de49367674cc0e3cfdca5d3bf048c451d1d31f"
+  digest = "1:ac471a68fc3f036a2c545e3523cff0d28e083cef3ba089f9a5689c1a84e92dd9"
   name = "github.com/banzaicloud/bank-vaults"
   packages = [
     "auth",
     "vault",
   ]
   pruneopts = "NUT"
-  revision = "cf4ca7f1732e669e10bcea939c42e21b3807aa43"
-  version = "0.2.1"
+  revision = "b8d2f4f60c03d0126cf5ff670cd61ed34aab8008"
+  version = "0.2.26"
 
 [[projects]]
   branch = "master"
@@ -344,19 +344,20 @@
   revision = "ef8a98b0bbce4a65b5aa4c368430a80ddc533168"
 
 [[projects]]
-  digest = "1:8c224a58eeffeb06b457a7d4e893654fd2c6611b11de035d6d196c008488a1c3"
+  digest = "1:dbef1dda9aa352f3e62bcaa87be4e33d5e1736416aec983a7868d219249e919d"
   name = "github.com/hashicorp/vault"
   packages = [
     "api",
     "helper/compressutil",
+    "helper/consts",
     "helper/hclutil",
     "helper/jsonutil",
     "helper/parseutil",
     "helper/strutil",
   ]
   pruneopts = "NUT"
-  revision = "533003e27840d9646cb4e7d23b3a113895da1dd0"
-  version = "v0.10.3"
+  revision = "8575f8fedcf8f5a6eb2b4701cb527b99574b5286"
+  version = "v0.11.1"
 
 [[projects]]
   digest = "1:f87ded73ee4cfbe66b6ac54ae66768326b5df6bc0c165bae6c98abd33fea35cf"

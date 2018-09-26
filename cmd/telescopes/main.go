@@ -47,27 +47,19 @@ import (
 const (
 	// the list of flags supported by the application
 	// these constants can be used to retrieve the passed in values or defaults via viper
-	logLevelFlag         = "log-level"
-	logFormatFlag        = "log-format"
-	listenAddressFlag    = "listen-address"
-	productInfoFlag      = "productinfo-address"
-	devModeFlag          = "dev-mode"
-	tokenSigningKeyFlag  = "token-signing-key"
-	tokenSigningKeyAlias = "tokensigningkey"
-	vaultAddrAlias       = "vault_addr"
-	vaultAddrFlag        = "vault-address"
-	helpFlag             = "help"
-	metricsEnabledFlag   = "metrics-enabled"
-	metricsAddressFlag   = "metrics-address"
+	logLevelFlag        = "log-level"
+	logFormatFlag       = "log-format"
+	listenAddressFlag   = "listen-address"
+	productInfoFlag     = "productinfo-address"
+	devModeFlag         = "dev-mode"
+	tokenSigningKeyFlag = "tokensigningkey"
+	vaultAddrFlag       = "vault-address"
+	helpFlag            = "help"
+	metricsEnabledFlag  = "metrics-enabled"
+	metricsAddressFlag  = "metrics-address"
 
 	cfgAppRole     = "telescopes-app-role"
 	defaultAppRole = "telescopes"
-)
-
-var (
-	// env vars required by the application
-	cfgEnvVars = []string{tokenSigningKeyFlag, vaultAddrFlag}
-	//addressRegex, _ = regexp.Compile("^((http[s]?):\\/)?\\/?([^:\\/\\s]+)((\\/\\w+)*\\/)([\\w\\-\\.]+[^#?\\s]+)(.*)$")
 )
 
 // defineFlags defines supported flags and makes them available for viper
@@ -78,7 +70,7 @@ func defineFlags() {
 	flag.String(productInfoFlag, "http://localhost:9090/api/v1", "the address of the Product Info service to retrieve attribute and pricing info [format=scheme://host:port/basepath]")
 	flag.Bool(devModeFlag, false, "development mode, if true token based authentication is disabled, false by default")
 	flag.String(tokenSigningKeyFlag, "", "The token signing key for the authentication process")
-	flag.String(vaultAddrFlag, "", "The vault address for authentication token management")
+	flag.String(vaultAddrFlag, ":8200", "The vault address for authentication token management")
 	flag.Bool(helpFlag, false, "print usage")
 	flag.Bool(metricsEnabledFlag, false, "internal metrics are exposed if enabled")
 	flag.String(metricsAddressFlag, ":9900", "the address where internal metrics are exposed")
@@ -99,9 +91,14 @@ func init() {
 	// describe the flags for the application
 	defineFlags()
 
-	// all the flegs should be referenced through viper after this call
+	// all the flags should be referenced through viper after this call
 	// flags are available through the entire application via viper
 	bindFlags()
+
+	// Viper check for an environment variable
+	viper.AutomaticEnv()
+	replacer := strings.NewReplacer("-", "_")
+	viper.SetEnvKeyReplacer(replacer)
 
 	// handle log level
 	setLogLevel()
@@ -109,42 +106,6 @@ func init() {
 	// set configuration defaults
 	viper.SetDefault(cfgAppRole, defaultAppRole)
 
-}
-
-// ensureCfg ensures that the application configuration is available
-// currently this only refers to configuration as environment variable
-// to be extended for app critical entries (flags, config files ...)
-func ensureCfg(ctx context.Context) {
-
-	for _, envVar := range cfgEnvVars {
-		// bind the env var
-		viper.BindEnv(envVar)
-
-		// read the env var value
-		if nil == viper.Get(envVar) {
-			flag.Usage()
-			logger.Extract(ctx).Fatal("application is missing configuration:", envVar)
-		}
-	}
-
-	// translating flags to aliases for supporting legacy env vars
-	switchFlagsToAliases(ctx)
-
-}
-
-// switchFlagsToAliases sets the environment variables required by legacy components from application flags
-// todo investigate if there's a better way for this
-func switchFlagsToAliases(ctx context.Context) {
-	log := logger.Extract(ctx)
-	// vault signing token hack / need to support legacy components (vault, auth)
-	os.Setenv(strings.ToUpper(vaultAddrAlias), viper.GetString(vaultAddrFlag))
-	os.Setenv(strings.ToUpper(tokenSigningKeyAlias), viper.GetString(tokenSigningKeyFlag))
-	viper.BindEnv(vaultAddrAlias)
-	viper.BindEnv(tokenSigningKeyAlias)
-	log.Debugf("%s : %s", vaultAddrFlag, viper.Get(vaultAddrFlag))
-	log.Debugf("%s : %s", tokenSigningKeyFlag, viper.Get(tokenSigningKeyFlag))
-	log.Debugf("%s : %s", vaultAddrAlias, viper.Get(vaultAddrAlias))
-	log.Debugf("%s : %s", tokenSigningKeyAlias, viper.Get(tokenSigningKeyAlias))
 }
 
 func main() {
@@ -157,8 +118,6 @@ func main() {
 		flag.Usage()
 		return
 	}
-
-	ensureCfg(appCtx)
 
 	piUrl := parseProductInfoAddress(appCtx)
 	transport := httptransport.New(piUrl.Host, piUrl.Path, []string{piUrl.Scheme})
@@ -179,7 +138,7 @@ func main() {
 	// enable authentication if not dev-mode
 	if !viper.GetBool(devModeFlag) {
 		ctxLog.Debug("enable authentication")
-		signingKey := viper.GetString(tokenSigningKeyAlias)
+		signingKey := viper.GetString(tokenSigningKeyFlag)
 		appRole := viper.GetString(cfgAppRole)
 
 		routeHandler.EnableAuth(router, appRole, signingKey)
@@ -202,7 +161,7 @@ func parseProductInfoAddress(ctx context.Context) *url.URL {
 	productInfoAddress := viper.GetString(productInfoFlag)
 	u, err := url.ParseRequestURI(productInfoAddress)
 	if err != nil {
-		logger.Extract(ctx).Fatal("invalid URI: ", productInfoFlag)
+		logger.Extract(ctx).Fatal("invalid URI: ", viper.GetString(productInfoFlag))
 	}
 	return u
 }

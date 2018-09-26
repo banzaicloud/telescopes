@@ -49,7 +49,7 @@ func Test_processFlags(t *testing.T) {
 			defineFlags()
 			// mock the input
 			setupInputs(test.args, nil)
-			test.check(viper.GetString("log-level"))
+			test.check(viper.GetString(logLevelFlag))
 
 		})
 	}
@@ -121,15 +121,7 @@ func Test_configurationStringDefaults(t *testing.T) {
 			viperKey: vaultAddrFlag,
 			args:     []string{}, // no flags provided
 			check: func(val interface{}) {
-				assert.Equal(t, "", val, fmt.Sprintf("invalid default for %s", vaultAddrFlag))
-			},
-		},
-		{
-			name:     fmt.Sprintf("defaults for: %s - aliased", vaultAddrAlias),
-			viperKey: vaultAddrFlag,
-			args:     []string{"--vault-address", "localhost:8200"}, // no flags provided
-			check: func(val interface{}) {
-				assert.Equal(t, "localhost:8200", val, fmt.Sprintf("invalid default for %s", vaultAddrAlias))
+				assert.Equal(t, ":8200", val, fmt.Sprintf("invalid default for %s", vaultAddrFlag))
 			},
 		},
 	}
