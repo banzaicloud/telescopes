@@ -15,22 +15,22 @@
 package api
 
 import (
-	"fmt"
+	"context"
 	"net/http"
 	"os"
 
 	"github.com/banzaicloud/bank-vaults/auth"
+	"github.com/banzaicloud/productinfo/pkg/logger"
 	"github.com/banzaicloud/telescopes/pkg/recommender"
 	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
 	"github.com/gin-gonic/gin/binding"
-	log "github.com/sirupsen/logrus"
 	"gopkg.in/go-playground/validator.v8"
 )
 
 const (
-	providerParam = "provider"
-	regionParam   = "region"
+	// environment variable name to override base path if necessary
+	appBasePath = "TELESCOPES_BASEPATH"
 )
 
 // RouteHandler struct that wraps the recommender engine
@@ -60,16 +60,20 @@ func getCorsConfig() cors.Config {
 }
 
 // ConfigureRoutes configures the gin engine, defines the rest API for this application
-func (r *RouteHandler) ConfigureRoutes(router *gin.Engine) {
-	log.Info("configuring routes")
+func (r *RouteHandler) ConfigureRoutes(ctx context.Context, router *gin.Engine) {
+	ctxLog := logger.Extract(ctx)
+	ctxLog.Info("configuring routes")
 
 	v := binding.Validator.Engine().(*validator.Validate)
 
 	basePath := "/"
-	if basePathFromEnv := os.Getenv("TELESCOPES_BASEPATH"); basePathFromEnv != "" {
+
+	if basePathFromEnv := os.Getenv(appBasePath); basePathFromEnv != "" {
 		basePath = basePathFromEnv
 	}
 
+	router.Use(logger.MiddlewareCorrelationId())
+	router.Use(logger.Middleware())
 	router.Use(cors.New(getCorsConfig()))
 
 	base := router.Group(basePath)
@@ -78,11 +82,11 @@ func (r *RouteHandler) ConfigureRoutes(router *gin.Engine) {
 	}
 
 	v1 := base.Group("/api/v1")
-	v1.Use(ValidatePathParam(providerParam, v, "provider"))
-	v1.Use(ValidateRegionData(v))
+	v1.Use(ValidatePathData(ctx, v))
+
 	recGroup := v1.Group("/recommender")
 	{
-		recGroup.POST("/:provider/:region/cluster/", r.recommendClusterSetup)
+		recGroup.POST("/:provider/:service/:region/cluster", r.recommendClusterSetup(ctx))
 	}
 }
 
@@ -93,52 +97,4 @@ func (r *RouteHandler) EnableAuth(router *gin.Engine, role string, sgnKey string
 
 func (r *RouteHandler) signalStatus(c *gin.Context) {
 	c.JSON(http.StatusOK, "ok")
-}
-
-// swagger:route POST /recommender/:provider/:region/cluster recommend recommendClusterSetup
-//
-// Provides a recommended set of node pools on a given provider in a specific region.
-//
-//     Consumes:
-//     - application/json
-//
-//     Produces:
-//     - application/json
-//
-//     Schemes: http
-//
-//     Security:
-//
-//     Responses:
-//       200: RecommendationResponse
-func (r *RouteHandler) recommendClusterSetup(c *gin.Context) {
-	log.Info("recommend cluster setup")
-	provider := c.Param(providerParam)
-	region := c.Param(regionParam)
-
-	// request decorated with provider and region
-	req := RequestWrapper{Provider: provider, Region: region}
-
-	if err := c.BindJSON(&req); err != nil {
-		log.Errorf("failed to bind request body: %s", err.Error())
-		c.JSON(http.StatusBadRequest, gin.H{
-			"code":    "bad_params",
-			"message": "validation failed",
-			"cause":   err.Error(),
-		})
-		return
-	}
-
-	if response, err := r.engine.RecommendCluster(provider, region, req.ClusterRecommendationReq); err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"status": http.StatusInternalServerError, "message": fmt.Sprintf("%s", err)})
-	} else {
-		c.JSON(http.StatusOK, *response)
-	}
-}
-
-// RequestWrapper internal struct for passing provider/zone info to the validator
-type RequestWrapper struct {
-	recommender.ClusterRecommendationReq
-	Provider string
-	Region   string
 }

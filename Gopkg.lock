@@ -46,9 +46,10 @@
 
 [[projects]]
   branch = "master"
-  digest = "1:2ad336bb6d0ca44b7412302a6d7e8248df60ea5546fb7c935fca4bd3f5e8b4d9"
+  digest = "1:4a896185b7298c45b6822616f4e295a741268439cdce7b17f9409f85fd0bca7f"
   name = "github.com/banzaicloud/productinfo"
   packages = [
+    "pkg/logger",
     "pkg/productinfo-client/client",
     "pkg/productinfo-client/client/attributes",
     "pkg/productinfo-client/client/images",
@@ -61,7 +62,7 @@
     "pkg/productinfo-client/models",
   ]
   pruneopts = "NUT"
-  revision = "d4bc13517f218af73f7bcfb5c664dd6ede167dca"
+  revision = "a1e83990bfd1febbb4176faadaa1dd4cedfca28a"
 
 [[projects]]
   branch = "master"
@@ -553,6 +554,14 @@
   version = "v0.1"
 
 [[projects]]
+  digest = "1:6bc0652ea6e39e22ccd522458b8bdd8665bf23bdc5a20eec90056e4dc7e273ca"
+  name = "github.com/satori/go.uuid"
+  packages = ["."]
+  pruneopts = "NUT"
+  revision = "f58768cc1a7a7e77a3bd49e98cdd21419399b6a3"
+  version = "v1.2.0"
+
+[[projects]]
   digest = "1:6989062eb7ccf25cf38bf4fe3dba097ee209f896cda42cefdca3927047bef7b6"
   name = "github.com/sirupsen/logrus"
   packages = ["."]
@@ -799,18 +808,20 @@
   input-imports = [
     "github.com/banzaicloud/bank-vaults/auth",
     "github.com/banzaicloud/go-gin-prometheus",
+    "github.com/banzaicloud/productinfo/pkg/logger",
     "github.com/banzaicloud/productinfo/pkg/productinfo-client/client",
     "github.com/banzaicloud/productinfo/pkg/productinfo-client/client/attributes",
     "github.com/banzaicloud/productinfo/pkg/productinfo-client/client/products",
     "github.com/banzaicloud/productinfo/pkg/productinfo-client/client/providers",
     "github.com/banzaicloud/productinfo/pkg/productinfo-client/client/regions",
+    "github.com/banzaicloud/productinfo/pkg/productinfo-client/client/service",
     "github.com/banzaicloud/productinfo/pkg/productinfo-client/models",
     "github.com/gin-contrib/cors",
     "github.com/gin-gonic/gin",
     "github.com/gin-gonic/gin/binding",
     "github.com/go-openapi/runtime/client",
     "github.com/go-openapi/strfmt",
-    "github.com/sirupsen/logrus",
+    "github.com/mitchellh/mapstructure",
     "github.com/spf13/pflag",
     "github.com/spf13/viper",
     "github.com/stretchr/testify/assert",

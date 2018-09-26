@@ -15,7 +15,11 @@
 package api
 
 import (
+	"context"
 	"fmt"
+	"github.com/banzaicloud/productinfo/pkg/logger"
+	"github.com/banzaicloud/productinfo/pkg/productinfo-client/client/service"
+	"github.com/mitchellh/mapstructure"
 	"net/http"
 	"reflect"
 
@@ -24,7 +28,6 @@ import (
 	"github.com/banzaicloud/productinfo/pkg/productinfo-client/client/regions"
 	"github.com/gin-gonic/gin"
 	"github.com/gin-gonic/gin/binding"
-	"github.com/sirupsen/logrus"
 	"gopkg.in/go-playground/validator.v8"
 )
 
@@ -36,63 +39,47 @@ const (
 )
 
 // ConfigureValidator configures the Gin validator with custom validator functions
-func ConfigureValidator(pc *client.Productinfo) error {
+func ConfigureValidator(ctx context.Context, pc *client.Productinfo) error {
 	v := binding.Validator.Engine().(*validator.Validate)
-	v.RegisterValidation("provider", providerValidator(pc))
-	v.RegisterValidation("region", regionValidator(pc))
+	v.RegisterValidation("provider", providerValidator(ctx, pc))
+	v.RegisterValidation("service", serviceValidator(ctx, pc))
+	v.RegisterValidation("region", regionValidator(ctx, pc))
 	v.RegisterValidation("zone", zoneValidator(pc))
 	v.RegisterValidation("network", networkPerfValidator())
 	return nil
 }
 
-// ValidatePathParam is a gin middleware handler function that validates a named path parameter with specific Validate tags
-func ValidatePathParam(name string, validate *validator.Validate, tags ...string) gin.HandlerFunc {
+// ValidatePathData middleware function to validate provider, service and region information in the request path
+func ValidatePathData(ctx context.Context, validate *validator.Validate) gin.HandlerFunc {
 	return func(c *gin.Context) {
-		p := c.Param(name)
-		for _, tag := range tags {
-			err := validate.Field(p, tag)
-			if err != nil {
-				logrus.Errorf("validation failed. err: %s", err.Error())
-				c.Abort()
-				c.JSON(http.StatusBadRequest, gin.H{
-					"code":    "bad_params",
-					"message": fmt.Sprintf("invalid %s parameter", name),
-					"params":  map[string]string{name: p},
-				})
-				return
-			}
-		}
-	}
-}
+		ctxLog := logger.Extract(ctx)
 
-// ValidateRegionData middleware function to validate region information in the request path
-func ValidateRegionData(validate *validator.Validate) gin.HandlerFunc {
-	const (
-		providerParam = "provider"
-		regionParam   = "region"
-	)
-	return func(c *gin.Context) {
-		regionData := newRegionData(c.Param(providerParam), c.Param(regionParam))
-		logrus.Debugf("region data being validated: %s", regionData)
-		err := validate.Struct(regionData)
+		// extract the path parameter data into the param struct
+		pathData := &GetRecommendationParams{}
+		mapstructure.Decode(getPathParamMap(c), pathData)
+
+		ctxLog.Debugf("path data being validated: %s", pathData)
+
+		// invoke validation on the param struct
+		err := validate.Struct(pathData)
 		if err != nil {
-			logrus.Errorf("validation failed. err: %s", err.Error())
+			ctxLog.WithError(err).Error("validation failed")
 			c.Abort()
 			c.JSON(http.StatusBadRequest, gin.H{
 				"code":    "bad_params",
-				"message": fmt.Sprintf("invalid region in path: %s", regionData),
-				"params":  regionData,
+				"message": fmt.Sprintf("invalid path data: %s", pathData),
+				"params":  pathData,
 			})
 			return
 		}
 	}
 }
 
-func providerValidator(pc *client.Productinfo) validator.Func {
+func providerValidator(ctx context.Context, pc *client.Productinfo) validator.Func {
 	return func(v *validator.Validate, topStruct reflect.Value, currentStruct reflect.Value, field reflect.Value, fieldtype reflect.Type, fieldKind reflect.Kind, param string) bool {
 		cProviders, err := pc.Providers.GetProviders(providers.NewGetProvidersParams())
 		if err != nil {
-			logrus.WithError(err).Errorf("failed to get providers")
+			logger.Extract(ctx).WithError(err).Error("failed to get providers")
 			return false
 		}
 		for _, p := range cProviders.Payload.Providers {
@@ -104,38 +91,27 @@ func providerValidator(pc *client.Productinfo) validator.Func {
 	}
 }
 
-// regionData struct encapsulating data for region validation in the request path
-type regionData struct {
-	// Provider the cloud provider from the request path
-	Provider string `binding:"required"`
-	// Region the region in the request path
-	Region string `binding:"region"`
-}
-
-// String representation of the path data
-func (rd *regionData) String() string {
-	return fmt.Sprintf("Provider: %s, Region: %s", rd.Provider, rd.Region)
-}
-
-// newRegionData constructs a new
-func newRegionData(provider string, region string) regionData {
-	return regionData{Provider: provider, Region: region}
-}
-
-// validationFn validation logic for the region data to be registered with the validator
-func regionValidator(pc *client.Productinfo) validator.Func {
+// regionValidator validates the zone in the recommendation request.
+func regionValidator(ctx context.Context, pc *client.Productinfo) validator.Func {
 
 	return func(v *validator.Validate, topStruct reflect.Value, currentStruct reflect.Value, field reflect.Value, fieldtype reflect.Type, fieldKind reflect.Kind, param string) bool {
-		currentProvider := currentStruct.FieldByName("Provider").String()
-		currentRegion := currentStruct.FieldByName("Region").String()
+		currentProvider := digValueForName(currentStruct, "Provider")
+		currentService := digValueForName(currentStruct, "Service")
+		currentRegion := digValueForName(currentStruct, "Region")
 
-		response, err := pc.Regions.GetRegions(regions.NewGetRegionsParams().WithProvider(currentProvider))
+		ctxWithFields := logger.ToContext(ctx, logger.NewLogCtxBuilder().
+			WithProvider(currentProvider).
+			WithService(currentService).
+			Build())
+		ctxLog := logger.Extract(ctxWithFields)
+
+		response, err := pc.Regions.GetRegions(regions.NewGetRegionsParams().WithProvider(currentProvider).WithService(currentService))
 		if err != nil {
-			logrus.WithError(err).Errorf("could not get regions for provider: %s", currentProvider)
+			ctxLog.WithError(err).Error("could not get regions")
 			return false
 		}
 
-		logrus.Debugf("current region: %s, regions: %#v", currentRegion, response.Payload)
+		ctxLog.Debugf("current region: %s, regions: %#v", currentRegion, response.Payload)
 		for _, r := range response.Payload {
 			if r.ID == currentRegion {
 				return true
@@ -174,4 +150,40 @@ func networkPerfValidator() validator.Func {
 		}
 		return false
 	}
+}
+
+// serviceValidator validates the `service` path parameter
+func serviceValidator(ctx context.Context, pc *client.Productinfo) validator.Func {
+
+	return func(v *validator.Validate, topStruct reflect.Value, currentStruct reflect.Value, field reflect.Value, fieldtype reflect.Type, fieldKind reflect.Kind, param string) bool {
+
+		currentProvider := digValueForName(currentStruct, "Provider")
+		currentService := digValueForName(currentStruct, "Service")
+
+		ctxWithFields := logger.ToContext(ctx, logger.NewLogCtxBuilder().
+			WithProvider(currentProvider).
+			Build())
+		ctxLog := logger.Extract(ctxWithFields)
+
+		svcOk, err := pc.Service.GetService(service.NewGetServiceParams().WithProvider(currentProvider).WithService(currentService))
+		if err != nil {
+			ctxLog.WithError(err).Error("could not get services")
+			return false
+		}
+
+		ctxLog.Debugf("current service: %s", svcOk)
+
+		return true
+	}
+}
+
+func digValueForName(value reflect.Value, field string) string {
+	var ret string
+	switch value.Kind() {
+	case reflect.Struct:
+		ret = value.FieldByName(field).String()
+	case reflect.Ptr:
+		ret = value.Elem().FieldByName(field).String()
+	}
+	return ret
 }

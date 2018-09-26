@@ -151,6 +151,13 @@
           },
           {
             "type": "string",
+            "x-go-name": "Service",
+            "name": "service",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
             "x-go-name": "Region",
             "name": "region",
             "in": "path",
@@ -366,8 +373,25 @@
       "type": "object",
       "x-go-package": "github.com/banzaicloud/telescopes/pkg/recommender"
     },
-    "GetAttributeValuesParams": {
-      "description": "GetAttributeValuesParams GetAttributeValuesParams is a placeholder for the get attribute values route's path parameters",
+    "ErrorResponse": {
+      "description": "ErrorResponse ErrorResponse struct for error responses",
+      "type": "object",
+      "properties": {
+        "code": {
+          "description": "error code",
+          "type": "string",
+          "x-go-name": "ErrorCode"
+        },
+        "message": {
+          "description": "error message",
+          "type": "string",
+          "x-go-name": "ErrorMessage"
+        }
+      },
+      "x-go-package": "github.com/banzaicloud/telescopes/vendor/github.com/banzaicloud/productinfo/pkg/productinfo-client/models"
+    },
+    "GetAttributeValuesPathParams": {
+      "description": "GetAttributeValuesPathParams GetAttributeValuesPathParams is a placeholder for the get attribute values route's path parameters",
       "type": "object",
       "properties": {
         "attribute": {
@@ -384,12 +408,29 @@
           "description": "in:path",
           "type": "string",
           "x-go-name": "Region"
+        },
+        "service": {
+          "description": "in:path",
+          "type": "string",
+          "x-go-name": "Service"
         }
       },
       "x-go-package": "github.com/banzaicloud/telescopes/vendor/github.com/banzaicloud/productinfo/pkg/productinfo-client/models"
     },
-    "GetProductDetailsParams": {
-      "description": "GetProductDetailsParams GetProductDetailsParams is a placeholder for the get products route's path parameters",
+    "GetProviderPathParams": {
+      "description": "GetProviderPathParams GetProviderPathParams is a placeholder for the providers related route path parameters",
+      "type": "object",
+      "properties": {
+        "provider": {
+          "description": "in:path",
+          "type": "string",
+          "x-go-name": "Provider"
+        }
+      },
+      "x-go-package": "github.com/banzaicloud/telescopes/vendor/github.com/banzaicloud/productinfo/pkg/productinfo-client/models"
+    },
+    "GetRegionPathParams": {
+      "description": "GetRegionPathParams GetRegionPathParams is a placeholder for the regions related route path parameters",
       "type": "object",
       "properties": {
         "provider": {
@@ -401,23 +442,11 @@
           "description": "in:path",
           "type": "string",
           "x-go-name": "Region"
-        }
-      },
-      "x-go-package": "github.com/banzaicloud/telescopes/vendor/github.com/banzaicloud/productinfo/pkg/productinfo-client/models"
-    },
-    "GetRegionParams": {
-      "description": "GetRegionParams GetRegionParams is a placeholder for the get region route's path parameters",
-      "type": "object",
-      "properties": {
-        "provider": {
-          "description": "in:path",
-          "type": "string",
-          "x-go-name": "Provider"
         },
-        "region": {
+        "service": {
           "description": "in:path",
           "type": "string",
-          "x-go-name": "Region"
+          "x-go-name": "Service"
         }
       },
       "x-go-package": "github.com/banzaicloud/telescopes/vendor/github.com/banzaicloud/productinfo/pkg/productinfo-client/models"
@@ -447,31 +476,46 @@
       },
       "x-go-package": "github.com/banzaicloud/telescopes/vendor/github.com/banzaicloud/productinfo/pkg/productinfo-client/models"
     },
-    "GetRegionsParams": {
-      "description": "GetRegionsParams GetRegionsParams is a placeholder for the get regions route's path parameters",
+    "GetServicesPathParams": {
+      "description": "GetServicesPathParams GetServicesPathParams is a placeholder for the services related route path parameters",
       "type": "object",
       "properties": {
         "provider": {
           "description": "in:path",
           "type": "string",
           "x-go-name": "Provider"
+        },
+        "service": {
+          "description": "in:path",
+          "type": "string",
+          "x-go-name": "Service"
         }
       },
       "x-go-package": "github.com/banzaicloud/telescopes/vendor/github.com/banzaicloud/productinfo/pkg/productinfo-client/models"
     },
-    "GetRegionsResp": {
-      "description": "GetRegionsResp GetRegionsResp holds the list of available regions of a cloud provider",
+    "Image": {
+      "description": "Image Image represents an image",
       "type": "object",
       "properties": {
-        "id": {
-          "description": "Id",
+        "image": {
+          "description": "image",
           "type": "string",
-          "x-go-name": "ID"
-        },
-        "name": {
-          "description": "name",
-          "type": "string",
-          "x-go-name": "Name"
+          "x-go-name": "Image"
+        }
+      },
+      "x-go-package": "github.com/banzaicloud/telescopes/vendor/github.com/banzaicloud/productinfo/pkg/productinfo-client/models"
+    },
+    "ImagesResponse": {
+      "description": "ImagesResponse ImagesResponse holds the list of available images",
+      "type": "object",
+      "properties": {
+        "images": {
+          "description": "images",
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/Image"
+          },
+          "x-go-name": "Images"
         }
       },
       "x-go-package": "github.com/banzaicloud/telescopes/vendor/github.com/banzaicloud/productinfo/pkg/productinfo-client/models"
@@ -572,15 +616,57 @@
             "$ref": "#/definitions/ProductDetails"
           },
           "x-go-name": "Products"
+        },
+        "scrapingTime": {
+          "description": "ScrapingTime represents scraping time for a given provider in milliseconds",
+          "type": "string",
+          "x-go-name": "ScrapingTime"
+        }
+      },
+      "x-go-package": "github.com/banzaicloud/telescopes/vendor/github.com/banzaicloud/productinfo/pkg/productinfo-client/models"
+    },
+    "Provider": {
+      "description": "Provider Provider represents a cloud provider",
+      "type": "object",
+      "properties": {
+        "provider": {
+          "description": "provider",
+          "type": "string",
+          "x-go-name": "Provider"
+        },
+        "services": {
+          "description": "services",
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/Service"
+          },
+          "x-go-name": "Services"
         }
       },
       "x-go-package": "github.com/banzaicloud/telescopes/vendor/github.com/banzaicloud/productinfo/pkg/productinfo-client/models"
     },
     "ProviderResponse": {
-      "description": "ProviderResponse ProviderResponse is the response used for the supported providers",
-      "type": "array",
-      "items": {
-        "type": "string"
+      "description": "ProviderResponse ProviderResponse is the response used for the requested provider",
+      "type": "object",
+      "properties": {
+        "provider": {
+          "$ref": "#/definitions/Provider"
+        }
+      },
+      "x-go-package": "github.com/banzaicloud/telescopes/vendor/github.com/banzaicloud/productinfo/pkg/productinfo-client/models"
+    },
+    "ProvidersResponse": {
+      "description": "ProvidersResponse ProvidersResponse is the response used for the supported providers",
+      "type": "object",
+      "properties": {
+        "providers": {
+          "description": "providers",
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/Provider"
+          },
+          "x-go-name": "Providers"
+        }
       },
       "x-go-package": "github.com/banzaicloud/telescopes/vendor/github.com/banzaicloud/productinfo/pkg/productinfo-client/models"
     },
@@ -633,28 +719,49 @@
       },
       "x-go-package": "github.com/banzaicloud/telescopes/vendor/github.com/banzaicloud/productinfo/pkg/productinfo-client/models"
     },
-    "RegionResp": {
-      "description": "RegionResp RegionResp holds the list of available regions of a cloud provider",
-      "type": "object",
-      "properties": {
-        "id": {
-          "description": "Id",
-          "type": "string",
-          "x-go-name": "ID"
-        },
-        "name": {
-          "description": "name",
-          "type": "string",
-          "x-go-name": "Name"
-        }
-      },
-      "x-go-package": "github.com/banzaicloud/telescopes/vendor/github.com/banzaicloud/productinfo/pkg/productinfo-client/models"
-    },
     "RegionsResponse": {
       "description": "RegionsResponse RegionsResponse holds the list of available regions of a cloud provider",
       "type": "array",
       "items": {
         "$ref": "#/definitions/Region"
+      },
+      "x-go-package": "github.com/banzaicloud/telescopes/vendor/github.com/banzaicloud/productinfo/pkg/productinfo-client/models"
+    },
+    "Service": {
+      "description": "it's intended to implement the ServiceDescriber interface",
+      "type": "object",
+      "title": "Service Service represents a service supported by a given provider.",
+      "properties": {
+        "service": {
+          "description": "service",
+          "type": "string",
+          "x-go-name": "Service"
+        }
+      },
+      "x-go-package": "github.com/banzaicloud/telescopes/vendor/github.com/banzaicloud/productinfo/pkg/productinfo-client/models"
+    },
+    "ServiceResponse": {
+      "description": "ServiceResponse ServiceResponse holds the list of available services",
+      "type": "object",
+      "properties": {
+        "service": {
+          "$ref": "#/definitions/Service"
+        }
+      },
+      "x-go-package": "github.com/banzaicloud/telescopes/vendor/github.com/banzaicloud/productinfo/pkg/productinfo-client/models"
+    },
+    "ServicesResponse": {
+      "description": "ServicesResponse ServicesResponse holds the list of available services",
+      "type": "object",
+      "properties": {
+        "services": {
+          "description": "services",
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/Service"
+          },
+          "x-go-name": "Services"
+        }
       },
       "x-go-package": "github.com/banzaicloud/telescopes/vendor/github.com/banzaicloud/productinfo/pkg/productinfo-client/models"
     },
@@ -730,7 +837,7 @@
       "x-go-package": "github.com/banzaicloud/telescopes/pkg/recommender"
     },
     "ZonePrice": {
-      "description": "ZonePrice ZonePrice struct for displaying proce information per zone",
+      "description": "ZonePrice ZonePrice struct for displaying price information per zone",
       "type": "object",
       "properties": {
         "price": {

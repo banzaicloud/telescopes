@@ -27,27 +27,28 @@
 package main
 
 import (
+	"context"
 	"net/url"
 	"os"
 	"strings"
 
-	"github.com/banzaicloud/productinfo/pkg/productinfo-client/client"
-	"github.com/go-openapi/strfmt"
-	log "github.com/sirupsen/logrus"
-	"github.com/spf13/viper"
-
 	"github.com/banzaicloud/go-gin-prometheus"
+	"github.com/banzaicloud/productinfo/pkg/logger"
+	"github.com/banzaicloud/productinfo/pkg/productinfo-client/client"
 	"github.com/banzaicloud/telescopes/internal/app/telescopes/api"
 	"github.com/banzaicloud/telescopes/pkg/recommender"
 	"github.com/gin-gonic/gin"
 	httptransport "github.com/go-openapi/runtime/client"
+	"github.com/go-openapi/strfmt"
 	flag "github.com/spf13/pflag"
+	"github.com/spf13/viper"
 )
 
 const (
 	// the list of flags supported by the application
 	// these constants can be used to retrieve the passed in values or defaults via viper
 	logLevelFlag         = "log-level"
+	logFormatFlag        = "log-format"
 	listenAddressFlag    = "listen-address"
 	productInfoFlag      = "productinfo-address"
 	devModeFlag          = "dev-mode"
@@ -72,6 +73,7 @@ var (
 // defineFlags defines supported flags and makes them available for viper
 func defineFlags() {
 	flag.String(logLevelFlag, "info", "log level")
+	flag.String(logFormatFlag, "", "log format")
 	flag.String(listenAddressFlag, ":9090", "the address where the server listens to HTTP requests.")
 	flag.String(productInfoFlag, "http://localhost:9090/api/v1", "the address of the Product Info service to retrieve attribute and pricing info [format=scheme://host:port/basepath]")
 	flag.Bool(devModeFlag, false, "development mode, if true token based authentication is disabled, false by default")
@@ -90,13 +92,7 @@ func bindFlags() {
 
 // setLogLevel sets the log level
 func setLogLevel() {
-	parsedLevel, err := log.ParseLevel(viper.GetString("log-level"))
-	if err != nil {
-		log.WithError(err).Warnf("Couldn't parse log level, using default: %s", log.GetLevel())
-	} else {
-		log.SetLevel(parsedLevel)
-		log.Debugf("Set log level to %s", parsedLevel)
-	}
+	logger.InitLogger(viper.GetString(logLevelFlag), viper.GetString(logFormatFlag))
 }
 func init() {
 
@@ -118,7 +114,7 @@ func init() {
 // ensureCfg ensures that the application configuration is available
 // currently this only refers to configuration as environment variable
 // to be extended for app critical entries (flags, config files ...)
-func ensureCfg() {
+func ensureCfg(ctx context.Context) {
 
 	for _, envVar := range cfgEnvVars {
 		// bind the env var
@@ -127,18 +123,19 @@ func ensureCfg() {
 		// read the env var value
 		if nil == viper.Get(envVar) {
 			flag.Usage()
-			log.Fatalf("application is missing configuration: %s", envVar)
+			logger.Extract(ctx).Fatal("application is missing configuration:", envVar)
 		}
 	}
 
 	// translating flags to aliases for supporting legacy env vars
-	switchFlagsToAliases()
+	switchFlagsToAliases(ctx)
 
 }
 
 // switchFlagsToAliases sets the environment variables required by legacy components from application flags
 // todo investigate if there's a better way for this
-func switchFlagsToAliases() {
+func switchFlagsToAliases(ctx context.Context) {
+	log := logger.Extract(ctx)
 	// vault signing token hack / need to support legacy components (vault, auth)
 	os.Setenv(strings.ToUpper(vaultAddrAlias), viper.GetString(vaultAddrFlag))
 	os.Setenv(strings.ToUpper(tokenSigningKeyAlias), viper.GetString(tokenSigningKeyFlag))
@@ -152,23 +149,27 @@ func switchFlagsToAliases() {
 
 func main() {
 
+	// application context, intended to hold extra information
+	appCtx := logger.ToContext(context.Background(), logger.NewLogCtxBuilder().WithField("application", "telescope").Build())
+	ctxLog := logger.Extract(appCtx)
+
 	if viper.GetBool(helpFlag) {
 		flag.Usage()
 		return
 	}
 
-	ensureCfg()
+	ensureCfg(appCtx)
 
-	piUrl := parseProductInfoAddress()
+	piUrl := parseProductInfoAddress(appCtx)
 	transport := httptransport.New(piUrl.Host, piUrl.Path, []string{piUrl.Scheme})
 	pc := client.New(transport, strfmt.Default)
 
 	engine, err := recommender.NewEngine(recommender.NewProductInfoClient(pc))
-	quitOnError("failed to start telescopes", err)
+	quitOnError(appCtx, "failed to start telescopes", err)
 
 	// configure the gin validator
-	err = api.ConfigureValidator(pc)
-	quitOnError("failed to start telescopes", err)
+	err = api.ConfigureValidator(appCtx, pc)
+	quitOnError(appCtx, "failed to start telescopes", err)
 
 	routeHandler := api.NewRouteHandler(engine)
 
@@ -177,7 +178,7 @@ func main() {
 
 	// enable authentication if not dev-mode
 	if !viper.GetBool(devModeFlag) {
-		log.Debug("enable authentication")
+		ctxLog.Debug("enable authentication")
 		signingKey := viper.GetString(tokenSigningKeyAlias)
 		appRole := viper.GetString(cfgAppRole)
 
@@ -186,30 +187,29 @@ func main() {
 
 	// add prometheus metric endpoint
 	if viper.GetBool(metricsEnabledFlag) {
-		p := ginprometheus.NewPrometheus("gin", []string{"provider", "region"})
+		p := ginprometheus.NewPrometheus("gin", []string{"provider", "service", "region"})
 		p.SetListenAddress(viper.GetString(metricsAddressFlag))
 		p.Use(router)
 	}
 
-	log.Info("Initialized gin router")
-	routeHandler.ConfigureRoutes(router)
-	log.Info("Configured routes")
+	routeHandler.ConfigureRoutes(appCtx, router)
+	ctxLog.Info("configured routes")
 
 	router.Run(viper.GetString(listenAddressFlag))
 }
 
-func parseProductInfoAddress() *url.URL {
+func parseProductInfoAddress(ctx context.Context) *url.URL {
 	productInfoAddress := viper.GetString(productInfoFlag)
 	u, err := url.ParseRequestURI(productInfoAddress)
 	if err != nil {
-		log.Fatalf("%s is not a valid URI", productInfoFlag)
+		logger.Extract(ctx).Fatal("invalid URI: ", productInfoFlag)
 	}
 	return u
 }
 
-func quitOnError(msg string, err error) {
+func quitOnError(ctx context.Context, msg string, err error) {
 	if err != nil {
-		log.Errorf("%s : %s", msg, err.Error())
+		logger.Extract(ctx).WithField("cause", msg).WithError(err)
 		flag.Usage()
 		os.Exit(-1)
 	}

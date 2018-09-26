@@ -15,6 +15,7 @@
 package recommender
 
 import (
+	"context"
 	"errors"
 	"testing"
 
@@ -39,7 +40,7 @@ type dummyProductInfoSource struct {
 	TcId string
 }
 
-func (piCli *dummyProductInfoSource) GetAttributeValues(provider string, region string, attr string) ([]float64, error) {
+func (piCli *dummyProductInfoSource) GetAttributeValues(provider string, service string, region string, attr string) ([]float64, error) {
 	switch piCli.TcId {
 	case OutOfLimits:
 		return []float64{8, 13, 14, 6}, nil
@@ -55,7 +56,7 @@ func (piCli *dummyProductInfoSource) GetAttributeValues(provider string, region 
 	return []float64{15, 16, 17}, nil
 }
 
-func (piCli *dummyProductInfoSource) GetRegion(provider string, region string) ([]string, error) {
+func (piCli *dummyProductInfoSource) GetRegion(provider string, service string, region string) ([]string, error) {
 	switch piCli.TcId {
 	case DescribeRegionError:
 		return nil, errors.New(DescribeRegionError)
@@ -64,7 +65,7 @@ func (piCli *dummyProductInfoSource) GetRegion(provider string, region string) (
 	}
 }
 
-func (piCli *dummyProductInfoSource) GetProductDetails(provider string, region string) ([]*models.ProductDetails, error) {
+func (piCli *dummyProductInfoSource) GetProductDetails(provider string, service string, region string) ([]*models.ProductDetails, error) {
 	switch piCli.TcId {
 	case ProductDetailsError:
 		return nil, errors.New(ProductDetailsError)
@@ -261,7 +262,7 @@ func TestEngine_RecommendAttrValues(t *testing.T) {
 		t.Run(test.name, func(t *testing.T) {
 			engine, err := NewEngine(test.pi)
 			assert.Nil(t, err, "the engine couldn't be created")
-			test.check(engine.RecommendAttrValues("dummy", "region", test.attribute, test.request))
+			test.check(engine.RecommendAttrValues(context.TODO(), "dummy", "region", "service", test.attribute, test.request))
 		})
 	}
 }
@@ -278,7 +279,7 @@ func TestEngine_RecommendVms(t *testing.T) {
 	}{
 		{
 			name: "could not describe region",
-			filters: []vmFilter{func(vm VirtualMachine, req ClusterRecommendationReq) bool {
+			filters: []vmFilter{func(ctx context.Context, vm VirtualMachine, req ClusterRecommendationReq) bool {
 				return true
 			}},
 			pi:     &dummyProductInfoSource{DescribeRegionError},
@@ -290,7 +291,7 @@ func TestEngine_RecommendVms(t *testing.T) {
 		},
 		{
 			name: "could not get product details",
-			filters: []vmFilter{func(vm VirtualMachine, req ClusterRecommendationReq) bool {
+			filters: []vmFilter{func(ctx context.Context, vm VirtualMachine, req ClusterRecommendationReq) bool {
 				return true
 			}},
 			pi:     &dummyProductInfoSource{ProductDetailsError},
@@ -302,7 +303,7 @@ func TestEngine_RecommendVms(t *testing.T) {
 		},
 		{
 			name: "recommend three vm-s",
-			filters: []vmFilter{func(vm VirtualMachine, req ClusterRecommendationReq) bool {
+			filters: []vmFilter{func(ctx context.Context, vm VirtualMachine, req ClusterRecommendationReq) bool {
 				return true
 			}},
 			pi:        &dummyProductInfoSource{},
@@ -319,7 +320,7 @@ func TestEngine_RecommendVms(t *testing.T) {
 			engine, err := NewEngine(test.pi)
 			assert.Nil(t, err, "the engine couldn't be created")
 
-			test.check(engine.RecommendVms("dummy", "dummyRegion", test.attribute, test.values, test.filters, test.request))
+			test.check(engine.RecommendVms(context.TODO(), "dummy", "dummyService", "dummyRegion", test.attribute, test.values, test.filters, test.request))
 
 		})
 	}
@@ -378,7 +379,7 @@ func TestEngine_RecommendNodePools(t *testing.T) {
 			engine, err := NewEngine(test.pi)
 			assert.Nil(t, err, "the engine couldn't be created")
 
-			test.check(engine.RecommendNodePools(test.attr, test.vms, []float64{4}, req))
+			test.check(engine.RecommendNodePools(context.TODO(), test.attr, test.vms, []float64{4}, req))
 
 		})
 	}
@@ -585,7 +586,7 @@ func TestEngine_RecommendCluster(t *testing.T) {
 			engine, err := NewEngine(test.pi)
 			assert.Nil(t, err, "the engine couldn't be created")
 
-			test.check(engine.RecommendCluster("dummy", "dummyRegion", test.request))
+			test.check(engine.RecommendCluster(context.TODO(), "dummy", "dummyService", "dummyRegion", test.request))
 		})
 	}
 }
