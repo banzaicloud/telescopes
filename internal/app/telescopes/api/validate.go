@@ -127,8 +127,13 @@ func zoneValidator(pc *client.Productinfo) validator.Func {
 		fieldtype reflect.Type, fieldKind reflect.Kind, param string) bool {
 
 		provider := reflect.Indirect(topStruct).FieldByName("Provider").String()
+		service := reflect.Indirect(topStruct).FieldByName("Service").String()
 		region := reflect.Indirect(topStruct).FieldByName("Region").String()
-		response, _ := pc.Regions.GetRegion(regions.NewGetRegionParams().WithProvider(provider).WithRegion(region))
+
+		response, _ := pc.Regions.GetRegion(regions.NewGetRegionParams().
+			WithProvider(provider).
+			WithService(service).
+			WithRegion(region))
 		for _, zone := range response.Payload.Zones {
 			if zone == field.String() {
 				return true

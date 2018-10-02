@@ -64,7 +64,7 @@ func (r *RouteHandler) recommendClusterSetup(ctx context.Context) gin.HandlerFun
 		log.Info("recommend cluster setup")
 
 		// request decorated with provider and region - used to validate the request
-		req := recommender.ClusterRecommendationReq{}
+		req := ValidatingRequest{pathParams, recommender.ClusterRecommendationReq{}}
 
 		if err := c.BindJSON(&req); err != nil {
 			log.WithError(err).Error("failed to bind request body")
@@ -76,7 +76,7 @@ func (r *RouteHandler) recommendClusterSetup(ctx context.Context) gin.HandlerFun
 			return
 		}
 
-		if response, err := r.engine.RecommendCluster(ctxLog, pathParams.Provider, pathParams.Service, pathParams.Region, req); err != nil {
+		if response, err := r.engine.RecommendCluster(ctxLog, pathParams.Provider, pathParams.Service, pathParams.Region, req.ClusterRecommendationReq); err != nil {
 			c.JSON(http.StatusInternalServerError, gin.H{"status": http.StatusInternalServerError, "message": fmt.Sprintf("%s", err)})
 		} else {
 			c.JSON(http.StatusOK, *response)
