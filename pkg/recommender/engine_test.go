@@ -379,7 +379,7 @@ func TestEngine_RecommendNodePools(t *testing.T) {
 			engine, err := NewEngine(test.pi)
 			assert.Nil(t, err, "the engine couldn't be created")
 
-			test.check(engine.RecommendNodePools(context.TODO(), test.attr, "compute", test.vms, []float64{4}, req))
+			test.check(engine.RecommendNodePools(context.TODO(), test.attr, test.vms, []float64{4}, req))
 
 		})
 	}

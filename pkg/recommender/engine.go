@@ -232,7 +232,7 @@ func (e *Engine) RecommendCluster(ctx context.Context, provider string, service 
 			log.Warn("onDemand percentage in the request ignored for provider ", provider)
 			req.OnDemandPct = 100
 		}
-		nps, err := e.RecommendNodePools(ctx, attr, service, filteredVms, values, req)
+		nps, err := e.RecommendNodePools(ctx, attr, filteredVms, values, req)
 		if err != nil {
 			return nil, fmt.Errorf("error while recommending node pools for attr: [%s], cause: [%s]", attr, err.Error())
 		}
@@ -246,7 +246,12 @@ func (e *Engine) RecommendCluster(ctx context.Context, provider string, service 
 		return nil, errors.New("could not recommend cluster with the requested resources")
 	}
 
-	cheapestNodePoolSet := e.findCheapestNodePoolSet(ctx, nodePools)
+	cheapestNps := e.findCheapestNodePoolSet(ctx, nodePools)
+
+	cheapestNodePoolSet, err := e.getControlPlane(provider, service, region, cheapestNps)
+	if err != nil {
+		return nil, err
+	}
 
 	accuracy := req.findResponseSum(provider, region, cheapestNodePoolSet)
 
@@ -256,6 +261,32 @@ func (e *Engine) RecommendCluster(ctx context.Context, provider string, service 
 		NodePools: cheapestNodePoolSet,
 		Accuracy:  accuracy,
 	}, nil
+}
+
+func (e *Engine) getControlPlane(provider, service, region string, cheapestNodePoolSet []NodePool) ([]NodePool, error) {
+	if service == "eks" {
+		var cheapestNpSet []NodePool
+		allProducts, err := e.piSource.GetProductDetails(provider, service, region)
+		if err != nil {
+			return nil, err
+		}
+
+		for _, p := range allProducts {
+			if p.Type == "EKS Control Plane" {
+				cheapestNpSet = append(cheapestNodePoolSet, NodePool{
+					VmType: VirtualMachine{
+						Type:          p.Type,
+						OnDemandPrice: p.OnDemandPrice,
+					},
+					VmClass:  regular,
+					SumNodes: 1,
+				})
+				break
+			}
+		}
+		return cheapestNpSet, nil
+	}
+	return cheapestNodePoolSet, nil
 }
 
 func (req *ClusterRecommendationReq) findResponseSum(provider string, region string, nodePoolSet []NodePool) ClusterRecommendationAccuracy {
@@ -531,7 +562,7 @@ func (e *Engine) sortByAttrValue(ctx context.Context, attr string, vms []Virtual
 }
 
 // RecommendNodePools finds the slice of NodePools that may participate in the recommendation process
-func (e *Engine) RecommendNodePools(ctx context.Context, attr, service string, vms []VirtualMachine, values []float64, req ClusterRecommendationReq) ([]NodePool, error) {
+func (e *Engine) RecommendNodePools(ctx context.Context, attr string, vms []VirtualMachine, values []float64, req ClusterRecommendationReq) ([]NodePool, error) {
 	log := logger.Extract(ctx)
 	var nps []NodePool
 
@@ -615,19 +646,6 @@ func (e *Engine) RecommendNodePools(ctx context.Context, attr, service string, v
 			log.Debugf("adding vm to the [%d]th node pool sum value in pools: [%f]", nodePoolIdx, sumValueInPools)
 		}
 	}
-
-	if service == "eks" {
-		EKSmaster := NodePool{
-			SumNodes: 1,
-			VmClass:  regular,
-			VmType: VirtualMachine{
-				Type:          "EKS Control Plane",
-				OnDemandPrice: 0.2,
-			},
-		}
-		nps = append(nps, EKSmaster)
-	}
-
 	return nps, nil
 }
 
