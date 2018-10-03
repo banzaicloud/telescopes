@@ -283,9 +283,12 @@ func (e *Engine) getControlPlane(provider, service, region string) (*NodePool, e
 					VmClass:  regular,
 					SumNodes: 1,
 				}
+				return &controlPlane, nil
 			}
 		}
-		return &controlPlane, nil
+
+		return nil, fmt.Errorf("no control plane found")
+
 	default:
 		return nil, fmt.Errorf("there is no control plane for the service: %s", service)
 	}
