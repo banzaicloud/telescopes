@@ -246,11 +246,14 @@ func (e *Engine) RecommendCluster(ctx context.Context, provider string, service 
 		return nil, errors.New("could not recommend cluster with the requested resources")
 	}
 
-	cheapestNps := e.findCheapestNodePoolSet(ctx, nodePools)
+	cheapestNodePoolSet := e.findCheapestNodePoolSet(ctx, nodePools)
 
-	cheapestNodePoolSet, err := e.getControlPlane(provider, service, region, cheapestNps)
-	if err != nil {
-		return nil, err
+	if service == "eks" {
+		controlPlane, err := e.getControlPlane(provider, service, region)
+		if err != nil {
+			return nil, err
+		}
+		cheapestNodePoolSet = append(cheapestNodePoolSet, controlPlane)
 	}
 
 	accuracy := req.findResponseSum(provider, region, cheapestNodePoolSet)
@@ -263,30 +266,26 @@ func (e *Engine) RecommendCluster(ctx context.Context, provider string, service 
 	}, nil
 }
 
-func (e *Engine) getControlPlane(provider, service, region string, cheapestNodePoolSet []NodePool) ([]NodePool, error) {
-	if service == "eks" {
-		var cheapestNpSet []NodePool
-		allProducts, err := e.piSource.GetProductDetails(provider, service, region)
-		if err != nil {
-			return nil, err
-		}
+func (e *Engine) getControlPlane(provider, service, region string) (NodePool, error) {
+	var controlPlane NodePool
+	allProducts, err := e.piSource.GetProductDetails(provider, service, region)
+	if err != nil {
+		return NodePool{}, err
+	}
 
-		for _, p := range allProducts {
-			if p.Type == "EKS Control Plane" {
-				cheapestNpSet = append(cheapestNodePoolSet, NodePool{
-					VmType: VirtualMachine{
-						Type:          p.Type,
-						OnDemandPrice: p.OnDemandPrice,
-					},
-					VmClass:  regular,
-					SumNodes: 1,
-				})
-				break
+	for _, p := range allProducts {
+		if p.Type == "EKS Control Plane" {
+			controlPlane = NodePool{
+				VmType: VirtualMachine{
+					Type:          p.Type,
+					OnDemandPrice: p.OnDemandPrice,
+				},
+				VmClass:  regular,
+				SumNodes: 1,
 			}
 		}
-		return cheapestNpSet, nil
 	}
-	return cheapestNodePoolSet, nil
+	return controlPlane, nil
 }
 
 func (req *ClusterRecommendationReq) findResponseSum(provider string, region string, nodePoolSet []NodePool) ClusterRecommendationAccuracy {
