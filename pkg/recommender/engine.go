@@ -246,14 +246,6 @@ func (e *Engine) RecommendCluster(ctx context.Context, provider string, service 
 
 	cheapestNodePoolSet := e.findCheapestNodePoolSet(ctx, nodePools)
 
-	log.Debug("retrieve control plane node pool")
-	if controlPlane, err := e.getControlPlane(provider, service, region); err == nil {
-		log.Debug("appending control plane node pool")
-		cheapestNodePoolSet = append(cheapestNodePoolSet, *controlPlane)
-	} else {
-		log.Debug("could not retrieve node pool")
-	}
-
 	accuracy := req.findResponseSum(provider, region, cheapestNodePoolSet)
 
 	return &ClusterRecommendationResp{
@@ -262,36 +254,6 @@ func (e *Engine) RecommendCluster(ctx context.Context, provider string, service 
 		NodePools: cheapestNodePoolSet,
 		Accuracy:  accuracy,
 	}, nil
-}
-
-func (e *Engine) getControlPlane(provider, service, region string) (*NodePool, error) {
-	switch service {
-	case "eks":
-		allProducts, err := e.piSource.GetProductDetails(provider, service, region)
-		if err != nil {
-			return nil, err
-		}
-
-		var controlPlane NodePool
-		for _, p := range allProducts {
-			if p.Type == "EKS Control Plane" {
-				controlPlane = NodePool{
-					VmType: VirtualMachine{
-						Type:          p.Type,
-						OnDemandPrice: p.OnDemandPrice,
-					},
-					VmClass:  regular,
-					SumNodes: 1,
-				}
-				return &controlPlane, nil
-			}
-		}
-
-		return nil, fmt.Errorf("no control plane found")
-
-	default:
-		return nil, fmt.Errorf("there is no control plane for the service: %s", service)
-	}
 }
 
 func (req *ClusterRecommendationReq) findResponseSum(provider string, region string, nodePoolSet []NodePool) ClusterRecommendationAccuracy {
