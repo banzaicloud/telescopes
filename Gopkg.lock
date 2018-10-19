@@ -46,7 +46,7 @@
 
 [[projects]]
   branch = "master"
-  digest = "1:4a896185b7298c45b6822616f4e295a741268439cdce7b17f9409f85fd0bca7f"
+  digest = "1:ef80ff16c204a1dca56d63b482adae30773ed9d4e55d50f8c1293b77d22830d0"
   name = "github.com/banzaicloud/productinfo"
   packages = [
     "pkg/logger",
@@ -62,7 +62,7 @@
     "pkg/productinfo-client/models",
   ]
   pruneopts = "NUT"
-  revision = "a1e83990bfd1febbb4176faadaa1dd4cedfca28a"
+  revision = "3ddd24a2c3fbf45d94b6341f7ec88c2947f99c90"
 
 [[projects]]
   branch = "master"
