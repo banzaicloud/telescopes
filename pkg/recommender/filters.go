@@ -24,10 +24,7 @@ type vmFilter func(ctx context.Context, vm VirtualMachine, req ClusterRecommenda
 
 func (e *Engine) minMemRatioFilter(ctx context.Context, vm VirtualMachine, req ClusterRecommendationReq) bool {
 	minMemToCpuRatio := req.SumMem / req.SumCpu
-	if vm.Mem/vm.Cpus < minMemToCpuRatio {
-		return false
-	}
-	return true
+	return minMemToCpuRatio <= vm.Mem/vm.Cpus
 }
 
 func (e *Engine) burstFilter(ctx context.Context, vm VirtualMachine, req ClusterRecommendationReq) bool {
@@ -41,10 +38,7 @@ func (e *Engine) burstFilter(ctx context.Context, vm VirtualMachine, req Cluster
 
 func (e *Engine) minCpuRatioFilter(ctx context.Context, vm VirtualMachine, req ClusterRecommendationReq) bool {
 	minCpuToMemRatio := req.SumCpu / req.SumMem
-	if vm.Cpus/vm.Mem < minCpuToMemRatio {
-		return false
-	}
-	return true
+	return minCpuToMemRatio <= vm.Cpus/vm.Mem
 }
 
 func (e *Engine) ntwPerformanceFilter(ctx context.Context, vm VirtualMachine, req ClusterRecommendationReq) bool {
