@@ -1,3 +1,7 @@
+
+SHELL = /bin/bash
+OS = $(shell uname -s)
+
 # Project variables
 PACKAGE = github.com/banzaicloud/telescopes
 BINARY_NAME = telescopes
