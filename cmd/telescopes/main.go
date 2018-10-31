@@ -28,6 +28,7 @@ package main
 
 import (
 	"context"
+	"fmt"
 	"net/url"
 	"os"
 	"strings"
@@ -79,7 +80,9 @@ func defineFlags() {
 // bindFlags binds parsed flags into viper
 func bindFlags() {
 	flag.Parse()
-	viper.BindPFlags(flag.CommandLine)
+	if err := viper.BindPFlags(flag.CommandLine); err != nil {
+		panic(fmt.Errorf("could not parse flags. error: %s", err))
+	}
 }
 
 // setLogLevel sets the log level
@@ -154,7 +157,10 @@ func main() {
 	routeHandler.ConfigureRoutes(appCtx, router)
 	ctxLog.Info("configured routes")
 
-	router.Run(viper.GetString(listenAddressFlag))
+	if err := router.Run(viper.GetString(listenAddressFlag)); err != nil {
+		panic(fmt.Errorf("could not run router. error: %s", err))
+	}
+
 }
 
 func parseProductInfoAddress(ctx context.Context) *url.URL {

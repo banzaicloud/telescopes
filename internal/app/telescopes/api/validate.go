@@ -41,11 +41,25 @@ const (
 // ConfigureValidator configures the Gin validator with custom validator functions
 func ConfigureValidator(ctx context.Context, pc *client.Productinfo) error {
 	v := binding.Validator.Engine().(*validator.Validate)
-	v.RegisterValidation("provider", providerValidator(ctx, pc))
-	v.RegisterValidation("service", serviceValidator(ctx, pc))
-	v.RegisterValidation("region", regionValidator(ctx, pc))
-	v.RegisterValidation("zone", zoneValidator(pc))
-	v.RegisterValidation("network", networkPerfValidator())
+	if err := v.RegisterValidation("provider", providerValidator(ctx, pc)); err != nil {
+		return fmt.Errorf("could not register provider validator. error: %s", err)
+	}
+
+	if err := v.RegisterValidation("service", serviceValidator(ctx, pc)); err != nil {
+		return fmt.Errorf("could not register service validator. error: %s", err)
+	}
+
+	if err := v.RegisterValidation("region", regionValidator(ctx, pc)); err != nil {
+		return fmt.Errorf("could not register region validator. error: %s", err)
+	}
+
+	if err := v.RegisterValidation("zone", zoneValidator(pc)); err != nil {
+		return fmt.Errorf("could not register zone validator. error: %s", err)
+	}
+
+	if err := v.RegisterValidation("network", networkPerfValidator()); err != nil {
+		return fmt.Errorf("could not register network validator. error: %s", err)
+	}
 	return nil
 }
 
@@ -56,7 +70,15 @@ func ValidatePathData(ctx context.Context, validate *validator.Validate) gin.Han
 
 		// extract the path parameter data into the param struct
 		pathData := &GetRecommendationParams{}
-		mapstructure.Decode(getPathParamMap(c), pathData)
+		if err := mapstructure.Decode(getPathParamMap(c), pathData); err != nil {
+			ctxLog.WithError(err).Error("validation failed")
+			c.JSON(http.StatusBadRequest, gin.H{
+				"code":    "bad_params",
+				"message": fmt.Sprintf("invalid path data: %s", pathData),
+				"params":  pathData,
+			})
+			return
+		}
 
 		ctxLog.Debugf("path data being validated: %s", pathData)
 

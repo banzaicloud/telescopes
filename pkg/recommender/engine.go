@@ -390,7 +390,7 @@ func (e *Engine) findVmsWithAttrValues(ctx context.Context, provider string, ser
 		vms []VirtualMachine
 	)
 
-	if zones == nil || len(zones) == 0 {
+	if len(zones) == 0 {
 		if z, err := e.piSource.GetRegion(provider, service, region); err == nil {
 			zones = z
 		} else {
@@ -662,12 +662,6 @@ func (n *NodePool) getSum(attr string) float64 {
 
 // getNextSum gets the total value if the pool was increased by one
 func (n *NodePool) getNextSum(attr string) float64 {
-	return n.getSum(attr) + n.VmType.getAttrValue(attr)
-}
-
-// getSum gets the total value if the pool was increased by one
-func (n *NodePool) addNode(attr string) float64 {
-	n.SumNodes += 1
 	return n.getSum(attr) + n.VmType.getAttrValue(attr)
 }
 

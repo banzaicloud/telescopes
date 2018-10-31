@@ -339,12 +339,11 @@ func TestEngine_RecommendNodePools(t *testing.T) {
 	}
 
 	tests := []struct {
-		name    string
-		pi      ProductInfoSource
-		attr    string
-		vms     []VirtualMachine
-		request ClusterRecommendationReq
-		check   func([]NodePool, error)
+		name  string
+		pi    ProductInfoSource
+		attr  string
+		vms   []VirtualMachine
+		check func([]NodePool, error)
 	}{
 		{
 			name: "successful",

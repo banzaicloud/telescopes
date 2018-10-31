@@ -44,13 +44,9 @@ func (r *RouteHandler) recommendClusterSetup(ctx context.Context) gin.HandlerFun
 	return func(c *gin.Context) {
 		pathParams := GetRecommendationParams{}
 
-		err := mapstructure.Decode(getPathParamMap(c), &pathParams)
-		if err != nil {
-			c.JSON(http.StatusBadRequest, gin.H{
-				"code":    "bad_params",
-				"message": "could not decode path params",
-				"cause":   err.Error(),
-			})
+		if err := mapstructure.Decode(getPathParamMap(c), &pathParams); err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{"status": http.StatusBadRequest, "message": fmt.Sprintf("%s", err)})
+			return
 		}
 
 		ctxLog := logger.ToContext(ctx, logger.NewLogCtxBuilder().
