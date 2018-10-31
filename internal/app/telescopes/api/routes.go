@@ -37,11 +37,11 @@ const (
 // RouteHandler struct that wraps the recommender engine
 type RouteHandler struct {
 	engine    *recommender.Engine
-	buildInfo *buildinfo.BuildInfo
+	buildInfo buildinfo.BuildInfo
 }
 
 // NewRouteHandler creates a new RouteHandler and returns a reference to it
-func NewRouteHandler(e *recommender.Engine, info *buildinfo.BuildInfo) *RouteHandler {
+func NewRouteHandler(e *recommender.Engine, info buildinfo.BuildInfo) *RouteHandler {
 	return &RouteHandler{
 		engine:    e,
 		buildInfo: info,
