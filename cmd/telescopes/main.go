@@ -33,6 +33,8 @@ import (
 	"os"
 	"strings"
 
+	"github.com/banzaicloud/telescopes/internal/platform"
+
 	"github.com/banzaicloud/go-gin-prometheus"
 	"github.com/banzaicloud/productinfo/pkg/logger"
 	"github.com/banzaicloud/productinfo/pkg/productinfo-client/client"
@@ -117,6 +119,8 @@ func main() {
 	appCtx := logger.ToContext(context.Background(), logger.NewLogCtxBuilder().WithField("application", "telescope").Build())
 	ctxLog := logger.Extract(appCtx)
 
+	ctxLog.WithField("version", Version).WithField("commit_hash", CommitHash).WithField("build_date", BuildDate).Info("initializing telescopes")
+
 	if viper.GetBool(helpFlag) {
 		flag.Usage()
 		return
@@ -133,7 +137,8 @@ func main() {
 	err = api.ConfigureValidator(appCtx, pc)
 	quitOnError(appCtx, "failed to start telescopes", err)
 
-	routeHandler := api.NewRouteHandler(engine)
+	buildInfo := buildinfo.New(Version, CommitHash, BuildDate)
+	routeHandler := api.NewRouteHandler(engine, &buildInfo)
 
 	// new default gin engine (recovery, logger middleware)
 	router := gin.Default()

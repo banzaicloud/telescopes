@@ -16,6 +16,7 @@ package api
 
 import (
 	"context"
+	"github.com/banzaicloud/telescopes/internal/platform"
 	"net/http"
 	"os"
 
@@ -35,13 +36,15 @@ const (
 
 // RouteHandler struct that wraps the recommender engine
 type RouteHandler struct {
-	engine *recommender.Engine
+	engine    *recommender.Engine
+	buildInfo *buildinfo.BuildInfo
 }
 
 // NewRouteHandler creates a new RouteHandler and returns a reference to it
-func NewRouteHandler(e *recommender.Engine) *RouteHandler {
+func NewRouteHandler(e *recommender.Engine, info *buildinfo.BuildInfo) *RouteHandler {
 	return &RouteHandler{
-		engine: e,
+		engine:    e,
+		buildInfo: info,
 	}
 }
 
@@ -79,6 +82,7 @@ func (r *RouteHandler) ConfigureRoutes(ctx context.Context, router *gin.Engine) 
 	base := router.Group(basePath)
 	{
 		base.GET("/status", r.signalStatus)
+		base.GET("/version", r.versionHandler)
 	}
 
 	v1 := base.Group("/api/v1")

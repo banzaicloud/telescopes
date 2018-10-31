@@ -80,6 +80,10 @@ func (r *RouteHandler) recommendClusterSetup(ctx context.Context) gin.HandlerFun
 	}
 }
 
+func (r *RouteHandler) versionHandler(c *gin.Context) {
+	c.JSON(http.StatusOK, r.buildInfo)
+}
+
 // getPathParamMap transforms the path params into a map to be able to easily bind to param structs
 func getPathParamMap(c *gin.Context) map[string]string {
 	pm := make(map[string]string)
