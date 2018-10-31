@@ -138,7 +138,7 @@ func main() {
 	quitOnError(appCtx, "failed to start telescopes", err)
 
 	buildInfo := buildinfo.New(Version, CommitHash, BuildDate)
-	routeHandler := api.NewRouteHandler(engine, &buildInfo)
+	routeHandler := api.NewRouteHandler(engine, buildInfo)
 
 	// new default gin engine (recovery, logger middleware)
 	router := gin.Default()
