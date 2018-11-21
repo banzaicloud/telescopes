@@ -17,7 +17,6 @@ package recommender
 import (
 	"context"
 	"errors"
-	"fmt"
 	"github.com/goph/emperror"
 	"math"
 	"sort"
@@ -424,7 +423,7 @@ func (e *Engine) findVmsWithAttrValues(ctx context.Context, provider string, ser
 					continue
 				}
 			default:
-				return nil, fmt.Errorf("unsupported attribute: %s", attr)
+				return nil, errors.New("unsupported attribute")
 			}
 			filteredProducts = append(filteredProducts, *p)
 		}
