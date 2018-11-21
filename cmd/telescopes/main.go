@@ -130,12 +130,12 @@ func main() {
 	transport := httptransport.New(piUrl.Host, piUrl.Path, []string{piUrl.Scheme})
 	pc := client.New(transport, strfmt.Default)
 
-	engine, err := recommender.NewEngine(recommender.NewCloudInfoClient(pc))
-	quitOnError(appCtx, "failed to start telescopes", err)
+	engine := recommender.NewEngine(recommender.NewCloudInfoClient(pc))
 
 	// configure the gin validator
-	err = api.ConfigureValidator(appCtx, pc)
-	quitOnError(appCtx, "failed to start telescopes", err)
+	if err := api.ConfigureValidator(appCtx, pc); err != nil {
+		quitOnError(appCtx, "failed to start telescopes", err)
+	}
 
 	buildInfo := buildinfo.New(Version, CommitHash, BuildDate)
 	routeHandler := api.NewRouteHandler(engine, buildInfo)

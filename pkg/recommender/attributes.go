@@ -16,7 +16,8 @@ package recommender
 
 import (
 	"context"
-	"fmt"
+	"github.com/goph/emperror"
+	"github.com/pkg/errors"
 	"math"
 	"sort"
 
@@ -43,7 +44,7 @@ func (av AttributeValues) SelectAttributeValues(ctx context.Context, min float64
 	ctxLog := logger.Extract(ctx)
 	ctxLog.Debugf("selecting attributes from %f, min [%f], max [%f]", av, min, max)
 	if len(av) == 0 {
-		return nil, fmt.Errorf("empty attribute values")
+		return nil, emperror.With(errors.New("failed to select attribute values - no attributes"), "selector", "attributes")
 	}
 	var (
 		// holds the selected values
