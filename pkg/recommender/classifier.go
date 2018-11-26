@@ -19,18 +19,22 @@ import (
 	"github.com/pkg/errors"
 )
 
+// Classifier represents a contract to classify passed in structs
 type Classifier interface {
+	// Classify classifies the passed in struct based on arbitrary, implementation specific criteria
 	Classify(in interface{}) (string, error)
 }
 
+// errCtxClassifier struct for classifying errors based on their context
 type errCtxClassifier struct {
 	// a map keyed by the error code identified by the tags in the value slice
 	errorTags map[string][]string
 }
 
 const (
-	errPiClient = "PRODUCTINFO"
-	errRec      = "RECOMMENDER"
+	// constants representing error codes
+	errProductInfo = "PRODUCTINFO"
+	errRecommender = "RECOMMENDER"
 )
 
 // Classify classifies the error passed in based on its context. Returns the error code corresponding to the context
@@ -48,11 +52,12 @@ func (ec *errCtxClassifier) Classify(in interface{}) (string, error) {
 	return errCode, nil
 }
 
+// NewErrorContextClassifier creates a new Classifier instance, configured with error codes and related flags
 func NewErrorContextClassifier() Classifier {
 	return &errCtxClassifier{
 		errorTags: map[string][]string{
-			errPiClient: []string{productInfoErrTag, productInfoCliErrTag},
-			errRec:      []string{recommenderErrorTag},
+			errProductInfo: []string{productInfoErrTag, productInfoCliErrTag},
+			errRecommender: []string{recommenderErrorTag},
 		},
 	}
 }

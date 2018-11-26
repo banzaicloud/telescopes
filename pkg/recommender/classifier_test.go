@@ -31,7 +31,7 @@ func TestClassifyErrorContext(t *testing.T) {
 			name: "productinfo errorcode",
 			err:  emperror.With(errors.New("test"), productInfoErrTag, productInfoCliErrTag),
 			check: func(t *testing.T, code string, err error) {
-				assert.Equal(t, errPiClient, code, "unexpected error code by classifier")
+				assert.Equal(t, errProductInfo, code, "unexpected error code by classifier")
 			},
 		},
 		{
@@ -45,7 +45,7 @@ func TestClassifyErrorContext(t *testing.T) {
 			name: "recommender error code",
 			err:  emperror.With(errors.New("test"), recommenderErrorTag),
 			check: func(t *testing.T, code string, err error) {
-				assert.Equal(t, errRec, code, "unexpected error code by classifier")
+				assert.Equal(t, errRecommender, code, "unexpected error code by classifier")
 			},
 		},
 	}
@@ -68,7 +68,7 @@ func TestErrCtxClassifier_rank(t *testing.T) {
 			name:  "context rank productinfo flags",
 			flags: []interface{}{productInfoErrTag},
 			checker: func(t *testing.T, code string, rank int) {
-				assert.Equal(t, code, errPiClient, "unexpected code")
+				assert.Equal(t, code, errProductInfo, "unexpected code")
 				assert.Equal(t, rank, 1, "unexpected rank")
 			},
 		},
@@ -76,7 +76,7 @@ func TestErrCtxClassifier_rank(t *testing.T) {
 			name:  "context rank productinfo flags",
 			flags: []interface{}{productInfoCliErrTag, productInfoErrTag},
 			checker: func(t *testing.T, code string, rank int) {
-				assert.Equal(t, code, errPiClient, "unexpected code")
+				assert.Equal(t, code, errProductInfo, "unexpected code")
 				assert.Equal(t, rank, 2, "unexpected rank")
 			},
 		},
@@ -84,7 +84,7 @@ func TestErrCtxClassifier_rank(t *testing.T) {
 			name:  "context rank recommender flags",
 			flags: []interface{}{recommenderErrorTag},
 			checker: func(t *testing.T, code string, rank int) {
-				assert.Equal(t, code, errRec, "unexpected code")
+				assert.Equal(t, code, errRecommender, "unexpected code")
 				assert.Equal(t, rank, 1, "unexpected rank")
 			},
 		},

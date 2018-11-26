@@ -19,17 +19,21 @@ import (
 	"net/http"
 )
 
-type ErrorResponder interface {
+// Responder marks the capability for respondings
+type Responder interface {
 	Respond(err error)
 }
 
+// errorResponder struct in charge for assembling classified error responses
 type errorResponder struct {
 	errClassifier Classifier
 	gCtx          *gin.Context
 }
 
+// Respond assembles the error response corresponding to the passed in error
 func (er *errorResponder) Respond(err error) {
-	if errCode, err := er.errClassifier.Classify(err); err != nil {
+
+	if errCode, e := er.errClassifier.Classify(err); e == nil {
 		er.gCtx.JSON(http.StatusInternalServerError, gin.H{"code": errCode})
 		return
 	}
@@ -37,7 +41,8 @@ func (er *errorResponder) Respond(err error) {
 	er.gCtx.JSON(http.StatusInternalServerError, gin.H{"code": "unknown", "err": err})
 }
 
-func NewErrorResponder(ginCtx *gin.Context) ErrorResponder {
+// NewErrorResponder configures a new error responder
+func NewErrorResponder(ginCtx *gin.Context) Responder {
 	return &errorResponder{
 		errClassifier: NewErrorContextClassifier(),
 		gCtx:          ginCtx,
