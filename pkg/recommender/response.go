@@ -19,8 +19,9 @@ import (
 	"net/http"
 )
 
-// Responder marks the capability for respondings
+// Responder marks a responders
 type Responder interface {
+	// Respond implements the responding logic / it's intended to be self-contained
 	Respond(err error)
 }
 
