@@ -41,8 +41,8 @@ type CloudInfoClient struct {
 }
 
 const (
-	productInfoErroTag = "productinfo"
-	productInfoCliTag  = "client"
+	productInfoErrTag    = "productinfo"
+	productInfoCliErrTag = "client"
 )
 
 // NewCloudInfoClient creates a new product info client wrapper instance
@@ -55,7 +55,7 @@ func (piCli *CloudInfoClient) GetAttributeValues(provider string, service string
 	attrParams := attributes.NewGetAttrValuesParams().WithProvider(provider).WithRegion(region).WithAttribute(attr).WithService(service)
 	allValues, err := piCli.Attributes.GetAttrValues(attrParams)
 	if err != nil {
-		return nil, emperror.With(err, productInfoErroTag, productInfoCliTag)
+		return nil, emperror.With(err, productInfoErrTag, productInfoCliErrTag)
 	}
 	return allValues.Payload.AttributeValues, nil
 }
@@ -65,7 +65,7 @@ func (piCli *CloudInfoClient) GetRegion(provider string, service string, region 
 	grp := regions.NewGetRegionParams().WithProvider(provider).WithService(service).WithRegion(region)
 	r, err := piCli.Regions.GetRegion(grp)
 	if err != nil {
-		return nil, emperror.With(err, productInfoErroTag, productInfoCliTag)
+		return nil, emperror.With(err, productInfoErrTag, productInfoCliErrTag)
 	}
 	return r.Payload.Zones, nil
 }
@@ -75,7 +75,7 @@ func (piCli *CloudInfoClient) GetProductDetails(provider string, service string,
 	gpdp := products.NewGetProductsParams().WithRegion(region).WithProvider(provider).WithService(service)
 	allProducts, err := piCli.Products.GetProducts(gpdp)
 	if err != nil {
-		return nil, emperror.With(err, productInfoErroTag, productInfoCliTag)
+		return nil, emperror.With(err, productInfoErrTag, productInfoCliErrTag)
 	}
 	return allProducts.Payload.Products, nil
 }

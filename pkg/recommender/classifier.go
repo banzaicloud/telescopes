@@ -15,7 +15,6 @@
 package recommender
 
 import (
-	"fmt"
 	"github.com/goph/emperror"
 	"github.com/pkg/errors"
 )
@@ -44,21 +43,48 @@ func (ec *errCtxClassifier) Classify(in interface{}) (string, error) {
 		return "", errors.New("unsupported type for classifier")
 	}
 
-	for k, vs := range ec.errorTags {
+	errCode, _ := ec.rank(emperror.Context(err))
 
-	}
-	for i, v := range emperror.Context(err) {
-		fmt.Printf("key: %v, value: %v \n", i, v)
-	}
-
-	return "", nil
+	return errCode, nil
 }
 
 func NewErrorContextClassifier() Classifier {
 	return &errCtxClassifier{
 		errorTags: map[string][]string{
-			errPiClient: []string{productInfoErroTag, productInfoCliTag},
-			errRec:      []string{recommenderTag},
+			errPiClient: []string{productInfoErrTag, productInfoCliErrTag},
+			errRec:      []string{recommenderErrorTag},
 		},
 	}
+}
+
+func (ec *errCtxClassifier) rank(flags []interface{}) (string, int) {
+
+	var (
+		errCode string
+		maxRank int = -1
+	)
+
+	for errKey, errFlags := range ec.errorTags {
+		currRate := ec.rate(errFlags, flags)
+		if currRate > 0 && currRate > maxRank {
+			maxRank = currRate
+			errCode = errKey
+		}
+	}
+
+	return errCode, maxRank
+}
+
+// rate computes the numeric value representing the number or error flags matched by the context flags
+// the higher the computed rank the higher the possibility that the set of flags identify the right error code
+func (ec *errCtxClassifier) rate(errFlags []string, ctxFlags []interface{}) int {
+	rate := 0
+	for _, errFlag := range errFlags {
+		for _, ctxFlag := range ctxFlags {
+			if errFlag == ctxFlag {
+				rate = rate + 1
+			}
+		}
+	}
+	return rate
 }

@@ -73,7 +73,8 @@ func (r *RouteHandler) recommendClusterSetup(ctx context.Context) gin.HandlerFun
 		}
 
 		if response, err := r.engine.RecommendCluster(ctxLog, pathParams.Provider, pathParams.Service, pathParams.Region, req.ClusterRecommendationReq); err != nil {
-			c.JSON(http.StatusInternalServerError, gin.H{"status": http.StatusInternalServerError, "message": fmt.Sprintf("%s", err)})
+			recommender.NewErrorResponder(c).Respond(err)
+			//c.JSON(http.StatusInternalServerError, gin.H{"status": http.StatusInternalServerError, "message": fmt.Sprintf("%s", err)})
 		} else {
 			c.JSON(http.StatusOK, *response)
 		}

@@ -34,7 +34,7 @@ const (
 	// Cpu represents the cpu attribute for the recommender
 	Cpu = "cpu"
 
-	recommenderTag = "recommender"
+	recommenderErrorTag = "recommender"
 )
 
 // ClusterRecommender defines operations for cluster recommendations
@@ -372,7 +372,7 @@ func (e *Engine) RecommendVms(ctx context.Context, provider string, service stri
 
 	vmsInRange, err := e.findVmsWithAttrValues(ctx, provider, service, region, req.Zones, attr, values)
 	if err != nil {
-		return nil, emperror.With(err, recommenderTag, "vms")
+		return nil, emperror.With(err, recommenderErrorTag, "vms")
 	}
 
 	var filteredVms []VirtualMachine
@@ -482,12 +482,12 @@ func (e *Engine) RecommendAttrValues(ctx context.Context, provider string, servi
 
 	allValues, err := e.piSource.GetAttributeValues(provider, service, region, attr)
 	if err != nil {
-		return nil, emperror.With(err, recommenderTag, "attributes")
+		return nil, emperror.With(err, recommenderErrorTag, "attributes")
 	}
 
 	values, err := AttributeValues(allValues).SelectAttributeValues(ctx, req.minValuePerVm(ctx, attr), req.maxValuePerVm(ctx, attr))
 	if err != nil {
-		return nil, emperror.With(err, recommenderTag, "attributes")
+		return nil, emperror.With(err, recommenderErrorTag, "attributes")
 	}
 
 	return values, nil
@@ -514,7 +514,7 @@ func (e *Engine) filtersForAttr(ctx context.Context, attr string, provider strin
 	case Memory:
 		filters = append(filters, e.minCpuRatioFilter)
 	default:
-		return nil, emperror.With(errors.New("unsupported attribute"), recommenderTag, "attrVal", attr)
+		return nil, emperror.With(errors.New("unsupported attribute"), recommenderErrorTag, "attrVal", attr)
 	}
 
 	return filters, nil

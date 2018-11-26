@@ -17,23 +17,83 @@ package recommender
 import (
 	"github.com/goph/emperror"
 	"github.com/pkg/errors"
+	"github.com/stretchr/testify/assert"
 	"testing"
 )
 
 func TestClassifyErrorContext(t *testing.T) {
 	tests := []struct {
-		name string
-		err  error
+		name  string
+		err   error
+		check func(t *testing.T, code string, err error)
 	}{
 		{
-			name: "productinfo tags",
-			err:  emperror.With(errors.New("test"), productInfoErroTag, productInfoCliTag),
+			name: "productinfo errorcode",
+			err:  emperror.With(errors.New("test"), productInfoErrTag, productInfoCliErrTag),
+			check: func(t *testing.T, code string, err error) {
+				assert.Equal(t, errPiClient, code, "unexpected error code by classifier")
+			},
+		},
+		{
+			name: "no error code",
+			err:  errors.New("test"),
+			check: func(t *testing.T, code string, err error) {
+				assert.Equal(t, "", code, "unexpected error code by classifier")
+			},
+		},
+		{
+			name: "recommender error code",
+			err:  emperror.With(errors.New("test"), recommenderErrorTag),
+			check: func(t *testing.T, code string, err error) {
+				assert.Equal(t, errRec, code, "unexpected error code by classifier")
+			},
 		},
 	}
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
 			c := NewErrorContextClassifier()
-			c.Classify(test.err)
+			code, err := c.Classify(test.err)
+			test.check(t, code, err)
+		})
+	}
+}
+
+func TestErrCtxClassifier_rank(t *testing.T) {
+	tests := []struct {
+		name    string
+		flags   []interface{}
+		checker func(t *testing.T, code string, rank int)
+	}{
+		{
+			name:  "context rank productinfo flags",
+			flags: []interface{}{productInfoErrTag},
+			checker: func(t *testing.T, code string, rank int) {
+				assert.Equal(t, code, errPiClient, "unexpected code")
+				assert.Equal(t, rank, 1, "unexpected rank")
+			},
+		},
+		{
+			name:  "context rank productinfo flags",
+			flags: []interface{}{productInfoCliErrTag, productInfoErrTag},
+			checker: func(t *testing.T, code string, rank int) {
+				assert.Equal(t, code, errPiClient, "unexpected code")
+				assert.Equal(t, rank, 2, "unexpected rank")
+			},
+		},
+		{
+			name:  "context rank recommender flags",
+			flags: []interface{}{recommenderErrorTag},
+			checker: func(t *testing.T, code string, rank int) {
+				assert.Equal(t, code, errRec, "unexpected code")
+				assert.Equal(t, rank, 1, "unexpected rank")
+			},
+		},
+	}
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			c, _ := NewErrorContextClassifier().(*errCtxClassifier)
+			code, rank := c.rank(test.flags)
+			test.checker(t, code, rank)
 		})
 	}
 }
