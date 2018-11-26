@@ -34,3 +34,7 @@
 [[constraint]]
   branch = "master"
   name = "github.com/banzaicloud/go-gin-prometheus"
+
+[[constraint]]
+  name = "github.com/goph/emperror"
+  version = "0.12.0"
