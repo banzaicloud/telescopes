@@ -63,7 +63,7 @@ func (piCli *CloudInfoClient) GetAttributeValues(provider string, service string
 	return allValues.Payload.AttributeValues, nil
 }
 
-// GetRegion describes the region (eventually returns the zones in the region)
+// GetZones describes the region (eventually returns the zones in the region)
 func (piCli *CloudInfoClient) GetZones(provider string, service string, region string) ([]string, error) {
 	grp := regions.NewGetRegionParams().WithProvider(provider).WithService(service).WithRegion(region)
 	r, err := piCli.Regions.GetRegion(grp)

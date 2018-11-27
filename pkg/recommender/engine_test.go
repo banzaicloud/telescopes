@@ -56,7 +56,7 @@ func (piCli *dummyCloudInfoSource) GetAttributeValues(provider string, service s
 	return []float64{15, 16, 17}, nil
 }
 
-func (piCli *dummyCloudInfoSource) GetRegion(provider string, service string, region string) ([]string, error) {
+func (piCli *dummyCloudInfoSource) GetZones(provider string, service string, region string) ([]string, error) {
 	switch piCli.TcId {
 	case DescribeRegionError:
 		return nil, errors.New(DescribeRegionError)
