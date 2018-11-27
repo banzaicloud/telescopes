@@ -398,7 +398,7 @@ func (e *Engine) findVmsWithAttrValues(ctx context.Context, provider string, ser
 	)
 
 	if len(zones) == 0 {
-		if zones, err = e.piSource.GetRegion(provider, service, region); err != nil {
+		if zones, err = e.piSource.GetZones(provider, service, region); err != nil {
 			log.WithError(err).Debugf("couldn't describe region: %s, provider: %s", region, provider)
 			return nil, emperror.With(err, "retrieval", "region")
 		}

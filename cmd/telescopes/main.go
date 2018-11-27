@@ -140,7 +140,7 @@ func main() {
 	}
 
 	buildInfo := buildinfo.New(Version, CommitHash, BuildDate)
-	routeHandler := api.NewRouteHandler(engine, buildInfo)
+	routeHandler := api.NewRouteHandler(engine, buildInfo, piCli)
 
 	// new default gin engine (recovery, logger middleware)
 	router := gin.Default()

@@ -16,10 +16,12 @@ package api
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"github.com/banzaicloud/cloudinfo/pkg/logger"
 	"github.com/banzaicloud/cloudinfo/pkg/cloudinfo-client/client/service"
 	"github.com/banzaicloud/telescopes/pkg/recommender"
+	"github.com/goph/emperror"
 	"github.com/mitchellh/mapstructure"
 	"net/http"
 	"reflect"
@@ -36,22 +38,13 @@ const (
 	ntwMedium = "medium"
 	ntwHigh   = "high"
 	ntwExtra  = "extra"
+
+	validationErrTag = "validation"
 )
 
 // ConfigureValidator configures the Gin validator with custom validator functions
 func ConfigureValidator(ctx context.Context, pc *recommender.CloudInfoClient) error {
 	v := binding.Validator.Engine().(*validator.Validate)
-	if err := v.RegisterValidation("provider", providerValidator(ctx, pc)); err != nil {
-		return fmt.Errorf("could not register provider validator. error: %s", err)
-	}
-
-	if err := v.RegisterValidation("service", serviceValidator(ctx, pc)); err != nil {
-		return fmt.Errorf("could not register service validator. error: %s", err)
-	}
-
-	if err := v.RegisterValidation("region", regionValidator(ctx, pc)); err != nil {
-		return fmt.Errorf("could not register region validator. error: %s", err)
-	}
 
 	if err := v.RegisterValidation("zone", zoneValidator(pc)); err != nil {
 		return fmt.Errorf("could not register zone validator. error: %s", err)
@@ -213,4 +206,72 @@ func digValueForName(value reflect.Value, field string) string {
 		ret = value.Elem().FieldByName(field).String()
 	}
 	return ret
+}
+
+// CloudInfoValidator contract for validating cloud info data
+type CloudInfoValidator interface {
+	// Validate checks the existence, correctness etc... of the parameters
+	Validate(params interface{}) error
+}
+
+type pathParamValidator struct {
+	piCli *recommender.ProductInfoClient
+}
+
+// Validate validates path parameters against the connected cloud info service
+func (ppV *pathParamValidator) Validate(params interface{}) error {
+
+	var (
+		pathParams GetRecommendationParams
+		ok         bool
+	)
+
+	if pathParams, ok = params.(GetRecommendationParams); !ok {
+		return errors.New("invalid path params")
+	}
+
+	if e := ppV.validateProvider(pathParams.Provider); e != nil {
+		return emperror.With(e, validationErrTag)
+	}
+
+	if e := ppV.validateService(pathParams.Provider, pathParams.Service); e != nil {
+		return emperror.With(e, validationErrTag)
+	}
+
+	if e := ppV.validateRegion(pathParams.Provider, pathParams.Service, pathParams.Region); e != nil {
+		return emperror.With(e, validationErrTag)
+	}
+
+	return nil
+}
+
+func (ppV *pathParamValidator) validateProvider(prv string) error {
+	if ciPrv, e := ppV.piCli.GetProvider(prv); e != nil {
+		return e
+	} else if ciPrv == "" {
+		return errors.New("provider not found")
+	}
+	return nil
+}
+
+func (ppV *pathParamValidator) validateService(prv, svc string) error {
+	if cis, e := ppV.piCli.GetService(prv, svc); e != nil {
+		return e
+	} else if cis == "" {
+		return errors.New("service not found")
+	}
+	return nil
+}
+
+func (ppV *pathParamValidator) validateRegion(prv, svc, region string) error {
+	if ciReg, e := ppV.piCli.GetRegion(prv, svc, region); e != nil {
+		return e
+	} else if ciReg == "" {
+		return errors.New("region not found")
+	}
+	return nil
+}
+
+func NewCloudInfoValidator(ciCli *recommender.ProductInfoClient) CloudInfoValidator {
+	return &pathParamValidator{ciCli}
 }

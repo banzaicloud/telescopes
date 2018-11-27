@@ -20,6 +20,9 @@ import (
 	"github.com/banzaicloud/cloudinfo/pkg/cloudinfo-client/client/products"
 	"github.com/banzaicloud/cloudinfo/pkg/cloudinfo-client/client/regions"
 	"github.com/banzaicloud/cloudinfo/pkg/cloudinfo-client/models"
+	"github.com/banzaicloud/cloudinfo/pkg/cloudinfo-client/client/provider"
+	"github.com/banzaicloud/cloudinfo/pkg/cloudinfo-client/client/service"
+	"github.com/goph/emperror"
 )
 
 // CloudInfoSource declares operations for retrieving information required for the recommender engine
@@ -27,8 +30,8 @@ type CloudInfoSource interface {
 	// GetAttributeValues retrieves attribute values based on the given arguments
 	GetAttributeValues(provider string, service string, region string, attr string) ([]float64, error)
 
-	// GetRegion describes the given region fof the given provider
-	GetRegion(provider string, service string, region string) ([]string, error)
+	// GetZones describes the given region fof the given provider
+	GetZones(provider string, service string, region string) ([]string, error)
 
 	// GetProductDetails retrieves the product details for the provider and region
 	GetProductDetails(provider string, service string, region string) ([]*models.ProductDetails, error)
@@ -61,7 +64,7 @@ func (piCli *CloudInfoClient) GetAttributeValues(provider string, service string
 }
 
 // GetRegion describes the region (eventually returns the zones in the region)
-func (piCli *CloudInfoClient) GetRegion(provider string, service string, region string) ([]string, error) {
+func (piCli *CloudInfoClient) GetZones(provider string, service string, region string) ([]string, error) {
 	grp := regions.NewGetRegionParams().WithProvider(provider).WithService(service).WithRegion(region)
 	r, err := piCli.Regions.GetRegion(grp)
 	if err != nil {
@@ -78,4 +81,40 @@ func (piCli *CloudInfoClient) GetProductDetails(provider string, service string,
 		return nil, emperror.With(err, productInfoErrTag, productInfoCliErrTag)
 	}
 	return allProducts.Payload.Products, nil
+}
+
+// GetProductDetails gets the available product details from the provider in the region
+func (piCli *ProductInfoClient) GetProvider(prv string) (string, error) {
+	gpp := provider.NewGetProviderParams().WithProvider(prv)
+
+	provider, err := piCli.Provider.GetProvider(gpp)
+	if err != nil {
+		return "", emperror.With(err, productInfoErrTag, productInfoCliErrTag)
+	}
+
+	return provider.Payload.Provider.Provider, nil
+}
+
+// GetProductDetails gets the available product details from the provider in the region
+func (piCli *ProductInfoClient) GetService(prv string, svc string) (string, error) {
+	gsp := service.NewGetServiceParams().WithProvider(prv).WithService(svc)
+
+	provider, err := piCli.Service.GetService(gsp)
+	if err != nil {
+		return "", emperror.With(err, productInfoErrTag, productInfoCliErrTag)
+	}
+
+	return provider.Payload.Service.Service, nil
+}
+
+// GetProductDetails gets the available product details from the provider in the region
+func (piCli *ProductInfoClient) GetRegion(prv, svc, reg string) (string, error) {
+	grp := regions.NewGetRegionParams().WithProvider(prv).WithService(svc).WithRegion(reg)
+
+	r, err := piCli.Regions.GetRegion(grp)
+	if err != nil {
+		return "", emperror.With(err, productInfoErrTag, productInfoCliErrTag)
+	}
+
+	return r.Payload.Name, nil
 }
