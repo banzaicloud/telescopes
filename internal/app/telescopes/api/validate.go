@@ -47,93 +47,13 @@ func ConfigureValidator(ctx context.Context, pc *recommender.CloudInfoClient) er
 	v := binding.Validator.Engine().(*validator.Validate)
 
 	if err := v.RegisterValidation("zone", zoneValidator(pc)); err != nil {
-		return fmt.Errorf("could not register zone validator. error: %s", err)
+		return emperror.Wrap(err, "could not register zone validator")
 	}
 
 	if err := v.RegisterValidation("network", networkPerfValidator()); err != nil {
-		return fmt.Errorf("could not register network validator. error: %s", err)
+		return emperror.Wrap(err, "could not register network validator")
 	}
 	return nil
-}
-
-// ValidatePathData middleware function to validate provider, service and region information in the request path
-func ValidatePathData(ctx context.Context, validate *validator.Validate) gin.HandlerFunc {
-	return func(c *gin.Context) {
-		ctxLog := logger.Extract(ctx)
-
-		// extract the path parameter data into the param struct
-		pathData := &GetRecommendationParams{}
-		if err := mapstructure.Decode(getPathParamMap(c), pathData); err != nil {
-			ctxLog.WithError(err).Error("validation failed")
-			c.JSON(http.StatusBadRequest, gin.H{
-				"code":    "bad_params",
-				"message": fmt.Sprintf("invalid path data: %s", pathData),
-				"params":  pathData,
-			})
-			return
-		}
-
-		ctxLog.Debugf("path data being validated: %s", pathData)
-
-		// invoke validation on the param struct
-		err := validate.Struct(pathData)
-		if err != nil {
-			ctxLog.WithError(err).Error("validation failed")
-			c.Abort()
-			c.JSON(http.StatusBadRequest, gin.H{
-				"code":    "bad_params",
-				"message": fmt.Sprintf("invalid path data: %s", pathData),
-				"params":  pathData,
-			})
-			return
-		}
-	}
-}
-
-func providerValidator(ctx context.Context, pc *recommender.CloudInfoClient) validator.Func {
-	return func(v *validator.Validate, topStruct reflect.Value, currentStruct reflect.Value, field reflect.Value, fieldtype reflect.Type, fieldKind reflect.Kind, param string) bool {
-		cProviders, err := pc.Providers.GetProviders(providers.NewGetProvidersParams())
-		if err != nil {
-			logger.Extract(ctx).WithError(err).Error("failed to get providers")
-			return false
-		}
-		for _, p := range cProviders.Payload.Providers {
-			if p.Provider == field.String() {
-				return true
-			}
-		}
-		return false
-	}
-}
-
-// regionValidator validates the zone in the recommendation request.
-func regionValidator(ctx context.Context, pc *recommender.CloudInfoClient) validator.Func {
-
-	return func(v *validator.Validate, topStruct reflect.Value, currentStruct reflect.Value, field reflect.Value, fieldtype reflect.Type, fieldKind reflect.Kind, param string) bool {
-		currentProvider := digValueForName(currentStruct, "Provider")
-		currentService := digValueForName(currentStruct, "Service")
-		currentRegion := digValueForName(currentStruct, "Region")
-
-		ctxWithFields := logger.ToContext(ctx, logger.NewLogCtxBuilder().
-			WithProvider(currentProvider).
-			WithService(currentService).
-			Build())
-		ctxLog := logger.Extract(ctxWithFields)
-
-		response, err := pc.Regions.GetRegions(regions.NewGetRegionsParams().WithProvider(currentProvider).WithService(currentService))
-		if err != nil {
-			ctxLog.WithError(err).Error("could not get regions")
-			return false
-		}
-
-		ctxLog.Debugf("current region: %s, regions: %#v", currentRegion, response.Payload)
-		for _, r := range response.Payload {
-			if r.ID == currentRegion {
-				return true
-			}
-		}
-		return false
-	}
 }
 
 // zoneValidator validates the zone in the recommendation request.
@@ -142,12 +62,12 @@ func zoneValidator(pc *recommender.CloudInfoClient) validator.Func {
 		fieldtype reflect.Type, fieldKind reflect.Kind, param string) bool {
 
 		provider := reflect.Indirect(topStruct).FieldByName("Provider").String()
-		service := reflect.Indirect(topStruct).FieldByName("Service").String()
+		svc := reflect.Indirect(topStruct).FieldByName("Service").String()
 		region := reflect.Indirect(topStruct).FieldByName("Region").String()
 
 		response, _ := pc.Regions.GetRegion(regions.NewGetRegionParams().
 			WithProvider(provider).
-			WithService(service).
+			WithService(svc).
 			WithRegion(region))
 		for _, zone := range response.Payload.Zones {
 			if zone == field.String() {
@@ -172,42 +92,6 @@ func networkPerfValidator() validator.Func {
 	}
 }
 
-// serviceValidator validates the `service` path parameter
-func serviceValidator(ctx context.Context, pc *recommender.CloudInfoClient) validator.Func {
-
-	return func(v *validator.Validate, topStruct reflect.Value, currentStruct reflect.Value, field reflect.Value, fieldtype reflect.Type, fieldKind reflect.Kind, param string) bool {
-
-		currentProvider := digValueForName(currentStruct, "Provider")
-		currentService := digValueForName(currentStruct, "Service")
-
-		ctxWithFields := logger.ToContext(ctx, logger.NewLogCtxBuilder().
-			WithProvider(currentProvider).
-			Build())
-		ctxLog := logger.Extract(ctxWithFields)
-
-		svcOk, err := pc.Service.GetService(service.NewGetServiceParams().WithProvider(currentProvider).WithService(currentService))
-		if err != nil {
-			ctxLog.WithError(err).Error("could not get services")
-			return false
-		}
-
-		ctxLog.Debugf("current service: %s", svcOk)
-
-		return true
-	}
-}
-
-func digValueForName(value reflect.Value, field string) string {
-	var ret string
-	switch value.Kind() {
-	case reflect.Struct:
-		ret = value.FieldByName(field).String()
-	case reflect.Ptr:
-		ret = value.Elem().FieldByName(field).String()
-	}
-	return ret
-}
-
 // CloudInfoValidator contract for validating cloud info data
 type CloudInfoValidator interface {
 	// Validate checks the existence, correctness etc... of the parameters
@@ -215,7 +99,7 @@ type CloudInfoValidator interface {
 }
 
 type pathParamValidator struct {
-	piCli *recommender.ProductInfoClient
+	piCli *recommender.CloudInfoClient
 }
 
 // Validate validates path parameters against the connected cloud info service
