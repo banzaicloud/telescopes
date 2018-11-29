@@ -545,7 +545,7 @@ func TestEngine_RecommendCluster(t *testing.T) {
 			},
 			check: func(resp *ClusterRecommendationResp, err error) {
 				assert.Nil(t, resp, "the response should be nil")
-				assert.EqualError(t, err, "failed to recommend virtual machines: no vms suitable for spot pools")
+				assert.EqualError(t, err, "failed to recommend nodepools: no vms suitable for spot pools")
 			},
 		},
 		{

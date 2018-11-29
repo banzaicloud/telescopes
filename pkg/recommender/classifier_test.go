@@ -54,7 +54,7 @@ func TestClassifyErrorContext(t *testing.T) {
 		t.Run(test.name, func(t *testing.T) {
 			c := NewErrorContextClassifier()
 			code, err := c.Classify(test.err)
-			test.check(t, fmt.Sprint("%s", code), err)
+			test.check(t, fmt.Sprintf("%s", code), err)
 		})
 	}
 }
