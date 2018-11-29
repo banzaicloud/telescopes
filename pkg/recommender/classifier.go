@@ -30,82 +30,16 @@ type Classifier interface {
 	Classify(in interface{}) (interface{}, error)
 }
 
-// errCtxClassifier struct for classifying errors based on their context
-type errCtxClassifier struct {
-	// a map keyed by the error code identified by the tags in the value slice
-	errorTags map[string][]string
-}
-
-const (
-	// constants representing error codes
-	errProductInfo    = "CLOUDINFO"
-	errCloudInfoDown  = "CLOUD-INFO-N/A"
-	errRecommender    = "RECOMMENDER"
-	errPathValidation = "INVALIDPATH"
-)
-
-// Classify classifies the error passed in based on its context. Returns the error code corresponding to the context
-func (ec *errCtxClassifier) Classify(in interface{}) (interface{}, error) {
-	var (
-		err error
-		ok  bool
-	)
-	if err, ok = in.(error); !ok {
-		return "", errors.New("unsupported type for classifier")
-	}
-
-	errCode, _ := ec.rank(emperror.Context(err))
-
-	return errCode, nil
-}
-
-// NewErrorContextClassifier creates a new Classifier instance, configured with error codes and related flags
-func NewErrorContextClassifier() Classifier {
-	return &errCtxClassifier{
-		errorTags: map[string][]string{
-			errProductInfo:    []string{cloudInfoErrTag},
-			errCloudInfoDown:  []string{cloudInfoCliErrTag},
-			errRecommender:    []string{recommenderErrorTag},
-			errPathValidation: []string{"validation"},
-		},
-	}
-}
-
-func (ec *errCtxClassifier) rank(flags []interface{}) (string, int) {
-
-	var (
-		errCode string
-		maxRank int = -1
-	)
-
-	for errKey, errFlags := range ec.errorTags {
-		currRate := ec.rate(errFlags, flags)
-		if currRate > 0 && currRate > maxRank {
-			maxRank = currRate
-			errCode = errKey
-		}
-	}
-
-	return errCode, maxRank
-}
-
-// rate computes the numeric value representing the number or error flags matched by the context flags
-// the higher the computed rank the higher the possibility that the set of flags identify the right error code
-func (ec *errCtxClassifier) rate(errFlags []string, ctxFlags []interface{}) int {
-	rate := 0
-	for _, errFlag := range errFlags {
-		for _, ctxFlag := range ctxFlags {
-			if errFlag == ctxFlag {
-				rate = rate + 1
-			}
-		}
-	}
-	return rate
-}
-
+// errResponseClassifier type implementing the Classifier interface
 type errResponseClassifier struct {
 }
 
+// NewErrorResponseClassifier returns a reference to a classifier instance
+func NewErrorResponseClassifier() Classifier {
+	return &errResponseClassifier{}
+}
+
+// Classify classification implementation based on the error and its context
 func (erc *errResponseClassifier) Classify(in interface{}) (interface{}, error) {
 	var (
 		err error
@@ -139,24 +73,7 @@ func (erc *errResponseClassifier) Classify(in interface{}) (interface{}, error) 
 	return nil, nil
 }
 
-func NewErrorResponseClassifier() Classifier {
-	return &errResponseClassifier{}
-}
-
-type ErrorResponse struct {
-	HttpResponseCode int    `json:"http_response_code"`
-	ErrorCode        int    `json:"error_code"`
-	Message          string `json:"message"`
-}
-
-func NewErrorResponse(rCode, eCode int, message string) ErrorResponse {
-	return ErrorResponse{
-		HttpResponseCode: rCode,
-		ErrorCode:        eCode,
-		Message:          message,
-	}
-}
-
+// classifyApiError assembles data to be sent in the response to the caller when the error originates from the cloud info service
 func (erc *errResponseClassifier) classifyApiError(e *runtime.APIError, ctx []interface{}) (int, int, string) {
 
 	var (
@@ -167,9 +84,9 @@ func (erc *errResponseClassifier) classifyApiError(e *runtime.APIError, ctx []in
 
 	// determine http status code
 	switch c := e.Code; {
-	case c < 500:
+	case c < http.StatusInternalServerError:
 		// all non-server error status codes translated to user error staus code
-		httpCode = 400
+		httpCode = http.StatusBadRequest
 	default:
 		// all server errors left unchanged
 		httpCode = c
@@ -177,7 +94,17 @@ func (erc *errResponseClassifier) classifyApiError(e *runtime.APIError, ctx []in
 
 	// determine error code and status message - from the error and the context
 	// the message should contain the flow related information and
-	tcCode, tcMsg = erc.computeCodeAndMsg(e, ctx)
+	if has(ctx, "validation") {
+		// provider, service, region - path data
+		tcCode = 1000
+		tcMsg = "validation failed - no cloud information available for the request path data"
+	}
+
+	if has(ctx, recommenderErrorTag) {
+		// zone, network etc ..
+		tcCode = 5000
+		tcMsg = "recommendation failed - no cloud info available for the requested resources"
+	}
 
 	return httpCode, tcCode, tcMsg
 }
@@ -195,21 +122,6 @@ func (erc *errResponseClassifier) classifyUrlError(e *url.Error, ctx []interface
 	}
 
 	return httpCode, tcCode, tcMsg
-}
-
-func (erc *errResponseClassifier) computeCodeAndMsg(e *runtime.APIError, ctx []interface{}) (int, string) {
-
-	if has(ctx, "validation") {
-		// todo enrich the message with more information (path parameter, etc ...)
-		return 1000, fmt.Sprint("validation failed")
-	}
-
-	if has(ctx, recommenderErrorTag) {
-		// todo enrich the message with more information
-		return 5000, fmt.Sprint("recommendation failed")
-	}
-
-	return 0, ""
 }
 
 func (erc *errResponseClassifier) classifyGenericError(e error, ctx []interface{}) (int, int, string) {

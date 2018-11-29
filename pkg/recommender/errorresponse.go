@@ -19,7 +19,7 @@ import (
 	"net/http"
 )
 
-// Responder marks a responders
+// Responder marks responders
 type Responder interface {
 	// Respond implements the responding logic / it's intended to be self-contained
 	Respond(err error)
@@ -38,6 +38,7 @@ func (er *errorResponder) Respond(err error) {
 		er.respond(responseData)
 		return
 	}
+
 	er.gCtx.JSON(http.StatusInternalServerError, gin.H{"code": "unknown", "err": err})
 }
 
@@ -49,12 +50,29 @@ func NewErrorResponder(ginCtx *gin.Context) Responder {
 	}
 }
 
+// respond sets the response in the gin context
 func (er *errorResponder) respond(d interface{}) {
-	if erd, ok := d.(ErrorResponse); ok {
+
+	if erd, ok := d.(errorResponse); ok {
 		er.gCtx.JSON(erd.HttpResponseCode, erd)
 		return
 	}
 
-	er.gCtx.JSON(http.StatusInternalServerError, gin.H{"code": d})
+	er.gCtx.JSON(http.StatusInternalServerError, gin.H{"code": "unknown", "err": d})
+}
 
+// errorResponse data to be set as content in case of errors
+type errorResponse struct {
+	HttpResponseCode int    `json:"http_response_code"`
+	ErrorCode        int    `json:"error_code"`
+	Message          string `json:"message"`
+}
+
+// NewErrorResponse creates a new instance based on the provided data
+func NewErrorResponse(rCode, eCode int, message string) errorResponse {
+	return errorResponse{
+		HttpResponseCode: rCode,
+		ErrorCode:        eCode,
+		Message:          message,
+	}
 }
