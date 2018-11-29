@@ -94,13 +94,13 @@ func (erc *errResponseClassifier) classifyApiError(e *runtime.APIError, ctx []in
 
 	// determine error code and status message - from the error and the context
 	// the message should contain the flow related information and
-	if has(ctx, "validation") {
+	if hasLabel(ctx, "validation") {
 		// provider, service, region - path data
 		tcCode = 1000
 		tcMsg = "validation failed - no cloud information available for the request path data"
 	}
 
-	if has(ctx, recommenderErrorTag) {
+	if hasLabel(ctx, recommenderErrorTag) {
 		// zone, network etc ..
 		tcCode = 5000
 		tcMsg = "recommendation failed - no cloud info available for the requested resources"
@@ -117,7 +117,7 @@ func (erc *errResponseClassifier) classifyUrlError(e *url.Error, ctx []interface
 		tcMsg    string = "unknown failure"
 	)
 
-	if has(ctx, cloudInfoCliErrTag) {
+	if hasLabel(ctx, cloudInfoCliErrTag) {
 		return httpCode, 2000, fmt.Sprint("failed to connect to cloud info service") // connectivity to CI service
 	}
 
@@ -126,16 +126,16 @@ func (erc *errResponseClassifier) classifyUrlError(e *url.Error, ctx []interface
 
 func (erc *errResponseClassifier) classifyGenericError(e error, ctx []interface{}) (int, int, string) {
 
-	if has(ctx, recommenderErrorTag) {
+	if hasLabel(ctx, recommenderErrorTag) {
 		// todo enrich the message with more information
-		return http.StatusBadRequest, 5000, fmt.Sprint("recommendation failed")
+		return http.StatusBadRequest, 5000, e.Error()
 	}
 
-	return 500, -1, "recommendation failed"
+	return http.StatusInternalServerError, -1, "recommendation failed"
 }
 
-func has(slice []interface{}, s interface{}) bool {
-	for _, e := range slice {
+func hasLabel(ctx []interface{}, s interface{}) bool {
+	for _, e := range ctx {
 		if e == s {
 			return true
 		}
