@@ -70,16 +70,15 @@ func (erc *errResponseClassifier) Classify(in interface{}) (interface{}, error) 
 		return NewErrorResponse(httpCode, tcCode, tcMsq), nil
 	}
 
-	return nil, nil
 }
 
 // classifyApiError assembles data to be sent in the response to the caller when the error originates from the cloud info service
 func (erc *errResponseClassifier) classifyApiError(e *runtime.APIError, ctx []interface{}) (int, int, string) {
 
 	var (
-		httpCode int    = -1
-		tcCode   int    = -1
-		tcMsg    string = "unknown failure"
+		httpCode int
+		tcCode   = -1
+		tcMsg    = "unknown failure"
 	)
 
 	// determine http status code
