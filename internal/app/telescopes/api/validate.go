@@ -40,6 +40,9 @@ const (
 	ntwExtra  = "extra"
 
 	validationErrTag = "validation"
+	providerErrTag   = "provider"
+	serviceErrTag    = "service"
+	regionErrTag     = "region"
 )
 
 // ConfigureValidator configures the Gin validator with custom validator functions
@@ -115,15 +118,15 @@ func (ppV *pathParamValidator) Validate(params interface{}) error {
 	}
 
 	if e := ppV.validateProvider(pathParams.Provider); e != nil {
-		return emperror.With(e, validationErrTag)
+		return emperror.With(e, validationErrTag, providerErrTag)
 	}
 
 	if e := ppV.validateService(pathParams.Provider, pathParams.Service); e != nil {
-		return emperror.With(e, validationErrTag)
+		return emperror.With(e, validationErrTag, serviceErrTag)
 	}
 
 	if e := ppV.validateRegion(pathParams.Provider, pathParams.Service, pathParams.Region); e != nil {
-		return emperror.With(e, validationErrTag)
+		return emperror.With(e, validationErrTag, regionErrTag)
 	}
 
 	return nil

@@ -15,6 +15,11 @@
 package recommender
 
 import (
+	"fmt"
+	"net/http"
+	"net/url"
+
+	"github.com/go-openapi/runtime"
 	"github.com/goph/emperror"
 	"github.com/pkg/errors"
 )
@@ -22,7 +27,7 @@ import (
 // Classifier represents a contract to classify passed in structs
 type Classifier interface {
 	// Classify classifies the passed in struct based on arbitrary, implementation specific criteria
-	Classify(in interface{}) (string, error)
+	Classify(in interface{}) (interface{}, error)
 }
 
 // errCtxClassifier struct for classifying errors based on their context
@@ -33,12 +38,14 @@ type errCtxClassifier struct {
 
 const (
 	// constants representing error codes
-	errProductInfo = "PRODUCTINFO"
-	errRecommender = "RECOMMENDER"
+	errProductInfo    = "CLOUDINFO"
+	errCloudInfoDown  = "CLOUD-INFO-N/A"
+	errRecommender    = "RECOMMENDER"
+	errPathValidation = "INVALIDPATH"
 )
 
 // Classify classifies the error passed in based on its context. Returns the error code corresponding to the context
-func (ec *errCtxClassifier) Classify(in interface{}) (string, error) {
+func (ec *errCtxClassifier) Classify(in interface{}) (interface{}, error) {
 	var (
 		err error
 		ok  bool
@@ -56,8 +63,10 @@ func (ec *errCtxClassifier) Classify(in interface{}) (string, error) {
 func NewErrorContextClassifier() Classifier {
 	return &errCtxClassifier{
 		errorTags: map[string][]string{
-			errProductInfo: []string{productInfoErrTag, productInfoCliErrTag},
-			errRecommender: []string{recommenderErrorTag},
+			errProductInfo:    []string{cloudInfoErrTag},
+			errCloudInfoDown:  []string{cloudInfoCliErrTag},
+			errRecommender:    []string{recommenderErrorTag},
+			errPathValidation: []string{"validation"},
 		},
 	}
 }
@@ -92,4 +101,132 @@ func (ec *errCtxClassifier) rate(errFlags []string, ctxFlags []interface{}) int 
 		}
 	}
 	return rate
+}
+
+type errResponseClassifier struct {
+}
+
+func (erc *errResponseClassifier) Classify(in interface{}) (interface{}, error) {
+	var (
+		err error
+		ok  bool
+	)
+
+	if err, ok = in.(error); !ok {
+		return nil, errors.New("failed to classify error")
+	}
+
+	cause := errors.Cause(err)
+
+	switch cause.(type) {
+
+	case *runtime.APIError:
+		// (cloud info) service is reachable - operation failed (eg.: bad request)
+		httpCode, tcCode, tcMsq := erc.classifyApiError(cause.(*runtime.APIError), emperror.Context(err))
+
+		return NewErrorResponse(httpCode, tcCode, tcMsq), nil
+	case *url.Error:
+		// the cloud info service is not available
+		httpCode, tcCode, tcMsq := erc.classifyUrlError(cause.(*url.Error), emperror.Context(err))
+
+		return NewErrorResponse(httpCode, tcCode, tcMsq), nil
+	default:
+		httpCode, tcCode, tcMsq := erc.classifyGenericError(cause, emperror.Context(err))
+		// unclassified error
+		return NewErrorResponse(httpCode, tcCode, tcMsq), nil
+	}
+
+	return nil, nil
+}
+
+func NewErrorResponseClassifier() Classifier {
+	return &errResponseClassifier{}
+}
+
+type ErrorResponse struct {
+	HttpResponseCode int    `json:"http_response_code"`
+	ErrorCode        int    `json:"error_code"`
+	Message          string `json:"message"`
+}
+
+func NewErrorResponse(rCode, eCode int, message string) ErrorResponse {
+	return ErrorResponse{
+		HttpResponseCode: rCode,
+		ErrorCode:        eCode,
+		Message:          message,
+	}
+}
+
+func (erc *errResponseClassifier) classifyApiError(e *runtime.APIError, ctx []interface{}) (int, int, string) {
+
+	var (
+		httpCode int    = -1
+		tcCode   int    = -1
+		tcMsg    string = "unknown failure"
+	)
+
+	// determine http status code
+	switch c := e.Code; {
+	case c < 500:
+		// all non-server error status codes translated to user error staus code
+		httpCode = 400
+	default:
+		// all server errors left unchanged
+		httpCode = c
+	}
+
+	// determine error code and status message - from the error and the context
+	// the message should contain the flow related information and
+	tcCode, tcMsg = erc.computeCodeAndMsg(e, ctx)
+
+	return httpCode, tcCode, tcMsg
+}
+
+func (erc *errResponseClassifier) classifyUrlError(e *url.Error, ctx []interface{}) (int, int, string) {
+
+	var (
+		httpCode int    = http.StatusInternalServerError
+		tcCode   int    = -1
+		tcMsg    string = "unknown failure"
+	)
+
+	if has(ctx, cloudInfoCliErrTag) {
+		return httpCode, 2000, fmt.Sprint("failed to connect to cloud info service") // connectivity to CI service
+	}
+
+	return httpCode, tcCode, tcMsg
+}
+
+func (erc *errResponseClassifier) computeCodeAndMsg(e *runtime.APIError, ctx []interface{}) (int, string) {
+
+	if has(ctx, "validation") {
+		// todo enrich the message with more information (path parameter, etc ...)
+		return 1000, fmt.Sprint("validation failed")
+	}
+
+	if has(ctx, recommenderErrorTag) {
+		// todo enrich the message with more information
+		return 5000, fmt.Sprint("recommendation failed")
+	}
+
+	return 0, ""
+}
+
+func (erc *errResponseClassifier) classifyGenericError(e error, ctx []interface{}) (int, int, string) {
+
+	if has(ctx, recommenderErrorTag) {
+		// todo enrich the message with more information
+		return http.StatusBadRequest, 5000, fmt.Sprint("recommendation failed")
+	}
+
+	return 500, -1, "recommendation failed"
+}
+
+func has(slice []interface{}, s interface{}) bool {
+	for _, e := range slice {
+		if e == s {
+			return true
+		}
+	}
+	return false
 }

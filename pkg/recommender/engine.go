@@ -238,7 +238,7 @@ func (e *Engine) RecommendCluster(ctx context.Context, provider string, service 
 		}
 		nps, err := e.RecommendNodePools(ctx, attr, filteredVms, values, req)
 		if err != nil {
-			return nil, emperror.Wrap(err, "failed to recommend virtual machines")
+			return nil, emperror.Wrap(err, "failed to recommend nodepools")
 		}
 		log.Debugf("recommended node pools for [%s]: count:[%d] , values: [%#v]", attr, len(nps), nps)
 
@@ -247,7 +247,7 @@ func (e *Engine) RecommendCluster(ctx context.Context, provider string, service 
 
 	if len(nodePools) == 0 {
 		log.Debugf("could not recommend node pools for request: %v", req)
-		return nil, errors.New("could not recommend cluster with the requested resources")
+		return nil, emperror.With(errors.New("could not recommend cluster with the requested resources"), recommenderErrorTag)
 	}
 
 	cheapestNodePoolSet := e.findCheapestNodePoolSet(ctx, nodePools)

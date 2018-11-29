@@ -44,8 +44,8 @@ type CloudInfoClient struct {
 }
 
 const (
-	productInfoErrTag    = "productinfo"
-	productInfoCliErrTag = "client"
+	cloudInfoErrTag    = "cloud-info"
+	cloudInfoCliErrTag = "cloud-info-client"
 )
 
 // NewCloudInfoClient creates a new product info client wrapper instance
@@ -56,9 +56,10 @@ func NewCloudInfoClient(pic *client.Cloudinfo) *CloudInfoClient {
 // GetAttributeValues retrieves available attribute values on the provider in the region for the attribute
 func (piCli *CloudInfoClient) GetAttributeValues(provider string, service string, region string, attr string) ([]float64, error) {
 	attrParams := attributes.NewGetAttrValuesParams().WithProvider(provider).WithRegion(region).WithAttribute(attr).WithService(service)
+
 	allValues, err := piCli.Attributes.GetAttrValues(attrParams)
 	if err != nil {
-		return nil, emperror.With(err, productInfoErrTag, productInfoCliErrTag)
+		return nil, discriminateErrCtx(err)
 	}
 	return allValues.Payload.AttributeValues, nil
 }
@@ -66,9 +67,10 @@ func (piCli *CloudInfoClient) GetAttributeValues(provider string, service string
 // GetZones describes the region (eventually returns the zones in the region)
 func (piCli *CloudInfoClient) GetZones(provider string, service string, region string) ([]string, error) {
 	grp := regions.NewGetRegionParams().WithProvider(provider).WithService(service).WithRegion(region)
+
 	r, err := piCli.Regions.GetRegion(grp)
 	if err != nil {
-		return nil, emperror.With(err, productInfoErrTag, productInfoCliErrTag)
+		return nil, discriminateErrCtx(err)
 	}
 	return r.Payload.Zones, nil
 }
@@ -76,9 +78,10 @@ func (piCli *CloudInfoClient) GetZones(provider string, service string, region s
 // GetProductDetails gets the available product details from the provider in the region
 func (piCli *CloudInfoClient) GetProductDetails(provider string, service string, region string) ([]*models.ProductDetails, error) {
 	gpdp := products.NewGetProductsParams().WithRegion(region).WithProvider(provider).WithService(service)
+
 	allProducts, err := piCli.Products.GetProducts(gpdp)
 	if err != nil {
-		return nil, emperror.With(err, productInfoErrTag, productInfoCliErrTag)
+		return nil, discriminateErrCtx(err)
 	}
 	return allProducts.Payload.Products, nil
 }
@@ -89,7 +92,7 @@ func (piCli *ProductInfoClient) GetProvider(prv string) (string, error) {
 
 	provider, err := piCli.Provider.GetProvider(gpp)
 	if err != nil {
-		return "", emperror.With(err, productInfoErrTag, productInfoCliErrTag)
+		return "", discriminateErrCtx(err)
 	}
 
 	return provider.Payload.Provider.Provider, nil
@@ -101,7 +104,7 @@ func (piCli *ProductInfoClient) GetService(prv string, svc string) (string, erro
 
 	provider, err := piCli.Service.GetService(gsp)
 	if err != nil {
-		return "", emperror.With(err, productInfoErrTag, productInfoCliErrTag)
+		return "", discriminateErrCtx(err)
 	}
 
 	return provider.Payload.Service.Service, nil
@@ -113,8 +116,20 @@ func (piCli *ProductInfoClient) GetRegion(prv, svc, reg string) (string, error) 
 
 	r, err := piCli.Regions.GetRegion(grp)
 	if err != nil {
-		return "", emperror.With(err, productInfoErrTag, productInfoCliErrTag)
+		return "", discriminateErrCtx(err)
 	}
 
 	return r.Payload.Name, nil
+}
+
+func discriminateErrCtx(err error) error {
+
+	if _, ok := err.(*runtime.APIError); ok {
+		// the service can be reached
+		return emperror.With(err, cloudInfoErrTag)
+	}
+	// handle other cloud info errors here
+
+	// probably connectivity error (should it be analized further?!)
+	return emperror.With(err, cloudInfoCliErrTag)
 }

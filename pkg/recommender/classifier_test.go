@@ -15,6 +15,7 @@
 package recommender
 
 import (
+	"fmt"
 	"github.com/goph/emperror"
 	"github.com/pkg/errors"
 	"github.com/stretchr/testify/assert"
@@ -29,7 +30,7 @@ func TestClassifyErrorContext(t *testing.T) {
 	}{
 		{
 			name: "productinfo errorcode",
-			err:  emperror.With(errors.New("test"), productInfoErrTag, productInfoCliErrTag),
+			err:  emperror.With(errors.New("test"), cloudInfoErrTag, cloudInfoCliErrTag),
 			check: func(t *testing.T, code string, err error) {
 				assert.Equal(t, errProductInfo, code, "unexpected error code by classifier")
 			},
@@ -53,7 +54,7 @@ func TestClassifyErrorContext(t *testing.T) {
 		t.Run(test.name, func(t *testing.T) {
 			c := NewErrorContextClassifier()
 			code, err := c.Classify(test.err)
-			test.check(t, code, err)
+			test.check(t, fmt.Sprint("%s", code), err)
 		})
 	}
 }
@@ -66,7 +67,7 @@ func TestErrCtxClassifier_rank(t *testing.T) {
 	}{
 		{
 			name:  "context rank productinfo flags",
-			flags: []interface{}{productInfoErrTag},
+			flags: []interface{}{cloudInfoCliErrTag},
 			checker: func(t *testing.T, code string, rank int) {
 				assert.Equal(t, code, errProductInfo, "unexpected code")
 				assert.Equal(t, rank, 1, "unexpected rank")
@@ -74,7 +75,7 @@ func TestErrCtxClassifier_rank(t *testing.T) {
 		},
 		{
 			name:  "context rank productinfo flags",
-			flags: []interface{}{productInfoCliErrTag, productInfoErrTag},
+			flags: []interface{}{cloudInfoErrTag, cloudInfoCliErrTag},
 			checker: func(t *testing.T, code string, rank int) {
 				assert.Equal(t, code, errProductInfo, "unexpected code")
 				assert.Equal(t, rank, 2, "unexpected rank")

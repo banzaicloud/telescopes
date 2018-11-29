@@ -34,18 +34,27 @@ type errorResponder struct {
 // Respond assembles the error response corresponding to the passed in error
 func (er *errorResponder) Respond(err error) {
 
-	if errCode, e := er.errClassifier.Classify(err); e == nil {
-		er.gCtx.JSON(http.StatusInternalServerError, gin.H{"code": errCode})
+	if responseData, e := er.errClassifier.Classify(err); e == nil {
+		er.respond(responseData)
 		return
 	}
-
 	er.gCtx.JSON(http.StatusInternalServerError, gin.H{"code": "unknown", "err": err})
 }
 
 // NewErrorResponder configures a new error responder
 func NewErrorResponder(ginCtx *gin.Context) Responder {
 	return &errorResponder{
-		errClassifier: NewErrorContextClassifier(),
+		errClassifier: NewErrorResponseClassifier(),
 		gCtx:          ginCtx,
 	}
+}
+
+func (er *errorResponder) respond(d interface{}) {
+	if erd, ok := d.(ErrorResponse); ok {
+		er.gCtx.JSON(erd.HttpResponseCode, erd)
+		return
+	}
+
+	er.gCtx.JSON(http.StatusInternalServerError, gin.H{"code": d})
+
 }

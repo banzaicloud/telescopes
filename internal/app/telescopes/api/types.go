@@ -33,9 +33,3 @@ type GetRecommendationParams struct {
 type RecommendationResponse struct {
 	recommender.ClusterRecommendationResp
 }
-
-// ValidatingRequest helper struct to facilitate the validation
-type ValidatingRequest struct {
-	GetRecommendationParams
-	recommender.ClusterRecommendationReq
-}
