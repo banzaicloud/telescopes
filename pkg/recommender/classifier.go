@@ -24,6 +24,12 @@ import (
 	"github.com/pkg/errors"
 )
 
+const (
+	// telescope error codes
+	ErrCloudInfoUnavailable             = 1000
+	ErrNoCloudInfoForRequestedResources = 5000
+)
+
 // Classifier represents a contract to classify passed in structs
 type Classifier interface {
 	// Classify classifies the passed in struct based on arbitrary, implementation specific criteria
@@ -40,13 +46,13 @@ func NewErrorResponseClassifier() Classifier {
 }
 
 // Classify classification implementation based on the error and its context
-func (erc *errResponseClassifier) Classify(in interface{}) (interface{}, error) {
+func (erc *errResponseClassifier) Classify(inErr interface{}) (interface{}, error) {
 	var (
 		err error
 		ok  bool
 	)
 
-	if err, ok = in.(error); !ok {
+	if err, ok = inErr.(error); !ok {
 		return nil, errors.New("failed to classify error")
 	}
 
@@ -95,13 +101,13 @@ func (erc *errResponseClassifier) classifyApiError(e *runtime.APIError, ctx []in
 	// the message should contain the flow related information and
 	if hasLabel(ctx, "validation") {
 		// provider, service, region - path data
-		tcCode = 1000
+		tcCode = ErrCloudInfoUnavailable
 		tcMsg = "validation failed - no cloud information available for the request path data"
 	}
 
 	if hasLabel(ctx, recommenderErrorTag) {
 		// zone, network etc ..
-		tcCode = 5000
+		tcCode = ErrNoCloudInfoForRequestedResources
 		tcMsg = "recommendation failed - no cloud info available for the requested resources"
 	}
 
@@ -117,7 +123,7 @@ func (erc *errResponseClassifier) classifyUrlError(e *url.Error, ctx []interface
 	)
 
 	if hasLabel(ctx, cloudInfoCliErrTag) {
-		return httpCode, 2000, fmt.Sprint("failed to connect to cloud info service") // connectivity to CI service
+		return httpCode, ErrCloudInfoUnavailable, fmt.Sprint("failed to connect to cloud info service") // connectivity to CI service
 	}
 
 	return httpCode, tcCode, tcMsg
@@ -126,8 +132,7 @@ func (erc *errResponseClassifier) classifyUrlError(e *url.Error, ctx []interface
 func (erc *errResponseClassifier) classifyGenericError(e error, ctx []interface{}) (int, int, string) {
 
 	if hasLabel(ctx, recommenderErrorTag) {
-		// todo enrich the message with more information
-		return http.StatusBadRequest, 5000, e.Error()
+		return http.StatusBadRequest, ErrNoCloudInfoForRequestedResources, e.Error()
 	}
 
 	return http.StatusInternalServerError, -1, "recommendation failed"
