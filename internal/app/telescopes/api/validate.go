@@ -17,15 +17,15 @@ package api
 import (
 	"context"
 	"fmt"
-	"github.com/banzaicloud/productinfo/pkg/logger"
-	"github.com/banzaicloud/productinfo/pkg/productinfo-client/client/service"
+	"github.com/banzaicloud/cloudinfo/pkg/logger"
+	"github.com/banzaicloud/cloudinfo/pkg/cloudinfo-client/client/service"
 	"github.com/mitchellh/mapstructure"
 	"net/http"
 	"reflect"
 
-	"github.com/banzaicloud/productinfo/pkg/productinfo-client/client"
-	"github.com/banzaicloud/productinfo/pkg/productinfo-client/client/providers"
-	"github.com/banzaicloud/productinfo/pkg/productinfo-client/client/regions"
+	"github.com/banzaicloud/cloudinfo/pkg/cloudinfo-client/client"
+	"github.com/banzaicloud/cloudinfo/pkg/cloudinfo-client/client/providers"
+	"github.com/banzaicloud/cloudinfo/pkg/cloudinfo-client/client/regions"
 	"github.com/gin-gonic/gin"
 	"github.com/gin-gonic/gin/binding"
 	"gopkg.in/go-playground/validator.v8"
@@ -39,7 +39,7 @@ const (
 )
 
 // ConfigureValidator configures the Gin validator with custom validator functions
-func ConfigureValidator(ctx context.Context, pc *client.Productinfo) error {
+func ConfigureValidator(ctx context.Context, pc *client.Cloudinfo) error {
 	v := binding.Validator.Engine().(*validator.Validate)
 	if err := v.RegisterValidation("provider", providerValidator(ctx, pc)); err != nil {
 		return fmt.Errorf("could not register provider validator. error: %s", err)
@@ -97,7 +97,7 @@ func ValidatePathData(ctx context.Context, validate *validator.Validate) gin.Han
 	}
 }
 
-func providerValidator(ctx context.Context, pc *client.Productinfo) validator.Func {
+func providerValidator(ctx context.Context, pc *client.Cloudinfo) validator.Func {
 	return func(v *validator.Validate, topStruct reflect.Value, currentStruct reflect.Value, field reflect.Value, fieldtype reflect.Type, fieldKind reflect.Kind, param string) bool {
 		cProviders, err := pc.Providers.GetProviders(providers.NewGetProvidersParams())
 		if err != nil {
@@ -114,7 +114,7 @@ func providerValidator(ctx context.Context, pc *client.Productinfo) validator.Fu
 }
 
 // regionValidator validates the zone in the recommendation request.
-func regionValidator(ctx context.Context, pc *client.Productinfo) validator.Func {
+func regionValidator(ctx context.Context, pc *client.Cloudinfo) validator.Func {
 
 	return func(v *validator.Validate, topStruct reflect.Value, currentStruct reflect.Value, field reflect.Value, fieldtype reflect.Type, fieldKind reflect.Kind, param string) bool {
 		currentProvider := digValueForName(currentStruct, "Provider")
@@ -144,7 +144,7 @@ func regionValidator(ctx context.Context, pc *client.Productinfo) validator.Func
 }
 
 // zoneValidator validates the zone in the recommendation request.
-func zoneValidator(pc *client.Productinfo) validator.Func {
+func zoneValidator(pc *client.Cloudinfo) validator.Func {
 	return func(v *validator.Validate, topStruct reflect.Value, currentStruct reflect.Value, field reflect.Value,
 		fieldtype reflect.Type, fieldKind reflect.Kind, param string) bool {
 
@@ -180,7 +180,7 @@ func networkPerfValidator() validator.Func {
 }
 
 // serviceValidator validates the `service` path parameter
-func serviceValidator(ctx context.Context, pc *client.Productinfo) validator.Func {
+func serviceValidator(ctx context.Context, pc *client.Cloudinfo) validator.Func {
 
 	return func(v *validator.Validate, topStruct reflect.Value, currentStruct reflect.Value, field reflect.Value, fieldtype reflect.Type, fieldKind reflect.Kind, param string) bool {
 

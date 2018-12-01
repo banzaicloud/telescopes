@@ -17,7 +17,7 @@ package recommender
 import (
 	"context"
 
-	"github.com/banzaicloud/productinfo/pkg/logger"
+	"github.com/banzaicloud/cloudinfo/pkg/logger"
 )
 
 type vmFilter func(ctx context.Context, vm VirtualMachine, req ClusterRecommendationReq) bool

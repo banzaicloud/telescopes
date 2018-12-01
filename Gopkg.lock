@@ -37,33 +37,33 @@
   version = "0.2.26"
 
 [[projects]]
+  digest = "1:7764db672b50efaf949de67144e88d6d101ca4fe1cbab7511cca5eab2bcb7c30"
+  name = "github.com/banzaicloud/cloudinfo"
+  packages = [
+    "pkg/cloudinfo-client/client",
+    "pkg/cloudinfo-client/client/attributes",
+    "pkg/cloudinfo-client/client/images",
+    "pkg/cloudinfo-client/client/products",
+    "pkg/cloudinfo-client/client/provider",
+    "pkg/cloudinfo-client/client/providers",
+    "pkg/cloudinfo-client/client/regions",
+    "pkg/cloudinfo-client/client/service",
+    "pkg/cloudinfo-client/client/services",
+    "pkg/cloudinfo-client/client/versions",
+    "pkg/cloudinfo-client/models",
+    "pkg/logger",
+  ]
+  pruneopts = "NUT"
+  revision = "0282b46170ed74b56493ee56da021769097f187c"
+  version = "0.4.5"
+
+[[projects]]
   branch = "master"
   digest = "1:59c4662beaf0aee5e6bbbbde4d904da4228b77568483d57aa8b93de1088afcb4"
   name = "github.com/banzaicloud/go-gin-prometheus"
   packages = ["."]
   pruneopts = "NUT"
   revision = "9d3e5dc55c9e9c846035b317168e9705d6fbffb3"
-
-[[projects]]
-  branch = "master"
-  digest = "1:fabc5804d8b204995cfa789eef9827f579621ab8b8f96c16c18e3bf5aec8c708"
-  name = "github.com/banzaicloud/productinfo"
-  packages = [
-    "pkg/logger",
-    "pkg/productinfo-client/client",
-    "pkg/productinfo-client/client/attributes",
-    "pkg/productinfo-client/client/images",
-    "pkg/productinfo-client/client/products",
-    "pkg/productinfo-client/client/provider",
-    "pkg/productinfo-client/client/providers",
-    "pkg/productinfo-client/client/regions",
-    "pkg/productinfo-client/client/service",
-    "pkg/productinfo-client/client/services",
-    "pkg/productinfo-client/client/versions",
-    "pkg/productinfo-client/models",
-  ]
-  pruneopts = "NUT"
-  revision = "80c8f220727b2f8c4d3c62cbe794a2fb4d710f5f"
 
 [[projects]]
   branch = "master"
@@ -809,15 +809,15 @@
   analyzer-version = 1
   input-imports = [
     "github.com/banzaicloud/bank-vaults/auth",
+    "github.com/banzaicloud/cloudinfo/pkg/cloudinfo-client/client",
+    "github.com/banzaicloud/cloudinfo/pkg/cloudinfo-client/client/attributes",
+    "github.com/banzaicloud/cloudinfo/pkg/cloudinfo-client/client/products",
+    "github.com/banzaicloud/cloudinfo/pkg/cloudinfo-client/client/providers",
+    "github.com/banzaicloud/cloudinfo/pkg/cloudinfo-client/client/regions",
+    "github.com/banzaicloud/cloudinfo/pkg/cloudinfo-client/client/service",
+    "github.com/banzaicloud/cloudinfo/pkg/cloudinfo-client/models",
+    "github.com/banzaicloud/cloudinfo/pkg/logger",
     "github.com/banzaicloud/go-gin-prometheus",
-    "github.com/banzaicloud/productinfo/pkg/logger",
-    "github.com/banzaicloud/productinfo/pkg/productinfo-client/client",
-    "github.com/banzaicloud/productinfo/pkg/productinfo-client/client/attributes",
-    "github.com/banzaicloud/productinfo/pkg/productinfo-client/client/products",
-    "github.com/banzaicloud/productinfo/pkg/productinfo-client/client/providers",
-    "github.com/banzaicloud/productinfo/pkg/productinfo-client/client/regions",
-    "github.com/banzaicloud/productinfo/pkg/productinfo-client/client/service",
-    "github.com/banzaicloud/productinfo/pkg/productinfo-client/models",
     "github.com/gin-contrib/cors",
     "github.com/gin-gonic/gin",
     "github.com/gin-gonic/gin/binding",

@@ -36,8 +36,8 @@ import (
 	"github.com/banzaicloud/telescopes/internal/platform"
 
 	"github.com/banzaicloud/go-gin-prometheus"
-	"github.com/banzaicloud/productinfo/pkg/logger"
-	"github.com/banzaicloud/productinfo/pkg/productinfo-client/client"
+	"github.com/banzaicloud/cloudinfo/pkg/logger"
+	"github.com/banzaicloud/cloudinfo/pkg/cloudinfo-client/client"
 	"github.com/banzaicloud/telescopes/internal/app/telescopes/api"
 	"github.com/banzaicloud/telescopes/pkg/recommender"
 	"github.com/gin-gonic/gin"
@@ -53,7 +53,7 @@ const (
 	logLevelFlag        = "log-level"
 	logFormatFlag       = "log-format"
 	listenAddressFlag   = "listen-address"
-	productInfoFlag     = "productinfo-address"
+	cloudInfoFlag     = "cloudinfo-address"
 	devModeFlag         = "dev-mode"
 	tokenSigningKeyFlag = "tokensigningkey"
 	vaultAddrFlag       = "vault-address"
@@ -70,7 +70,7 @@ func defineFlags() {
 	flag.String(logLevelFlag, "info", "log level")
 	flag.String(logFormatFlag, "", "log format")
 	flag.String(listenAddressFlag, ":9090", "the address where the server listens to HTTP requests.")
-	flag.String(productInfoFlag, "http://localhost:9090/api/v1", "the address of the Product Info service to retrieve attribute and pricing info [format=scheme://host:port/basepath]")
+	flag.String(cloudInfoFlag, "http://localhost:9090/api/v1", "the address of the Product Info service to retrieve attribute and pricing info [format=scheme://host:port/basepath]")
 	flag.Bool(devModeFlag, false, "development mode, if true token based authentication is disabled, false by default")
 	flag.String(tokenSigningKeyFlag, "", "The token signing key for the authentication process")
 	flag.String(vaultAddrFlag, ":8200", "The vault address for authentication token management")
@@ -126,11 +126,11 @@ func main() {
 		return
 	}
 
-	piUrl := parseProductInfoAddress(appCtx)
+	piUrl := parseCloudInfoAddress(appCtx)
 	transport := httptransport.New(piUrl.Host, piUrl.Path, []string{piUrl.Scheme})
 	pc := client.New(transport, strfmt.Default)
 
-	engine, err := recommender.NewEngine(recommender.NewProductInfoClient(pc))
+	engine, err := recommender.NewEngine(recommender.NewCloudInfoClient(pc))
 	quitOnError(appCtx, "failed to start telescopes", err)
 
 	// configure the gin validator
@@ -168,11 +168,11 @@ func main() {
 
 }
 
-func parseProductInfoAddress(ctx context.Context) *url.URL {
-	productInfoAddress := viper.GetString(productInfoFlag)
-	u, err := url.ParseRequestURI(productInfoAddress)
+func parseCloudInfoAddress(ctx context.Context) *url.URL {
+	cloudInfoAddress := viper.GetString(cloudInfoFlag)
+	u, err := url.ParseRequestURI(cloudInfoAddress)
 	if err != nil {
-		logger.Extract(ctx).Fatal("invalid URI: ", viper.GetString(productInfoFlag))
+		logger.Extract(ctx).Fatal("invalid URI: ", viper.GetString(cloudInfoFlag))
 	}
 	return u
 }

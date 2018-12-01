@@ -8,8 +8,8 @@
   branch = "master"
 
 [[constraint]]
-  name = "github.com/banzaicloud/productinfo"
-  branch = "master"
+  name = "github.com/banzaicloud/cloudinfo"
+  version = "0.4.5"
 
 [[constraint]]
   name = "github.com/gin-contrib/cors"

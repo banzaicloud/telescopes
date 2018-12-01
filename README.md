@@ -10,7 +10,7 @@
 
 # Telescopes
 
-The `Banzai Cloud Telescopes` is a cluster recommender application; its main purpose is to recommend cluster instance types and full cluster layouts consisting EC2 spot or Google Cloud preemptible instances. The application operates on cloud provider product information retrieved from the [Productinfo](https://github.com/banzaicloud/productinfo) application.
+The `Banzai Cloud Telescopes` is a cluster recommender application; its main purpose is to recommend cluster instance types and full cluster layouts consisting EC2 spot or Google Cloud preemptible instances. The application operates on cloud provider product information retrieved from the [Cloudinfo](https://github.com/banzaicloud/cloudinfo) application.
 
 `Banzai Cloud Telescopes` exposes a rest API for accepting `recommendation requests`
 
@@ -34,7 +34,7 @@ Usage of ./telescopes:
       --log-level string             log level (default "info")
       --metrics-address string       the address where internal metrics are exposed (default ":9900")
       --metrics-enabled              internal metrics are exposed if enabled
-      --productinfo-address string   the address of the Product Info service to retrieve attribute and pricing info [format=scheme://host:port/basepath] (default "http://localhost:9090/api/v1")
+      --cloudinfo-address string   the address of the Product Info service to retrieve attribute and pricing info [format=scheme://host:port/basepath] (default "http://localhost:9090/api/v1")
       --tokensigningkey string       The token signing key for the authentication process
       --vault-address string         The vault address for authentication token management (default ":8200")
 ```

@@ -17,7 +17,7 @@ package api
 import (
 	"context"
 	"fmt"
-	"github.com/banzaicloud/productinfo/pkg/logger"
+	"github.com/banzaicloud/cloudinfo/pkg/logger"
 	"github.com/banzaicloud/telescopes/pkg/recommender"
 	"github.com/gin-gonic/gin"
 	"github.com/mitchellh/mapstructure"

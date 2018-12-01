@@ -21,8 +21,8 @@ import (
 	"math"
 	"sort"
 
-	"github.com/banzaicloud/productinfo/pkg/logger"
-	"github.com/banzaicloud/productinfo/pkg/productinfo-client/models"
+	"github.com/banzaicloud/cloudinfo/pkg/logger"
+	"github.com/banzaicloud/cloudinfo/pkg/cloudinfo-client/models"
 )
 
 const (
@@ -52,11 +52,11 @@ type ClusterRecommender interface {
 
 // Engine represents the recommendation engine, it operates on a map of provider -> VmRegistry
 type Engine struct {
-	piSource ProductInfoSource
+	piSource CloudInfoSource
 }
 
 // NewEngine creates a new Engine instance
-func NewEngine(pis ProductInfoSource) (*Engine, error) {
+func NewEngine(pis CloudInfoSource) (*Engine, error) {
 	return &Engine{
 		piSource: pis,
 	}, nil
