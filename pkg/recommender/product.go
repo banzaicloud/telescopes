@@ -15,15 +15,15 @@
 package recommender
 
 import (
-	"github.com/banzaicloud/productinfo/pkg/productinfo-client/client"
-	"github.com/banzaicloud/productinfo/pkg/productinfo-client/client/attributes"
-	"github.com/banzaicloud/productinfo/pkg/productinfo-client/client/products"
-	"github.com/banzaicloud/productinfo/pkg/productinfo-client/client/regions"
-	"github.com/banzaicloud/productinfo/pkg/productinfo-client/models"
+	"github.com/banzaicloud/cloudinfo/pkg/cloudinfo-client/client"
+	"github.com/banzaicloud/cloudinfo/pkg/cloudinfo-client/client/attributes"
+	"github.com/banzaicloud/cloudinfo/pkg/cloudinfo-client/client/products"
+	"github.com/banzaicloud/cloudinfo/pkg/cloudinfo-client/client/regions"
+	"github.com/banzaicloud/cloudinfo/pkg/cloudinfo-client/models"
 )
 
-// ProductInfoSource declares operations for retrieving information required for the recommender engine
-type ProductInfoSource interface {
+// CloudInfoSource declares operations for retrieving information required for the recommender engine
+type CloudInfoSource interface {
 	// GetAttributeValues retrieves attribute values based on the given arguments
 	GetAttributeValues(provider string, service string, region string, attr string) ([]float64, error)
 
@@ -34,19 +34,19 @@ type ProductInfoSource interface {
 	GetProductDetails(provider string, service string, region string) ([]*models.ProductDetails, error)
 }
 
-// ProductInfoClient application struct to retrieve data for the recommender; wraps the generated product info client
-// It implements the ProductInfoSource interface, delegates to the embedded generated client
-type ProductInfoClient struct {
-	*client.Productinfo
+// CloudInfoClient application struct to retrieve data for the recommender; wraps the generated product info client
+// It implements the CloudInfoSource interface, delegates to the embedded generated client
+type CloudInfoClient struct {
+	*client.Cloudinfo
 }
 
-// NewProductInfoClient creates a new product info client wrapper instance
-func NewProductInfoClient(pic *client.Productinfo) *ProductInfoClient {
-	return &ProductInfoClient{Productinfo: pic}
+// NewCloudInfoClient creates a new product info client wrapper instance
+func NewCloudInfoClient(pic *client.Cloudinfo) *CloudInfoClient {
+	return &CloudInfoClient{Cloudinfo: pic}
 }
 
 // GetAttributeValues retrieves available attribute values on the provider in the region for the attribute
-func (piCli *ProductInfoClient) GetAttributeValues(provider string, service string, region string, attr string) ([]float64, error) {
+func (piCli *CloudInfoClient) GetAttributeValues(provider string, service string, region string, attr string) ([]float64, error) {
 	attrParams := attributes.NewGetAttrValuesParams().WithProvider(provider).WithRegion(region).WithAttribute(attr).WithService(service)
 	allValues, err := piCli.Attributes.GetAttrValues(attrParams)
 	if err != nil {
@@ -56,7 +56,7 @@ func (piCli *ProductInfoClient) GetAttributeValues(provider string, service stri
 }
 
 // GetRegion describes the region (eventually returns the zones in the region)
-func (piCli *ProductInfoClient) GetRegion(provider string, service string, region string) ([]string, error) {
+func (piCli *CloudInfoClient) GetRegion(provider string, service string, region string) ([]string, error) {
 	grp := regions.NewGetRegionParams().WithProvider(provider).WithService(service).WithRegion(region)
 	r, err := piCli.Regions.GetRegion(grp)
 	if err != nil {
@@ -66,7 +66,7 @@ func (piCli *ProductInfoClient) GetRegion(provider string, service string, regio
 }
 
 // GetProductDetails gets the available product details from the provider in the region
-func (piCli *ProductInfoClient) GetProductDetails(provider string, service string, region string) ([]*models.ProductDetails, error) {
+func (piCli *CloudInfoClient) GetProductDetails(provider string, service string, region string) ([]*models.ProductDetails, error) {
 	gpdp := products.NewGetProductsParams().WithRegion(region).WithProvider(provider).WithService(service)
 	allProducts, err := piCli.Products.GetProducts(gpdp)
 	if err != nil {

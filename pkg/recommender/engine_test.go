@@ -20,7 +20,7 @@ import (
 	"testing"
 
 	"fmt"
-	"github.com/banzaicloud/productinfo/pkg/productinfo-client/models"
+	"github.com/banzaicloud/cloudinfo/pkg/cloudinfo-client/models"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -35,12 +35,12 @@ const (
 	AvgPriceNil         = "average price is nil"
 )
 
-type dummyProductInfoSource struct {
+type dummyCloudInfoSource struct {
 	// test case id to drive the behaviour
 	TcId string
 }
 
-func (piCli *dummyProductInfoSource) GetAttributeValues(provider string, service string, region string, attr string) ([]float64, error) {
+func (piCli *dummyCloudInfoSource) GetAttributeValues(provider string, service string, region string, attr string) ([]float64, error) {
 	switch piCli.TcId {
 	case OutOfLimits:
 		return []float64{8, 13, 14, 6}, nil
@@ -56,7 +56,7 @@ func (piCli *dummyProductInfoSource) GetAttributeValues(provider string, service
 	return []float64{15, 16, 17}, nil
 }
 
-func (piCli *dummyProductInfoSource) GetRegion(provider string, service string, region string) ([]string, error) {
+func (piCli *dummyCloudInfoSource) GetRegion(provider string, service string, region string) ([]string, error) {
 	switch piCli.TcId {
 	case DescribeRegionError:
 		return nil, errors.New(DescribeRegionError)
@@ -65,7 +65,7 @@ func (piCli *dummyProductInfoSource) GetRegion(provider string, service string, 
 	}
 }
 
-func (piCli *dummyProductInfoSource) GetProductDetails(provider string, service string, region string) ([]*models.ProductDetails, error) {
+func (piCli *dummyCloudInfoSource) GetProductDetails(provider string, service string, region string) ([]*models.ProductDetails, error) {
 	switch piCli.TcId {
 	case ProductDetailsError:
 		return nil, errors.New(ProductDetailsError)
@@ -170,14 +170,14 @@ func TestEngine_RecommendAttrValues(t *testing.T) {
 
 	tests := []struct {
 		name      string
-		pi        ProductInfoSource
+		pi        CloudInfoSource
 		request   ClusterRecommendationReq
 		attribute string
 		check     func([]float64, error)
 	}{
 		{
 			name: "all attributes between limits",
-			pi:   &dummyProductInfoSource{},
+			pi:   &dummyCloudInfoSource{},
 			request: ClusterRecommendationReq{
 				MinNodes: 5,
 				MaxNodes: 10,
@@ -193,7 +193,7 @@ func TestEngine_RecommendAttrValues(t *testing.T) {
 		},
 		{
 			name: "attributes out of limits not recommended",
-			pi:   &dummyProductInfoSource{OutOfLimits},
+			pi:   &dummyCloudInfoSource{OutOfLimits},
 			request: ClusterRecommendationReq{
 				MinNodes: 5,
 				MaxNodes: 10,
@@ -209,7 +209,7 @@ func TestEngine_RecommendAttrValues(t *testing.T) {
 		},
 		{
 			name: "no values between limits found - smallest value returned",
-			pi:   &dummyProductInfoSource{LargerValues},
+			pi:   &dummyCloudInfoSource{LargerValues},
 			request: ClusterRecommendationReq{
 				MinNodes: 5,
 				MaxNodes: 10,
@@ -226,7 +226,7 @@ func TestEngine_RecommendAttrValues(t *testing.T) {
 		},
 		{
 			name: "no values between limits found - largest value returned",
-			pi:   &dummyProductInfoSource{SmallerValues},
+			pi:   &dummyCloudInfoSource{SmallerValues},
 			request: ClusterRecommendationReq{
 				MinNodes: 5,
 				MaxNodes: 10,
@@ -243,7 +243,7 @@ func TestEngine_RecommendAttrValues(t *testing.T) {
 		},
 		{
 			name: "error - attribute values could not be retrieved",
-			pi:   &dummyProductInfoSource{Error},
+			pi:   &dummyCloudInfoSource{Error},
 			request: ClusterRecommendationReq{
 				MinNodes: 10,
 				MaxNodes: 10,
@@ -270,7 +270,7 @@ func TestEngine_RecommendAttrValues(t *testing.T) {
 func TestEngine_RecommendVms(t *testing.T) {
 	tests := []struct {
 		name      string
-		pi        ProductInfoSource
+		pi        CloudInfoSource
 		values    []float64
 		filters   []vmFilter
 		request   ClusterRecommendationReq
@@ -282,7 +282,7 @@ func TestEngine_RecommendVms(t *testing.T) {
 			filters: []vmFilter{func(ctx context.Context, vm VirtualMachine, req ClusterRecommendationReq) bool {
 				return true
 			}},
-			pi:     &dummyProductInfoSource{DescribeRegionError},
+			pi:     &dummyCloudInfoSource{DescribeRegionError},
 			values: []float64{1, 2},
 			check: func(vms []VirtualMachine, err error) {
 				assert.EqualError(t, err, DescribeRegionError)
@@ -294,7 +294,7 @@ func TestEngine_RecommendVms(t *testing.T) {
 			filters: []vmFilter{func(ctx context.Context, vm VirtualMachine, req ClusterRecommendationReq) bool {
 				return true
 			}},
-			pi:     &dummyProductInfoSource{ProductDetailsError},
+			pi:     &dummyCloudInfoSource{ProductDetailsError},
 			values: []float64{1, 2},
 			check: func(vms []VirtualMachine, err error) {
 				assert.EqualError(t, err, ProductDetailsError)
@@ -306,7 +306,7 @@ func TestEngine_RecommendVms(t *testing.T) {
 			filters: []vmFilter{func(ctx context.Context, vm VirtualMachine, req ClusterRecommendationReq) bool {
 				return true
 			}},
-			pi:        &dummyProductInfoSource{},
+			pi:        &dummyCloudInfoSource{},
 			values:    []float64{2},
 			attribute: Cpu,
 			check: func(vms []VirtualMachine, err error) {
@@ -340,14 +340,14 @@ func TestEngine_RecommendNodePools(t *testing.T) {
 
 	tests := []struct {
 		name  string
-		pi    ProductInfoSource
+		pi    CloudInfoSource
 		attr  string
 		vms   []VirtualMachine
 		check func([]NodePool, error)
 	}{
 		{
 			name: "successful",
-			pi:   &dummyProductInfoSource{},
+			pi:   &dummyCloudInfoSource{},
 			vms:  vms,
 			attr: Cpu,
 			check: func(nps []NodePool, err error) {
@@ -363,7 +363,7 @@ func TestEngine_RecommendNodePools(t *testing.T) {
 		},
 		{
 			name: "no spot instances available",
-			pi:   &dummyProductInfoSource{},
+			pi:   &dummyCloudInfoSource{},
 			vms:  []VirtualMachine{{OnDemandPrice: float64(2), AvgPrice: 0, Cpus: float64(10), Mem: float64(10), Gpus: float64(0)}},
 			attr: Cpu,
 			check: func(nps []NodePool, err error) {
@@ -387,13 +387,13 @@ func TestEngine_RecommendNodePools(t *testing.T) {
 func TestEngine_RecommendCluster(t *testing.T) {
 	tests := []struct {
 		name    string
-		pi      ProductInfoSource
+		pi      CloudInfoSource
 		request ClusterRecommendationReq
 		check   func(resp *ClusterRecommendationResp, err error)
 	}{
 		{
 			name: "cluster recommendation success - only 1 vm is requested (min = max = 1)",
-			pi:   &dummyProductInfoSource{},
+			pi:   &dummyCloudInfoSource{},
 			request: ClusterRecommendationReq{
 				MinNodes: 1,
 				MaxNodes: 1,
@@ -410,7 +410,7 @@ func TestEngine_RecommendCluster(t *testing.T) {
 		},
 		{
 			name: "cluster recommendation success - on-demand pct is 0%,",
-			pi:   &dummyProductInfoSource{},
+			pi:   &dummyCloudInfoSource{},
 			request: ClusterRecommendationReq{
 				MinNodes:    5,
 				MaxNodes:    10,
@@ -432,7 +432,7 @@ func TestEngine_RecommendCluster(t *testing.T) {
 		},
 		{
 			name: "cluster recommendation success - the zone is specified",
-			pi:   &dummyProductInfoSource{},
+			pi:   &dummyCloudInfoSource{},
 			request: ClusterRecommendationReq{
 				MinNodes: 5,
 				MaxNodes: 10,
@@ -450,7 +450,7 @@ func TestEngine_RecommendCluster(t *testing.T) {
 		},
 		{
 			name: "cluster recommendation success - on-demand pct is 100%, only regular nodes in the recommended cluster",
-			pi:   &dummyProductInfoSource{},
+			pi:   &dummyCloudInfoSource{},
 			request: ClusterRecommendationReq{
 				MinNodes:    5,
 				MaxNodes:    10,
@@ -471,7 +471,7 @@ func TestEngine_RecommendCluster(t *testing.T) {
 		},
 		{
 			name: "cluster recommendation success - mem / cpu ratio is very large",
-			pi:   &dummyProductInfoSource{},
+			pi:   &dummyCloudInfoSource{},
 			request: ClusterRecommendationReq{
 				MinNodes: 5,
 				MaxNodes: 10,
@@ -488,7 +488,7 @@ func TestEngine_RecommendCluster(t *testing.T) {
 		},
 		{
 			name: "cluster recommendation success - cpu / mem ratio is very large",
-			pi:   &dummyProductInfoSource{},
+			pi:   &dummyCloudInfoSource{},
 			request: ClusterRecommendationReq{
 				MinNodes: 5,
 				MaxNodes: 10,
@@ -505,7 +505,7 @@ func TestEngine_RecommendCluster(t *testing.T) {
 		},
 		{
 			name: "cluster recommendation success - min nodes is 1 and max is 100",
-			pi:   &dummyProductInfoSource{},
+			pi:   &dummyCloudInfoSource{},
 			request: ClusterRecommendationReq{
 				MinNodes: 1,
 				MaxNodes: 100,
@@ -522,7 +522,7 @@ func TestEngine_RecommendCluster(t *testing.T) {
 		},
 		{
 			name: "cluster recommendation success - a very large number of nodes, cpus and mems are requested",
-			pi:   &dummyProductInfoSource{},
+			pi:   &dummyCloudInfoSource{},
 			request: ClusterRecommendationReq{
 				MinNodes: 10000,
 				MaxNodes: 100000,
@@ -539,7 +539,7 @@ func TestEngine_RecommendCluster(t *testing.T) {
 		},
 		{
 			name: "when neither of the selected VMs have a spot price available (avgPrice = 0 for all VMs), we should report an error",
-			pi:   &dummyProductInfoSource{TcId: AvgPriceNil},
+			pi:   &dummyCloudInfoSource{TcId: AvgPriceNil},
 			request: ClusterRecommendationReq{
 				MinNodes: 5,
 				MaxNodes: 10,
@@ -553,7 +553,7 @@ func TestEngine_RecommendCluster(t *testing.T) {
 		},
 		{
 			name: "when we could not select a slice of VMs for the requirements in the request (could not get product details), we should report an error",
-			pi:   &dummyProductInfoSource{ProductDetailsError},
+			pi:   &dummyCloudInfoSource{ProductDetailsError},
 			request: ClusterRecommendationReq{
 				MinNodes: 5,
 				MaxNodes: 10,
@@ -567,7 +567,7 @@ func TestEngine_RecommendCluster(t *testing.T) {
 		},
 		{
 			name: "could not find the slice of NodePools that may participate in the recommendation process (len(nodePools) = 0)",
-			pi:   &dummyProductInfoSource{},
+			pi:   &dummyCloudInfoSource{},
 			request: ClusterRecommendationReq{
 				MinNodes: 8,
 				MaxNodes: 10,

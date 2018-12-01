@@ -21,7 +21,7 @@ import (
 	"os"
 
 	"github.com/banzaicloud/bank-vaults/auth"
-	"github.com/banzaicloud/productinfo/pkg/logger"
+	"github.com/banzaicloud/cloudinfo/pkg/logger"
 	"github.com/banzaicloud/telescopes/pkg/recommender"
 	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"

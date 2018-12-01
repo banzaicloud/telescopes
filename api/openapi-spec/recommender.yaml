@@ -166,7 +166,7 @@ components:
             format: double
           x-go-name: AttributeValues
       x-go-package: >-
-        github.com/banzaicloud/telescopes/vendor/github.com/banzaicloud/productinfo/pkg/productinfo-client/models
+        github.com/banzaicloud/telescopes/vendor/github.com/banzaicloud/cloudinfo/pkg/cloudinfo-client/models
     ByAvgPricePerCpu:
       description: ByAvgPricePerCpu type for custom sorting of a slice of vms
       type: array
@@ -328,7 +328,7 @@ components:
           type: string
           x-go-name: ErrorMessage
       x-go-package: >-
-        github.com/banzaicloud/telescopes/vendor/github.com/banzaicloud/productinfo/pkg/productinfo-client/models
+        github.com/banzaicloud/telescopes/vendor/github.com/banzaicloud/cloudinfo/pkg/cloudinfo-client/models
     GetAttributeValuesPathParams:
       description: >-
         GetAttributeValuesPathParams GetAttributeValuesPathParams is a
@@ -352,7 +352,7 @@ components:
           type: string
           x-go-name: Service
       x-go-package: >-
-        github.com/banzaicloud/telescopes/vendor/github.com/banzaicloud/productinfo/pkg/productinfo-client/models
+        github.com/banzaicloud/telescopes/vendor/github.com/banzaicloud/cloudinfo/pkg/cloudinfo-client/models
     GetProviderPathParams:
       description: >-
         GetProviderPathParams GetProviderPathParams is a placeholder for the
@@ -364,7 +364,7 @@ components:
           type: string
           x-go-name: Provider
       x-go-package: >-
-        github.com/banzaicloud/telescopes/vendor/github.com/banzaicloud/productinfo/pkg/productinfo-client/models
+        github.com/banzaicloud/telescopes/vendor/github.com/banzaicloud/cloudinfo/pkg/cloudinfo-client/models
     GetRegionPathParams:
       description: >-
         GetRegionPathParams GetRegionPathParams is a placeholder for the regions
@@ -384,7 +384,7 @@ components:
           type: string
           x-go-name: Service
       x-go-package: >-
-        github.com/banzaicloud/telescopes/vendor/github.com/banzaicloud/productinfo/pkg/productinfo-client/models
+        github.com/banzaicloud/telescopes/vendor/github.com/banzaicloud/cloudinfo/pkg/cloudinfo-client/models
     GetRegionResp:
       description: >-
         GetRegionResp GetRegionResp holds the detailed description of a specific
@@ -406,7 +406,7 @@ components:
             type: string
           x-go-name: Zones
       x-go-package: >-
-        github.com/banzaicloud/telescopes/vendor/github.com/banzaicloud/productinfo/pkg/productinfo-client/models
+        github.com/banzaicloud/telescopes/vendor/github.com/banzaicloud/cloudinfo/pkg/cloudinfo-client/models
     GetServicesPathParams:
       description: >-
         GetServicesPathParams GetServicesPathParams is a placeholder for the
@@ -422,7 +422,7 @@ components:
           type: string
           x-go-name: Service
       x-go-package: >-
-        github.com/banzaicloud/telescopes/vendor/github.com/banzaicloud/productinfo/pkg/productinfo-client/models
+        github.com/banzaicloud/telescopes/vendor/github.com/banzaicloud/cloudinfo/pkg/cloudinfo-client/models
     Image:
       description: Image Image represents an image
       type: object
@@ -432,7 +432,7 @@ components:
           type: string
           x-go-name: Image
       x-go-package: >-
-        github.com/banzaicloud/telescopes/vendor/github.com/banzaicloud/productinfo/pkg/productinfo-client/models
+        github.com/banzaicloud/telescopes/vendor/github.com/banzaicloud/cloudinfo/pkg/cloudinfo-client/models
     ImagesResponse:
       description: ImagesResponse ImagesResponse holds the list of available images
       type: object
@@ -444,7 +444,7 @@ components:
             $ref: '#/components/schemas/Image'
           x-go-name: Images
       x-go-package: >-
-        github.com/banzaicloud/telescopes/vendor/github.com/banzaicloud/productinfo/pkg/productinfo-client/models
+        github.com/banzaicloud/telescopes/vendor/github.com/banzaicloud/cloudinfo/pkg/cloudinfo-client/models
     NodePool:
       description: NodePool represents a set of instances with a specific vm type
       type: object
@@ -518,7 +518,7 @@ components:
           type: string
           x-go-name: Type
       x-go-package: >-
-        github.com/banzaicloud/telescopes/vendor/github.com/banzaicloud/productinfo/pkg/productinfo-client/models
+        github.com/banzaicloud/telescopes/vendor/github.com/banzaicloud/cloudinfo/pkg/cloudinfo-client/models
     ProductDetailsResponse:
       description: >-
         ProductDetailsResponse ProductDetailsResponse Api object to be mapped to
@@ -540,7 +540,7 @@ components:
           type: string
           x-go-name: ScrapingTime
       x-go-package: >-
-        github.com/banzaicloud/telescopes/vendor/github.com/banzaicloud/productinfo/pkg/productinfo-client/models
+        github.com/banzaicloud/telescopes/vendor/github.com/banzaicloud/cloudinfo/pkg/cloudinfo-client/models
     Provider:
       description: Provider Provider represents a cloud provider
       type: object
@@ -556,7 +556,7 @@ components:
             $ref: '#/components/schemas/Service'
           x-go-name: Services
       x-go-package: >-
-        github.com/banzaicloud/telescopes/vendor/github.com/banzaicloud/productinfo/pkg/productinfo-client/models
+        github.com/banzaicloud/telescopes/vendor/github.com/banzaicloud/cloudinfo/pkg/cloudinfo-client/models
     ProviderResponse:
       description: >-
         ProviderResponse ProviderResponse is the response used for the requested
@@ -566,7 +566,7 @@ components:
         provider:
           $ref: '#/components/schemas/Provider'
       x-go-package: >-
-        github.com/banzaicloud/telescopes/vendor/github.com/banzaicloud/productinfo/pkg/productinfo-client/models
+        github.com/banzaicloud/telescopes/vendor/github.com/banzaicloud/cloudinfo/pkg/cloudinfo-client/models
     ProvidersResponse:
       description: >-
         ProvidersResponse ProvidersResponse is the response used for the
@@ -580,7 +580,7 @@ components:
             $ref: '#/components/schemas/Provider'
           x-go-name: Providers
       x-go-package: >-
-        github.com/banzaicloud/telescopes/vendor/github.com/banzaicloud/productinfo/pkg/productinfo-client/models
+        github.com/banzaicloud/telescopes/vendor/github.com/banzaicloud/cloudinfo/pkg/cloudinfo-client/models
     RecommendationResponse:
       description: ClusterRecommendationResp encapsulates recommendation result data
       type: object
@@ -620,7 +620,7 @@ components:
           type: string
           x-go-name: Name
       x-go-package: >-
-        github.com/banzaicloud/telescopes/vendor/github.com/banzaicloud/productinfo/pkg/productinfo-client/models
+        github.com/banzaicloud/telescopes/vendor/github.com/banzaicloud/cloudinfo/pkg/cloudinfo-client/models
     RegionsResponse:
       description: >-
         RegionsResponse RegionsResponse holds the list of available regions of a
@@ -629,7 +629,7 @@ components:
       items:
         $ref: '#/components/schemas/Region'
       x-go-package: >-
-        github.com/banzaicloud/telescopes/vendor/github.com/banzaicloud/productinfo/pkg/productinfo-client/models
+        github.com/banzaicloud/telescopes/vendor/github.com/banzaicloud/cloudinfo/pkg/cloudinfo-client/models
     Service:
       description: it's intended to implement the ServiceDescriber interface
       type: object
@@ -640,7 +640,7 @@ components:
           type: string
           x-go-name: Service
       x-go-package: >-
-        github.com/banzaicloud/telescopes/vendor/github.com/banzaicloud/productinfo/pkg/productinfo-client/models
+        github.com/banzaicloud/telescopes/vendor/github.com/banzaicloud/cloudinfo/pkg/cloudinfo-client/models
     ServiceResponse:
       description: ServiceResponse ServiceResponse holds the list of available services
       type: object
@@ -648,7 +648,7 @@ components:
         service:
           $ref: '#/components/schemas/Service'
       x-go-package: >-
-        github.com/banzaicloud/telescopes/vendor/github.com/banzaicloud/productinfo/pkg/productinfo-client/models
+        github.com/banzaicloud/telescopes/vendor/github.com/banzaicloud/cloudinfo/pkg/cloudinfo-client/models
     ServicesResponse:
       description: ServicesResponse ServicesResponse holds the list of available services
       type: object
@@ -660,7 +660,7 @@ components:
             $ref: '#/components/schemas/Service'
           x-go-name: Services
       x-go-package: >-
-        github.com/banzaicloud/telescopes/vendor/github.com/banzaicloud/productinfo/pkg/productinfo-client/models
+        github.com/banzaicloud/telescopes/vendor/github.com/banzaicloud/cloudinfo/pkg/cloudinfo-client/models
     SpotPriceInfo:
       description: >-
         SpotPriceInfo SpotPriceInfo represents different prices per availability
@@ -670,7 +670,7 @@ components:
         type: number
         format: double
       x-go-package: >-
-        github.com/banzaicloud/telescopes/vendor/github.com/banzaicloud/productinfo/pkg/productinfo-client/models
+        github.com/banzaicloud/telescopes/vendor/github.com/banzaicloud/cloudinfo/pkg/cloudinfo-client/models
     VirtualMachine:
       description: VirtualMachine describes an instance type
       type: object
@@ -737,5 +737,5 @@ components:
           type: string
           x-go-name: Zone
       x-go-package: >-
-        github.com/banzaicloud/telescopes/vendor/github.com/banzaicloud/productinfo/pkg/productinfo-client/models
+        github.com/banzaicloud/telescopes/vendor/github.com/banzaicloud/cloudinfo/pkg/cloudinfo-client/models
 

@@ -20,7 +20,7 @@ import (
 	"math"
 	"sort"
 
-	"github.com/banzaicloud/productinfo/pkg/logger"
+	"github.com/banzaicloud/cloudinfo/pkg/logger"
 )
 
 // AttributeValueSelector interface comprises attribute selection algorythm entrypoints
