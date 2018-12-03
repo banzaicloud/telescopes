@@ -36,11 +36,11 @@ const (
 type RouteHandler struct {
 	engine    *recommender.Engine
 	buildInfo buildinfo.BuildInfo
-	ciCli     *recommender.ProductInfoClient
+	ciCli     *recommender.CloudInfoClient
 }
 
 // NewRouteHandler creates a new RouteHandler and returns a reference to it
-func NewRouteHandler(e *recommender.Engine, info buildinfo.BuildInfo, ciCli *recommender.ProductInfoClient) *RouteHandler {
+func NewRouteHandler(e *recommender.Engine, info buildinfo.BuildInfo, ciCli *recommender.CloudInfoClient) *RouteHandler {
 	return &RouteHandler{
 		engine:    e,
 		buildInfo: info,

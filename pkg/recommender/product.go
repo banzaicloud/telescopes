@@ -18,10 +18,11 @@ import (
 	"github.com/banzaicloud/cloudinfo/pkg/cloudinfo-client/client"
 	"github.com/banzaicloud/cloudinfo/pkg/cloudinfo-client/client/attributes"
 	"github.com/banzaicloud/cloudinfo/pkg/cloudinfo-client/client/products"
-	"github.com/banzaicloud/cloudinfo/pkg/cloudinfo-client/client/regions"
-	"github.com/banzaicloud/cloudinfo/pkg/cloudinfo-client/models"
 	"github.com/banzaicloud/cloudinfo/pkg/cloudinfo-client/client/provider"
+	"github.com/banzaicloud/cloudinfo/pkg/cloudinfo-client/client/regions"
 	"github.com/banzaicloud/cloudinfo/pkg/cloudinfo-client/client/service"
+	"github.com/banzaicloud/cloudinfo/pkg/cloudinfo-client/models"
+	"github.com/go-openapi/runtime"
 	"github.com/goph/emperror"
 )
 
@@ -87,7 +88,7 @@ func (piCli *CloudInfoClient) GetProductDetails(provider string, service string,
 }
 
 // GetProductDetails gets the available product details from the provider in the region
-func (piCli *ProductInfoClient) GetProvider(prv string) (string, error) {
+func (piCli *CloudInfoClient) GetProvider(prv string) (string, error) {
 	gpp := provider.NewGetProviderParams().WithProvider(prv)
 
 	provider, err := piCli.Provider.GetProvider(gpp)
@@ -99,7 +100,7 @@ func (piCli *ProductInfoClient) GetProvider(prv string) (string, error) {
 }
 
 // GetProductDetails gets the available product details from the provider in the region
-func (piCli *ProductInfoClient) GetService(prv string, svc string) (string, error) {
+func (piCli *CloudInfoClient) GetService(prv string, svc string) (string, error) {
 	gsp := service.NewGetServiceParams().WithProvider(prv).WithService(svc)
 
 	provider, err := piCli.Service.GetService(gsp)
@@ -111,7 +112,7 @@ func (piCli *ProductInfoClient) GetService(prv string, svc string) (string, erro
 }
 
 // GetProductDetails gets the available product details from the provider in the region
-func (piCli *ProductInfoClient) GetRegion(prv, svc, reg string) (string, error) {
+func (piCli *CloudInfoClient) GetRegion(prv, svc, reg string) (string, error) {
 	grp := regions.NewGetRegionParams().WithProvider(prv).WithService(svc).WithRegion(reg)
 
 	r, err := piCli.Regions.GetRegion(grp)

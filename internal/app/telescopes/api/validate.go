@@ -17,19 +17,12 @@ package api
 import (
 	"context"
 	"errors"
-	"fmt"
-	"github.com/banzaicloud/cloudinfo/pkg/logger"
-	"github.com/banzaicloud/cloudinfo/pkg/cloudinfo-client/client/service"
-	"github.com/banzaicloud/telescopes/pkg/recommender"
-	"github.com/goph/emperror"
-	"github.com/mitchellh/mapstructure"
-	"net/http"
 	"reflect"
 
-	"github.com/banzaicloud/cloudinfo/pkg/cloudinfo-client/client/providers"
 	"github.com/banzaicloud/cloudinfo/pkg/cloudinfo-client/client/regions"
-	"github.com/gin-gonic/gin"
+	"github.com/banzaicloud/telescopes/pkg/recommender"
 	"github.com/gin-gonic/gin/binding"
+	"github.com/goph/emperror"
 	"gopkg.in/go-playground/validator.v8"
 )
 
@@ -159,6 +152,6 @@ func (ppV *pathParamValidator) validateRegion(prv, svc, region string) error {
 	return nil
 }
 
-func NewCloudInfoValidator(ciCli *recommender.ProductInfoClient) CloudInfoValidator {
+func NewCloudInfoValidator(ciCli *recommender.CloudInfoClient) CloudInfoValidator {
 	return &pathParamValidator{ciCli}
 }
