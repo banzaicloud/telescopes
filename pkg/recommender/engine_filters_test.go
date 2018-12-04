@@ -91,7 +91,7 @@ func TestEngine_filtersApply(t *testing.T) {
 	}
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
-			filters, err := test.engine.filtersForAttr(context.TODO(), test.attr, test.provider)
+			filters, err := test.engine.filtersForAttr(context.TODO(), test.attr, test.provider, false)
 			assert.Nil(t, err, "should get filters for attribute")
 			test.check(test.engine.filtersApply(context.TODO(), test.vm, filters, test.req))
 		})
@@ -370,32 +370,6 @@ func TestEngine_IncludesFilter(t *testing.T) {
 	}
 }
 
-func TestEngine_avgNodeCount(t *testing.T) {
-	tests := []struct {
-		name       string
-		attrValues []float64
-		reqSum     float64
-		check      func(avg int)
-	}{
-		{
-			name: "calculate average value per node",
-			// sum of vals = 36
-			// avg = 36/8 = 4.5
-			// avg/node = ceil(10/4.5)=3
-			attrValues: []float64{1, 2, 3, 4, 5, 6, 7, 8},
-			reqSum:     10,
-			check: func(avg int) {
-				assert.Equal(t, 3, avg, "the calculated avg is invalid")
-			},
-		},
-	}
-	for _, test := range tests {
-		t.Run(test.name, func(t *testing.T) {
-			test.check(avgNodeCount(test.attrValues, test.reqSum))
-		})
-	}
-}
-
 func TestEngine_findCheapestNodePoolSet(t *testing.T) {
 	tests := []struct {
 		name      string
@@ -555,10 +529,6 @@ func TestEngine_ntwPerformanceFilter(t *testing.T) {
 			test.check(test.engine.ntwPerformanceFilter(context.TODO(), test.vm, test.req))
 		})
 	}
-}
-
-func boolPointer(b bool) *bool {
-	return &b
 }
 
 func TestEngine_CurrGenFilter(t *testing.T) {

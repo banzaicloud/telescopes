@@ -77,7 +77,68 @@ func (r *RouteHandler) recommendClusterSetup(ctx context.Context) gin.HandlerFun
 			return
 		}
 
-		if response, err := r.engine.RecommendCluster(ctxLog, pathParams.Provider, pathParams.Service, pathParams.Region, req); err != nil {
+		if response, err := r.engine.RecommendCluster(ctxLog, pathParams.Provider, pathParams.Service, pathParams.Region, req, nil); err != nil {
+			recommender.NewErrorResponder(c).Respond(err)
+			return
+		} else {
+			c.JSON(http.StatusOK, *response)
+		}
+	}
+}
+
+// swagger:route PUT /recommender/:provider/:region/cluster recommend recommendClusterScaleOut
+//
+// Provides a recommendation for a scale-out, based on a current cluster layout on a given provider in a specific region.
+//
+//     Consumes:
+//     - application/json
+//
+//     Produces:
+//     - application/json
+//
+//     Schemes: http
+//
+//     Security:
+//
+//     Responses:
+//       200: RecommendationResponse
+func (r *RouteHandler) recommendClusterScaleOut(ctx context.Context) gin.HandlerFunc {
+	return func(c *gin.Context) {
+		pathParams := GetRecommendationParams{}
+
+		if err := mapstructure.Decode(getPathParamMap(c), &pathParams); err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{"status": http.StatusBadRequest, "message": fmt.Sprintf("%s", err)})
+			return
+		}
+
+		ctxLog := logger.ToContext(ctx, logger.NewLogCtxBuilder().
+			WithProvider(pathParams.Provider).
+			WithService(pathParams.Service).
+			WithRegion(pathParams.Region).
+			WithCorrelationId(logger.GetCorrelationId(c)).
+			Build())
+
+		log := logger.Extract(ctxLog)
+		log.Info("recommend cluster scale out")
+
+		if e := NewCloudInfoValidator(r.ciCli).Validate(pathParams); e != nil {
+			recommender.NewErrorResponder(c).Respond(e)
+			return
+		}
+
+		req := recommender.ClusterScaleoutRecommendationReq{}
+
+		if err := c.BindJSON(&req); err != nil {
+			log.WithError(err).Error("failed to bind request body")
+			c.JSON(http.StatusBadRequest, gin.H{
+				"code":    "bad_params",
+				"message": "validation failed",
+				"cause":   err.Error(),
+			})
+			return
+		}
+
+		if response, err := r.engine.RecommendClusterScaleOut(ctxLog, pathParams.Provider, pathParams.Service, pathParams.Region, req); err != nil {
 			recommender.NewErrorResponder(c).Respond(err)
 			return
 		} else {

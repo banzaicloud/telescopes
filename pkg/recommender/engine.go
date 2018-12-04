@@ -27,9 +27,10 @@ import (
 )
 
 const (
-	// vm types
-	regular = "regular"
-	spot    = "spot"
+	// vm types - regular and ondemand means the same, they are both accepted on the API
+	regular  = "regular"
+	ondemand = "ondemand"
+	spot     = "spot"
 	// Memory represents the memory attribute for the recommender
 	Memory = "memory"
 	// Cpu represents the cpu attribute for the recommender
@@ -37,21 +38,6 @@ const (
 
 	recommenderErrorTag = "recommender"
 )
-
-// ClusterRecommender defines operations for cluster recommendations
-type ClusterRecommender interface {
-	// RecommendAttrValues recommends attributes based on the input
-	RecommendAttrValues(ctx context.Context, provider string, service string, attr string, req ClusterRecommendationReq) ([]float64, error)
-
-	// RecommendVms recommends a set of virtual machines based on the provided parameters
-	RecommendVms(ctx context.Context, provider string, service string, region string, attr string, values []float64, filters []vmFilter, req ClusterRecommendationReq) ([]VirtualMachine, error)
-
-	// RecommendNodePools recommends a slice of node pools to be part of the cluster being recommended
-	RecommendNodePools(ctx context.Context, attr string, vms []VirtualMachine, values []float64, req ClusterRecommendationReq) ([]NodePool, error)
-
-	// RecommendCluster recommends a cluster layout on the given cloud provider, region and wanted resources
-	RecommendCluster(ctx context.Context, provider string, service string, region string, req ClusterRecommendationReq) (*ClusterRecommendationResp, error)
-}
 
 // Engine represents the recommendation engine, it operates on a map of provider -> VmRegistry
 type Engine struct {
@@ -94,6 +80,51 @@ type ClusterRecommendationReq struct {
 	Includes []string `json:"includes,omitempty"`
 	// AllowOlderGen allow older generations of virtual machines (applies for EC2 only)
 	AllowOlderGen *bool `json:"allowOlderGen,omitempty"`
+}
+
+// ClusterRecommendationReq encapsulates the recommendation input data
+// swagger:parameters recommendClusterScaleOut
+type ClusterScaleoutRecommendationReq struct {
+	// Total number of CPUs requested for the cluster
+	SumCpu float64 `json:"sumCpu" binding:"min=1"`
+	// Total memory requested for the cluster (GB)
+	SumMem float64 `json:"sumMem" binding:"min=1"`
+	// Total number of GPUs requested for the cluster
+	SumGpu int `json:"sumGpu,omitempty"`
+	// Minimum number of nodes in the recommended cluster
+	MinNodes int `json:"minNodes,omitempty" binding:"min=1,ltefield=MaxNodes"`
+	// Maximum number of nodes in the recommended cluster
+	MaxNodes int `json:"maxNodes,omitempty"`
+	// Percentage of regular (on-demand) nodes in the recommended cluster
+	OnDemandPct int `json:"onDemandPct,omitempty" binding:"min=0,max=100"`
+	// Availability zones to be included in the recommendation
+	Zones []string `json:"zones,omitempty" binding:"dive,zone"`
+	// Excludes is a blacklist - a slice with vm types to be excluded from the recommendation
+	Excludes []string `json:"excludes,omitempty"`
+	// Current layout
+	Layout []NodePoolDesc `json:"layout,omitempty"`
+}
+
+type NodePoolDesc struct {
+	// Instance type of VMs in the node pool
+	InstanceType string `json:"instanceType"`
+	// Signals that the node pool consists of regular or spot/preemptible instance types
+	VmClass string `json:"vmClass"`
+	// Number of VMs in the node pool
+	SumNodes int `json:"sumNodes"`
+	// TODO: AZ?
+	// Zones []string `json:"zones,omitempty" binding:"dive,zone"`
+}
+
+func (n NodePoolDesc) getVmClass() string {
+	switch n.VmClass {
+	case regular, spot:
+		return n.VmClass
+	case ondemand:
+		return regular
+	default:
+		return spot
+	}
 }
 
 // ClusterRecommendationResp encapsulates recommendation result data
@@ -198,8 +229,16 @@ func (a ByAvgPricePerMemory) Less(i, j int) bool {
 	return pricePerMem1 < pricePerMem2
 }
 
+type ByNonZeroNodePools []NodePoolDesc
+
+func (a ByNonZeroNodePools) Len() int      { return len(a) }
+func (a ByNonZeroNodePools) Swap(i, j int) { a[i], a[j] = a[j], a[i] }
+func (a ByNonZeroNodePools) Less(i, j int) bool {
+	return a[i].SumNodes > a[j].SumNodes
+}
+
 // RecommendCluster performs recommendation based on the provided arguments
-func (e *Engine) RecommendCluster(ctx context.Context, provider string, service string, region string, req ClusterRecommendationReq) (*ClusterRecommendationResp, error) {
+func (e *Engine) RecommendCluster(ctx context.Context, provider string, service string, region string, req ClusterRecommendationReq, layout []NodePoolDesc) (*ClusterRecommendationResp, error) {
 	log := logger.Extract(ctx)
 	log.Infof("recommending cluster configuration. request: [%#v]", req)
 
@@ -207,29 +246,36 @@ func (e *Engine) RecommendCluster(ctx context.Context, provider string, service 
 	nodePools := make(map[string][]NodePool, 2)
 
 	for _, attr := range attributes {
-
-		values, err := e.RecommendAttrValues(ctx, provider, service, region, attr, req)
-		if err != nil {
-			return nil, emperror.Wrap(err, "failed to recommend attribute values")
+		var (
+			values    []float64
+			err       error
+			noExclude = true
+		)
+		if layout == nil {
+			noExclude = false
+			values, err = e.RecommendAttrValues(ctx, provider, service, region, attr, req)
+			if err != nil {
+				return nil, emperror.Wrap(err, "failed to recommend attribute values")
+			}
+			log.Debugf("recommended values for [%s]: count:[%d] , values: [%#v./te]", attr, len(values), values)
 		}
-		log.Debugf("recommended values for [%s]: count:[%d] , values: [%#v./te]", attr, len(values), values)
 
-		vmFilters, err := e.filtersForAttr(ctx, attr, provider)
+		vmFilters, _ := e.filtersForAttr(ctx, attr, provider, noExclude)
 		if err != nil {
 			return nil, emperror.Wrap(err, "failed to identify filters")
 		}
-
-		filteredVms, err := e.RecommendVms(ctx, provider, service, region, attr, values, vmFilters, req)
+		odVms, spotVms, err := e.RecommendVms(ctx, provider, service, region, attr, values, vmFilters, req, layout)
 		if err != nil {
 			return nil, emperror.Wrap(err, "failed to recommend virtual machines")
 		}
 
-		if len(filteredVms) == 0 {
+		if len(odVms)+len(spotVms) == 0 {
 			log.Debugf("no vms with the requested resources found. attribute: %s", attr)
 			// skip the nodepool creation, go to the next attr
 			continue
 		}
-		log.Debugf("recommended vms for [%s]: count:[%d] , values: [%#v]", attr, len(filteredVms), filteredVms)
+		log.Debugf("recommended on-demand vms for [%s]: count:[%d] , values: [%#v]", attr, len(odVms), odVms)
+		log.Debugf("recommended spot vms for [%s]: count:[%d] , values: [%#v]", attr, len(spotVms), spotVms)
 
 		//todo add request validation for interdependent request fields, eg: onDemandPct is always 100 when spot
 		// instances are not available for provider
@@ -237,7 +283,7 @@ func (e *Engine) RecommendCluster(ctx context.Context, provider string, service 
 			log.Warn("onDemand percentage in the request ignored for provider ", provider)
 			req.OnDemandPct = 100
 		}
-		nps, err := e.RecommendNodePools(ctx, attr, filteredVms, values, req)
+		nps, err := e.RecommendNodePools(ctx, attr, odVms, spotVms, req, layout)
 		if err != nil {
 			return nil, emperror.Wrap(err, "failed to recommend nodepools")
 		}
@@ -253,7 +299,7 @@ func (e *Engine) RecommendCluster(ctx context.Context, provider string, service 
 
 	cheapestNodePoolSet := e.findCheapestNodePoolSet(ctx, nodePools)
 
-	accuracy := req.findResponseSum(provider, region, cheapestNodePoolSet)
+	accuracy := findResponseSum(req.Zones, cheapestNodePoolSet)
 
 	return &ClusterRecommendationResp{
 		Provider:  provider,
@@ -263,7 +309,39 @@ func (e *Engine) RecommendCluster(ctx context.Context, provider string, service 
 	}, nil
 }
 
-func (req *ClusterRecommendationReq) findResponseSum(provider string, region string, nodePoolSet []NodePool) ClusterRecommendationAccuracy {
+func boolPointer(b bool) *bool {
+	return &b
+}
+
+// RecommendClusterScaleOut performs recommendation for an existing layout's scale out
+func (e *Engine) RecommendClusterScaleOut(ctx context.Context, provider string, service string, region string, req ClusterScaleoutRecommendationReq) (*ClusterRecommendationResp, error) {
+	log := logger.Extract(ctx)
+	log.Infof("recommending cluster configuration. request: [%#v]", req)
+
+	includes := make([]string, len(req.Layout))
+	for i, npd := range req.Layout {
+		includes[i] = npd.InstanceType
+	}
+	clReq := ClusterRecommendationReq{
+		Zones:         req.Zones,
+		AllowBurst:    boolPointer(true),
+		Includes:      includes,
+		Excludes:      req.Excludes,
+		AllowOlderGen: boolPointer(true),
+		MaxNodes:      req.MaxNodes,
+		MinNodes:      req.MinNodes,
+		NetworkPerf:   nil,
+		OnDemandPct:   req.OnDemandPct,
+		SameSize:      false,
+		SumCpu:        req.SumCpu,
+		SumMem:        req.SumMem,
+		SumGpu:        req.SumGpu,
+	}
+
+	return e.RecommendCluster(ctx, provider, service, region, clReq, req.Layout)
+}
+
+func findResponseSum(zones []string, nodePoolSet []NodePool) ClusterRecommendationAccuracy {
 	var sumCpus float64
 	var sumMem float64
 	var sumNodes int
@@ -290,7 +368,7 @@ func (req *ClusterRecommendationReq) findResponseSum(provider string, region str
 		RecCpu:          sumCpus,
 		RecMem:          sumMem,
 		RecNodes:        sumNodes,
-		RecZone:         req.Zones,
+		RecZone:         zones,
 		RecRegularPrice: sumRegularPrice,
 		RecRegularNodes: sumRegularNodes,
 		RecSpotPrice:    sumSpotPrice,
@@ -330,20 +408,8 @@ func (e *Engine) findCheapestNodePoolSet(ctx context.Context, nodePoolSets map[s
 	return cheapestNpSet
 }
 
-// avgNodeCount calculates the minimum number of nodes having the "average attribute value" required to fill up the
-// requested value of the given attribute
-func avgNodeCount(attrValues []float64, reqSum float64) int {
-	var total float64
-
-	// calculate the total value of the attributes
-	for _, v := range attrValues {
-		total += v
-	}
-	// the average attribute value
-	avgValue := total / float64(len(attrValues))
-
-	// the (rounded up) number of nodes with average attribute value that are needed to reach the "sum"
-	return int(math.Ceil(reqSum / avgValue))
+func avgNodeCount(minNodes, maxNodes int) int {
+	return (minNodes + maxNodes) / 2
 }
 
 // findN returns the number of nodes required
@@ -367,13 +433,13 @@ func findN(avg int) int {
 }
 
 // RecommendVms selects a slice of VirtualMachines for the given attribute and requirements in the request
-func (e *Engine) RecommendVms(ctx context.Context, provider string, service string, region string, attr string, values []float64, filters []vmFilter, req ClusterRecommendationReq) ([]VirtualMachine, error) {
+func (e *Engine) RecommendVms(ctx context.Context, provider string, service string, region string, attr string, values []float64, filters []vmFilter, req ClusterRecommendationReq, layout []NodePoolDesc) ([]VirtualMachine, []VirtualMachine, error) {
 	log := logger.Extract(ctx)
 	log.Infof("recommending virtual machines for attribute: [%s]", attr)
 
 	vmsInRange, err := e.findVmsWithAttrValues(ctx, provider, service, region, req.Zones, attr, values)
 	if err != nil {
-		return nil, emperror.With(err, recommenderErrorTag, "vms")
+		return nil, nil, emperror.With(err, recommenderErrorTag, "vms")
 	}
 
 	var filteredVms []VirtualMachine
@@ -385,9 +451,37 @@ func (e *Engine) RecommendVms(ctx context.Context, provider string, service stri
 
 	if len(filteredVms) == 0 {
 		log.Debugf("no vms found for attribute: %s", attr)
+		return []VirtualMachine{}, []VirtualMachine{}, nil
 	}
 
-	return filteredVms, nil
+	var odVms, spotVms []VirtualMachine
+	if layout == nil {
+		odVms, spotVms = filteredVms, filteredVms
+	} else {
+		for _, npd := range layout {
+			for _, vm := range filteredVms {
+				if vm.Type == npd.InstanceType {
+					if npd.getVmClass() == regular {
+						odVms = append(odVms, vm)
+					} else {
+						spotVms = append(spotVms, vm)
+					}
+					continue
+				}
+			}
+		}
+	}
+
+	if req.OnDemandPct < 100 {
+		// retain only the nodes that are available as spot instances
+		spotVms = e.filterSpots(ctx, spotVms)
+		if len(spotVms) == 0 {
+			log.Debugf("no vms suitable for spot pools: %s", attr)
+			return []VirtualMachine{}, []VirtualMachine{}, nil
+		}
+	}
+	return odVms, spotVms, nil
+
 }
 
 func (e *Engine) findVmsWithAttrValues(ctx context.Context, provider string, service string, region string, zones []string, attr string, values []float64) ([]VirtualMachine, error) {
@@ -411,26 +505,29 @@ func (e *Engine) findVmsWithAttrValues(ctx context.Context, provider string, ser
 		return nil, emperror.With(err, "retrieval", "productdetails")
 	}
 
-	for _, v := range values {
-		var filteredProducts []models.ProductDetails
-		for _, p := range allProducts {
-			switch attr {
-			case Cpu:
-				if p.Cpus != v {
-					continue
+	for _, p := range allProducts {
+		included := true
+		if len(values) > 0 {
+			included = false
+			for _, v := range values {
+				switch attr {
+				case Cpu:
+					if p.Cpus == v {
+						included = true
+						continue
+					}
+				case Memory:
+					if p.Mem == v {
+						included = true
+						continue
+					}
+				default:
+					return nil, errors.New("unsupported attribute")
 				}
-			case Memory:
-				if p.Mem != v {
-					continue
-				}
-			default:
-				return nil, errors.New("unsupported attribute")
 			}
-			filteredProducts = append(filteredProducts, *p)
 		}
-
-		for _, p := range filteredProducts {
-			vm := VirtualMachine{
+		if included {
+			vms = append(vms, VirtualMachine{
 				Type:           p.Type,
 				OnDemandPrice:  p.OnDemandPrice,
 				AvgPrice:       avg(p.SpotPrice, zones),
@@ -441,8 +538,7 @@ func (e *Engine) findVmsWithAttrValues(ctx context.Context, provider string, ser
 				NetworkPerf:    p.NtwPerf,
 				NetworkPerfCat: p.NtwPerfCat,
 				CurrentGen:     p.CurrentGen,
-			}
-			vms = append(vms, vm)
+			})
 		}
 	}
 
@@ -495,10 +591,12 @@ func (e *Engine) RecommendAttrValues(ctx context.Context, provider string, servi
 }
 
 // filtersForAttr returns the slice for
-func (e *Engine) filtersForAttr(ctx context.Context, attr string, provider string) ([]vmFilter, error) {
-	var
+func (e *Engine) filtersForAttr(ctx context.Context, attr string, provider string, noExclude bool) ([]vmFilter, error) {
 	// generic filters - not depending on providers and attributes
-	filters = []vmFilter{e.includesFilter, e.excludesFilter}
+	var filters = []vmFilter{e.includesFilter}
+	if !noExclude {
+		filters = append(filters, e.excludesFilter)
+	}
 
 	// provider specific filters
 	switch provider {
@@ -535,91 +633,156 @@ func (e *Engine) sortByAttrValue(ctx context.Context, attr string, vms []Virtual
 }
 
 // RecommendNodePools finds the slice of NodePools that may participate in the recommendation process
-func (e *Engine) RecommendNodePools(ctx context.Context, attr string, vms []VirtualMachine, values []float64, req ClusterRecommendationReq) ([]NodePool, error) {
+func (e *Engine) RecommendNodePools(ctx context.Context, attr string, odVms []VirtualMachine, spotVms []VirtualMachine, req ClusterRecommendationReq, layout []NodePoolDesc) ([]NodePool, error) {
 	log := logger.Extract(ctx)
-	var nps []NodePool
+	odNps := make([]NodePool, 0)
+	spotNps := make([]NodePool, 0)
+	exSpotNps := make([]NodePool, 0)
 
-	// find cheapest onDemand instance from the list - based on price per attribute
-	selectedOnDemand := vms[0]
-	for _, vm := range vms {
-		if vm.OnDemandPrice/vm.getAttrValue(attr) < selectedOnDemand.OnDemandPrice/selectedOnDemand.getAttrValue(attr) {
-			selectedOnDemand = vm
+	spotVmsExcluded := make([]VirtualMachine, 0)
+
+	for _, spotVm := range spotVms {
+		if !contains(req.Excludes, spotVm.Type) {
+			spotVmsExcluded = append(spotVmsExcluded, spotVm)
 		}
 	}
 
 	log.Debugf("requested sum for attribute [%s]: [%f]", attr, req.sum(ctx, attr))
-
 	var sumOnDemandValue = req.sum(ctx, attr) * float64(req.OnDemandPct) / 100
 	var sumSpotValue = req.sum(ctx, attr) - sumOnDemandValue
 
 	log.Debugf("on demand sum value for attr [%s]: [%f]", attr, sumOnDemandValue)
 	log.Debugf("spot sum value for attr [%s]: [%f]", attr, sumSpotValue)
 
-	// create and append on-demand pool
-	onDemandPool := NodePool{
-		SumNodes: int(math.Ceil(sumOnDemandValue / selectedOnDemand.getAttrValue(attr))),
-		VmClass:  regular,
-		VmType:   selectedOnDemand,
-	}
+	//TODO: what if there's no on-demand in layout but we want to add ondemands?? validate -> cannot do that?
 
-	nps = append(nps, onDemandPool)
-
-	// if spot price pools requested
-	if req.OnDemandPct < 100 {
-		// retain only the nodes that are available as spot instances
-		vms = e.filterSpots(ctx, vms)
-		if len(vms) == 0 {
-			return nil, errors.New("no vms suitable for spot pools")
+	if len(odVms) > 0 {
+		// find cheapest onDemand instance from the list - based on price per attribute
+		selectedOnDemand := odVms[0]
+		for _, vm := range odVms {
+			if vm.OnDemandPrice/vm.getAttrValue(attr) < selectedOnDemand.OnDemandPrice/selectedOnDemand.getAttrValue(attr) {
+				selectedOnDemand = vm
+			}
 		}
+
+		// create and append on-demand pool
+		onDemandPool := NodePool{
+			SumNodes: int(math.Ceil(sumOnDemandValue / selectedOnDemand.getAttrValue(attr))),
+			VmClass:  regular,
+			VmType:   selectedOnDemand,
+		}
+		odNps = append(odNps, onDemandPool)
 	}
 
 	// vms are sorted by attribute value
-	e.sortByAttrValue(ctx, attr, vms)
+	e.sortByAttrValue(ctx, attr, spotVmsExcluded)
 
-	// the "magic" number of machines for diversifying the types
-	N := int(math.Min(float64(findN(avgNodeCount(values, req.sum(ctx, attr)))), float64(len(vms))))
+	var N int
 
-	// the second "magic" number for diversifying the layout
-	M := int(math.Min(math.Ceil(float64(N)*1.5), float64(len(vms))))
+	if layout == nil {
+		// the "magic" number of machines for diversifying the types
+		N = int(math.Min(float64(findN(avgNodeCount(req.MinNodes, req.MaxNodes))), float64(len(spotVmsExcluded))))
+		// the second "magic" number for diversifying the layout
+		M := int(math.Min(math.Ceil(float64(N)*1.5), float64(len(spotVmsExcluded))))
+		log.Debugf("Magic 'Marton' numbers: N=%d, M=%d", N, M)
 
-	log.Debugf("Magic 'Marton' numbers: N=%d, M=%d", N, M)
+		// the first M vm-s
+		recommendedVms := spotVmsExcluded[:M]
 
-	// the first M vm-s
-	recommendedVms := vms[:M]
-
-	// create spot nodepools - one for the first M vm-s
-	for _, vm := range recommendedVms {
-		nps = append(nps, NodePool{
-			SumNodes: 0,
-			VmClass:  spot,
-			VmType:   vm,
-		})
+		// create spot nodepools - one for the first M vm-s
+		for _, vm := range recommendedVms {
+			spotNps = append(spotNps, NodePool{
+				SumNodes: 0,
+				VmClass:  spot,
+				VmType:   vm,
+			})
+		}
+	} else {
+		sort.Sort(ByNonZeroNodePools(layout))
+		var nonZeroNPs int
+		for _, npd := range layout {
+			for _, vm := range spotVms {
+				if npd.getVmClass() == spot && vm.Type == npd.InstanceType {
+					if !contains(req.Excludes, npd.InstanceType) {
+						spotNps = append(spotNps, NodePool{
+							VmType:   vm,
+							VmClass:  spot,
+							SumNodes: npd.SumNodes,
+						})
+					} else {
+						exSpotNps = append(exSpotNps, NodePool{
+							VmType:   vm,
+							VmClass:  spot,
+							SumNodes: npd.SumNodes,
+						})
+					}
+					if npd.SumNodes > 0 {
+						nonZeroNPs += 1
+					}
+					break
+				}
+			}
+		}
+		N = min(nonZeroNPs, len(spotVmsExcluded))
+		log.Debugf("Magic 'Marton' number: N=%d", N)
 	}
-	log.Debugf("totally created [%d] regular and spot price node pools", len(nps))
+	log.Debugf("created [%d] regular and [%d] spot price node pools", len(odNps), len(spotNps))
+	spotNps = fillSpotNodePools(ctx, sumSpotValue, N, spotNps, attr)
+	if len(exSpotNps) > 0 {
+		spotNps = append(spotNps, exSpotNps...)
+	}
+	return append(odNps, spotNps...), nil
+}
 
-	// fill up instances in spot pools
-	i := 0
-	var sumValueInPools float64
-	for sumValueInPools < sumSpotValue {
-		nodePoolIdx := i%N + 1
-		if nodePoolIdx == 1 {
-			// always add a new instance to the cheapest option and move on
+func min(x, y int) int {
+	if x < y {
+		return x
+	} else {
+		return y
+	}
+}
+
+func fillSpotNodePools(ctx context.Context, sumSpotValue float64, N int, nps []NodePool, attr string) []NodePool {
+	log := logger.Extract(ctx)
+	var (
+		sumValueInPools, minValue float64
+		idx, minIndex             int
+	)
+	// sum value in pools should contain excluded items as well
+
+	for i := 0; i < N; i++ {
+		v := float64(nps[i].SumNodes) * nps[i].VmType.getAttrValue(attr)
+		sumValueInPools += v
+		if i == 0 {
+			minValue = v
+			minIndex = i
+		} else if v < minValue {
+			minValue = v
+			minIndex = i
+		}
+	}
+	desiredSpotValue := sumValueInPools + sumSpotValue
+	idx = minIndex
+	for sumValueInPools < desiredSpotValue {
+		nodePoolIdx := idx % N
+		if nodePoolIdx == minIndex {
+			// always add a new instance to the option with the lowest attribute value to balance attributes and move on
 			nps[nodePoolIdx].SumNodes += 1
 			sumValueInPools += nps[nodePoolIdx].VmType.getAttrValue(attr)
-			log.Debugf("adding vm to the [%d]th node pool sum value in pools: [%f]", nodePoolIdx, sumValueInPools)
-			i++
-		} else if nps[nodePoolIdx].getNextSum(attr) > nps[1].getSum(attr) {
+			log.Debugf("adding vm to the [%d]th (min sized) node pool, sum value in pools: [%f]", nodePoolIdx, sumValueInPools)
+			idx++
+		} else if nps[nodePoolIdx].getNextSum(attr) > nps[minIndex].getSum(attr) {
 			// for other pools, if adding another vm would exceed the current sum of the cheapest option, move on to the next one
-			log.Debugf("skip adding vm to the [%d]th node pool - (price would exceed the sum)", nodePoolIdx)
-			i++
+			log.Debugf("skip adding vm to the [%d]th node pool", nodePoolIdx)
+			idx++
 		} else {
 			// otherwise add a new one, but do not move on to the next one
 			nps[nodePoolIdx].SumNodes += 1
 			sumValueInPools += nps[nodePoolIdx].VmType.getAttrValue(attr)
-			log.Debugf("adding vm to the [%d]th node pool sum value in pools: [%f]", nodePoolIdx, sumValueInPools)
+			log.Debugf("adding vm to the [%d]th node pool, sum value in pools: [%f]", nodePoolIdx, sumValueInPools)
 		}
 	}
-	return nps, nil
+	return nps
 }
 
 // maxValuePerVm calculates the maximum value per node for the given attribute

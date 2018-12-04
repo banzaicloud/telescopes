@@ -116,7 +116,7 @@ func init() {
 func main() {
 
 	// application context, intended to hold extra information
-	appCtx := logger.ToContext(context.Background(), logger.NewLogCtxBuilder().WithField("application", "telescope").Build())
+	appCtx := logger.ToContext(context.Background(), logger.NewLogCtxBuilder().WithField("application", "telescopes").Build())
 	ctxLog := logger.Extract(appCtx)
 
 	ctxLog.WithField("version", Version).WithField("commit_hash", CommitHash).WithField("build_date", BuildDate).Info("initializing telescopes")
