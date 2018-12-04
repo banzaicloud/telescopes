@@ -274,7 +274,7 @@ func TestEngine_RecommendVms(t *testing.T) {
 		filters   []vmFilter
 		request   ClusterRecommendationReq
 		attribute string
-		check     func([]VirtualMachine, error)
+		check     func([]VirtualMachine, []VirtualMachine, error)
 	}{
 		{
 			name: "could not describe region",
@@ -283,9 +283,10 @@ func TestEngine_RecommendVms(t *testing.T) {
 			}},
 			pi:     &dummyCloudInfoSource{DescribeRegionError},
 			values: []float64{1, 2},
-			check: func(vms []VirtualMachine, err error) {
+			check: func(odVms []VirtualMachine, spotVms []VirtualMachine, err error) {
 				assert.EqualError(t, err, DescribeRegionError)
-				assert.Nil(t, vms, "the vms should be nil")
+				assert.Nil(t, odVms, "the vms should be nil")
+				assert.Nil(t, spotVms, "the vms should be nil")
 			},
 		},
 		{
@@ -295,9 +296,10 @@ func TestEngine_RecommendVms(t *testing.T) {
 			}},
 			pi:     &dummyCloudInfoSource{ProductDetailsError},
 			values: []float64{1, 2},
-			check: func(vms []VirtualMachine, err error) {
+			check: func(odVms []VirtualMachine, spotVms []VirtualMachine, err error) {
 				assert.EqualError(t, err, ProductDetailsError)
-				assert.Nil(t, vms, "the vms should be nil")
+				assert.Nil(t, odVms, "the vms should be nil")
+				assert.Nil(t, spotVms, "the vms should be nil")
 			},
 		},
 		{
@@ -308,18 +310,17 @@ func TestEngine_RecommendVms(t *testing.T) {
 			pi:        &dummyCloudInfoSource{},
 			values:    []float64{2},
 			attribute: Cpu,
-			check: func(vms []VirtualMachine, err error) {
+			check: func(odVms []VirtualMachine, spotVms []VirtualMachine, err error) {
 				assert.Nil(t, err, "the error should be nil")
-				assert.Equal(t, 3, len(vms))
+				assert.Equal(t, 3, len(odVms))
+				assert.Equal(t, 3, len(spotVms))
 			},
 		},
 	}
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
 			engine := NewEngine(test.pi)
-
-			test.check(engine.RecommendVms(context.TODO(), "dummy", "dummyService", "dummyRegion", test.attribute, test.values, test.filters, test.request))
-
+			test.check(engine.RecommendVms(context.TODO(), "dummy", "dummyService", "dummyRegion", test.attribute, test.values, test.filters, test.request, nil))
 		})
 	}
 }
@@ -356,27 +357,13 @@ func TestEngine_RecommendNodePools(t *testing.T) {
 					{VmType: VirtualMachine{Type: "", AvgPrice: 99, OnDemandPrice: 10, Cpus: 10, Mem: 10, Gpus: 0, Burst: false}, SumNodes: 5, VmClass: "spot"}},
 					nps)
 				assert.Equal(t, 3, len(nps))
-
-			},
-		},
-		{
-			name: "no spot instances available",
-			pi:   &dummyCloudInfoSource{},
-			vms:  []VirtualMachine{{OnDemandPrice: float64(2), AvgPrice: 0, Cpus: float64(10), Mem: float64(10), Gpus: float64(0)}},
-			attr: Cpu,
-			check: func(nps []NodePool, err error) {
-				assert.EqualError(t, err, "no vms suitable for spot pools")
-				assert.Nil(t, nps, "the nps should be nil")
-
 			},
 		},
 	}
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
 			engine := NewEngine(test.pi)
-
-			test.check(engine.RecommendNodePools(context.TODO(), test.attr, test.vms, []float64{4}, req))
-
+			test.check(engine.RecommendNodePools(context.TODO(), test.attr, test.vms, test.vms, req, nil))
 		})
 	}
 }
@@ -535,20 +522,6 @@ func TestEngine_RecommendCluster(t *testing.T) {
 			},
 		},
 		{
-			name: "when neither of the selected VMs have a spot price available (avgPrice = 0 for all VMs), we should report an error",
-			pi:   &dummyCloudInfoSource{TcId: AvgPriceNil},
-			request: ClusterRecommendationReq{
-				MinNodes: 5,
-				MaxNodes: 10,
-				SumMem:   100,
-				SumCpu:   100,
-			},
-			check: func(resp *ClusterRecommendationResp, err error) {
-				assert.Nil(t, resp, "the response should be nil")
-				assert.EqualError(t, err, "failed to recommend nodepools: no vms suitable for spot pools")
-			},
-		},
-		{
 			name: "when we could not select a slice of VMs for the requirements in the request (could not get product details), we should report an error",
 			pi:   &dummyCloudInfoSource{ProductDetailsError},
 			request: ClusterRecommendationReq{
@@ -581,7 +554,7 @@ func TestEngine_RecommendCluster(t *testing.T) {
 		t.Run(test.name, func(t *testing.T) {
 			engine := NewEngine(test.pi)
 
-			test.check(engine.RecommendCluster(context.TODO(), "dummy", "dummyService", "dummyRegion", test.request))
+			test.check(engine.RecommendCluster(context.TODO(), "dummy", "dummyService", "dummyRegion", test.request, nil))
 		})
 	}
 }

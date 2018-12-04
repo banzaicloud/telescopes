@@ -88,6 +88,7 @@ func (r *RouteHandler) ConfigureRoutes(ctx context.Context, router *gin.Engine) 
 	recGroup := v1.Group("/recommender")
 	{
 		recGroup.POST("/:provider/:service/:region/cluster", r.recommendClusterSetup(ctx))
+		recGroup.PUT("/:provider/:service/:region/cluster", r.recommendClusterScaleOut(ctx))
 	}
 }
 
