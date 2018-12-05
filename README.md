@@ -27,16 +27,16 @@ The application can be started with the following arguments:
 
 ```
 Usage of ./telescopes:
-      --dev-mode                     development mode, if true token based authentication is disabled, false by default
-      --help                         print usage
-      --listen-address string        the address where the server listens to HTTP requests. (default ":9090")
-      --log-format string            log format
-      --log-level string             log level (default "info")
-      --metrics-address string       the address where internal metrics are exposed (default ":9900")
-      --metrics-enabled              internal metrics are exposed if enabled
-      --cloudinfo-address string   the address of the Product Info service to retrieve attribute and pricing info [format=scheme://host:port/basepath] (default "http://localhost:9090/api/v1")
-      --tokensigningkey string       The token signing key for the authentication process
-      --vault-address string         The vault address for authentication token management (default ":8200")
+      --cloudinfo-address string   the address of the Cloud Info service to retrieve attribute and pricing info [format=scheme://host:port/basepath] (default "http://localhost:9090/api/v1")
+      --dev-mode                   development mode, if true token based authentication is disabled, false by default
+      --help                       print usage
+      --listen-address string      the address where the server listens to HTTP requests. (default ":9090")
+      --log-format string          log format
+      --log-level string           log level (default "info")
+      --metrics-address string     the address where internal metrics are exposed (default ":9900")
+      --metrics-enabled            internal metrics are exposed if enabled
+      --tokensigningkey string     The token signing key for the authentication process
+      --vault-address string       The vault address for authentication token management (default ":8200")
 ```
 
 > We have recently added Oauth2 (bearer) token based authentication to `telescopes` which is enabled by default. In order for this to work, the application needs to be connected to a component (eg.: [Banzai Cloud Pipeline ](http://github.com/banzaicloud/pipeline)) capable to emit the `bearer token` The connection is made through a `vault` instance (which' address must be specified by the --vault-address flag) The --token-signing-key also must be specified in this case (this is a string secret that is shared with the token emitter component)

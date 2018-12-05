@@ -35,9 +35,9 @@ import (
 
 	"github.com/banzaicloud/telescopes/internal/platform"
 
-	"github.com/banzaicloud/go-gin-prometheus"
-	"github.com/banzaicloud/cloudinfo/pkg/logger"
 	"github.com/banzaicloud/cloudinfo/pkg/cloudinfo-client/client"
+	"github.com/banzaicloud/cloudinfo/pkg/logger"
+	"github.com/banzaicloud/go-gin-prometheus"
 	"github.com/banzaicloud/telescopes/internal/app/telescopes/api"
 	"github.com/banzaicloud/telescopes/pkg/recommender"
 	"github.com/gin-gonic/gin"
@@ -53,7 +53,7 @@ const (
 	logLevelFlag        = "log-level"
 	logFormatFlag       = "log-format"
 	listenAddressFlag   = "listen-address"
-	cloudInfoFlag     = "cloudinfo-address"
+	cloudInfoFlag       = "cloudinfo-address"
 	devModeFlag         = "dev-mode"
 	tokenSigningKeyFlag = "tokensigningkey"
 	vaultAddrFlag       = "vault-address"
@@ -70,7 +70,7 @@ func defineFlags() {
 	flag.String(logLevelFlag, "info", "log level")
 	flag.String(logFormatFlag, "", "log format")
 	flag.String(listenAddressFlag, ":9090", "the address where the server listens to HTTP requests.")
-	flag.String(cloudInfoFlag, "http://localhost:9090/api/v1", "the address of the Product Info service to retrieve attribute and pricing info [format=scheme://host:port/basepath]")
+	flag.String(cloudInfoFlag, "http://localhost:9090/api/v1", "the address of the Cloud Info service to retrieve attribute and pricing info [format=scheme://host:port/basepath]")
 	flag.Bool(devModeFlag, false, "development mode, if true token based authentication is disabled, false by default")
 	flag.String(tokenSigningKeyFlag, "", "The token signing key for the authentication process")
 	flag.String(vaultAddrFlag, ":8200", "The vault address for authentication token management")
@@ -156,7 +156,7 @@ func main() {
 	if viper.GetBool(metricsEnabledFlag) {
 		p := ginprometheus.NewPrometheus("gin", []string{"provider", "service", "region"})
 		p.SetListenAddress(viper.GetString(metricsAddressFlag))
-		p.Use(router)
+		p.Use(router, "/metrics")
 	}
 
 	routeHandler.ConfigureRoutes(appCtx, router)

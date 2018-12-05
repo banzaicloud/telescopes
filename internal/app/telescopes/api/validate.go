@@ -17,8 +17,8 @@ package api
 import (
 	"context"
 	"fmt"
-	"github.com/banzaicloud/cloudinfo/pkg/logger"
 	"github.com/banzaicloud/cloudinfo/pkg/cloudinfo-client/client/service"
+	"github.com/banzaicloud/cloudinfo/pkg/logger"
 	"github.com/mitchellh/mapstructure"
 	"net/http"
 	"reflect"
