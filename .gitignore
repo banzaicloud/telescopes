@@ -8,6 +8,7 @@ test.txt
 test-results
 /.licensei.cache
 /vendor/
+/build/
 
 # IDE integration
 /.idea/*

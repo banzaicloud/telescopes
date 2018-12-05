@@ -21,8 +21,8 @@ import (
 	"math"
 	"sort"
 
-	"github.com/banzaicloud/cloudinfo/pkg/logger"
 	"github.com/banzaicloud/cloudinfo/pkg/cloudinfo-client/models"
+	"github.com/banzaicloud/cloudinfo/pkg/logger"
 )
 
 const (
