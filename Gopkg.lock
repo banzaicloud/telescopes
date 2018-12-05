@@ -477,6 +477,14 @@
   version = "1.0.0"
 
 [[projects]]
+  digest = "1:05c51df2ae64391776460b8dd36b3fa36665ef2a9d5dca279ca98e837c50c123"
+  name = "github.com/moogar0880/problems"
+  packages = ["."]
+  pruneopts = "NUT"
+  revision = "33afcba6336a8edeaa9ceeef7659ed96a85016f2"
+  version = "0.1.0"
+
+[[projects]]
   digest = "1:13b8f1a2ce177961dc9231606a52f709fab896c565f3988f60a7f6b4e543a902"
   name = "github.com/pelletier/go-toml"
   packages = ["."]
@@ -828,7 +836,7 @@
     "github.com/banzaicloud/cloudinfo/pkg/cloudinfo-client/client",
     "github.com/banzaicloud/cloudinfo/pkg/cloudinfo-client/client/attributes",
     "github.com/banzaicloud/cloudinfo/pkg/cloudinfo-client/client/products",
-    "github.com/banzaicloud/cloudinfo/pkg/cloudinfo-client/client/providers",
+    "github.com/banzaicloud/cloudinfo/pkg/cloudinfo-client/client/provider",
     "github.com/banzaicloud/cloudinfo/pkg/cloudinfo-client/client/regions",
     "github.com/banzaicloud/cloudinfo/pkg/cloudinfo-client/client/service",
     "github.com/banzaicloud/cloudinfo/pkg/cloudinfo-client/models",
@@ -837,10 +845,12 @@
     "github.com/gin-contrib/cors",
     "github.com/gin-gonic/gin",
     "github.com/gin-gonic/gin/binding",
+    "github.com/go-openapi/runtime",
     "github.com/go-openapi/runtime/client",
     "github.com/go-openapi/strfmt",
     "github.com/goph/emperror",
     "github.com/mitchellh/mapstructure",
+    "github.com/moogar0880/problems",
     "github.com/pkg/errors",
     "github.com/spf13/pflag",
     "github.com/spf13/viper",
