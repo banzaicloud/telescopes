@@ -80,7 +80,7 @@ func (erc *errClassifier) Classify(inErr interface{}) (interface{}, error) {
 func (erc *errClassifier) classifyApiError(e *runtime.APIError, ctx []interface{}) *problems.DefaultProblem {
 
 	var (
-		httpCode = 0
+		httpCode int
 		details  = "unknown failure"
 	)
 

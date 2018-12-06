@@ -25,10 +25,6 @@ const (
 	recommendationProblemTitle = "recommendation problem"
 )
 
-var (
-	rec = problems.NewProblem()
-)
-
 // NewValidationProblem identif
 func NewValidationProblem(code int, details string) *problems.DefaultProblem {
 	pb := problems.NewDetailedProblem(code, details)
