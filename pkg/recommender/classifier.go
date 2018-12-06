@@ -24,12 +24,6 @@ import (
 	"github.com/pkg/errors"
 )
 
-const (
-	// telescope error codes
-	ErrCloudInfoUnavailable             = 1000
-	ErrNoCloudInfoForRequestedResources = 5000
-)
-
 // Classifier represents a contract to classify passed in structs
 type Classifier interface {
 	// Classify classifies the passed in struct based on arbitrary, implementation specific criteria
