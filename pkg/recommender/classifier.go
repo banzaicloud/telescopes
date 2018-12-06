@@ -15,12 +15,12 @@
 package recommender
 
 import (
-	"github.com/moogar0880/problems"
 	"net/http"
 	"net/url"
 
 	"github.com/go-openapi/runtime"
 	"github.com/goph/emperror"
+	"github.com/moogar0880/problems"
 	"github.com/pkg/errors"
 )
 
@@ -53,14 +53,14 @@ func (erc *errClassifier) Classify(inErr interface{}) (interface{}, error) {
 
 	cause := errors.Cause(err)
 
-	switch cause.(type) {
+	switch e := cause.(type) {
 
 	case *runtime.APIError:
 		// (cloud info) service is reachable - operation failed (eg.: bad request)
-		problem = erc.classifyApiError(cause.(*runtime.APIError), emperror.Context(err))
+		problem = erc.classifyApiError(e, emperror.Context(err))
 	case *url.Error:
 		// the cloud info service is not available
-		problem = erc.classifyUrlError(cause.(*url.Error), emperror.Context(err))
+		problem = erc.classifyUrlError(e, emperror.Context(err))
 	default:
 		// unclassified error
 		problem = erc.classifyGenericError(cause, emperror.Context(err))
