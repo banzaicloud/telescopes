@@ -16,6 +16,7 @@ package recommender
 
 import (
 	"github.com/gin-gonic/gin"
+	"github.com/moogar0880/problems"
 	"net/http"
 )
 
@@ -39,13 +40,13 @@ func (er *errorResponder) Respond(err error) {
 		return
 	}
 
-	er.gCtx.JSON(http.StatusInternalServerError, gin.H{"code": "unknown", "err": err})
+	er.gCtx.JSON(http.StatusInternalServerError, NewUnknownProblem(err))
 }
 
 // NewErrorResponder configures a new error responder
 func NewErrorResponder(ginCtx *gin.Context) Responder {
 	return &errorResponder{
-		errClassifier: NewErrorResponseClassifier(),
+		errClassifier: NewErrorClassifier(),
 		gCtx:          ginCtx,
 	}
 }
@@ -53,26 +54,10 @@ func NewErrorResponder(ginCtx *gin.Context) Responder {
 // respond sets the response in the gin context
 func (er *errorResponder) respond(d interface{}) {
 
-	if erd, ok := d.(errorResponse); ok {
-		er.gCtx.JSON(erd.HttpResponseCode, erd)
+	if pb, ok := d.(*problems.DefaultProblem); ok {
+		er.gCtx.JSON(pb.Status, pb)
 		return
 	}
 
-	er.gCtx.JSON(http.StatusInternalServerError, gin.H{"code": "unknown", "err": d})
-}
-
-// errorResponse data to be set as content in case of errors
-type errorResponse struct {
-	HttpResponseCode int    `json:"http_response_code"`
-	ErrorCode        int    `json:"error_code"`
-	Message          string `json:"message"`
-}
-
-// NewErrorResponse creates a new instance based on the provided data
-func NewErrorResponse(rCode, eCode int, message string) errorResponse {
-	return errorResponse{
-		HttpResponseCode: rCode,
-		ErrorCode:        eCode,
-		Message:          message,
-	}
+	er.gCtx.JSON(http.StatusInternalServerError, NewUnknownProblem(d))
 }

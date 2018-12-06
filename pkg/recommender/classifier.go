@@ -15,7 +15,7 @@
 package recommender
 
 import (
-	"fmt"
+	"github.com/moogar0880/problems"
 	"net/http"
 	"net/url"
 
@@ -36,20 +36,21 @@ type Classifier interface {
 	Classify(in interface{}) (interface{}, error)
 }
 
-// errResponseClassifier type implementing the Classifier interface
-type errResponseClassifier struct {
+// errClassifier type implementing the Classifier interface
+type errClassifier struct {
 }
 
-// NewErrorResponseClassifier returns a reference to a classifier instance
-func NewErrorResponseClassifier() Classifier {
-	return &errResponseClassifier{}
+// NewErrorClassifier returns a reference to a classifier instance
+func NewErrorClassifier() Classifier {
+	return &errClassifier{}
 }
 
 // Classify classification implementation based on the error and its context
-func (erc *errResponseClassifier) Classify(inErr interface{}) (interface{}, error) {
+func (erc *errClassifier) Classify(inErr interface{}) (interface{}, error) {
 	var (
-		err error
-		ok  bool
+		err     error
+		ok      bool
+		problem *problems.DefaultProblem
 	)
 
 	if err, ok = inErr.(error); !ok {
@@ -62,35 +63,31 @@ func (erc *errResponseClassifier) Classify(inErr interface{}) (interface{}, erro
 
 	case *runtime.APIError:
 		// (cloud info) service is reachable - operation failed (eg.: bad request)
-		httpCode, tcCode, tcMsq := erc.classifyApiError(cause.(*runtime.APIError), emperror.Context(err))
-
-		return NewErrorResponse(httpCode, tcCode, tcMsq), nil
+		problem = erc.classifyApiError(cause.(*runtime.APIError), emperror.Context(err))
 	case *url.Error:
 		// the cloud info service is not available
-		httpCode, tcCode, tcMsq := erc.classifyUrlError(cause.(*url.Error), emperror.Context(err))
-
-		return NewErrorResponse(httpCode, tcCode, tcMsq), nil
+		problem = erc.classifyUrlError(cause.(*url.Error), emperror.Context(err))
 	default:
-		httpCode, tcCode, tcMsq := erc.classifyGenericError(cause, emperror.Context(err))
 		// unclassified error
-		return NewErrorResponse(httpCode, tcCode, tcMsq), nil
+		problem = erc.classifyGenericError(cause, emperror.Context(err))
 	}
+
+	return problem, nil
 
 }
 
 // classifyApiError assembles data to be sent in the response to the caller when the error originates from the cloud info service
-func (erc *errResponseClassifier) classifyApiError(e *runtime.APIError, ctx []interface{}) (int, int, string) {
+func (erc *errClassifier) classifyApiError(e *runtime.APIError, ctx []interface{}) *problems.DefaultProblem {
 
 	var (
-		httpCode int
-		tcCode   = -1
-		tcMsg    = "unknown failure"
+		httpCode = 0
+		details  = "unknown failure"
 	)
 
 	// determine http status code
 	switch c := e.Code; {
 	case c < http.StatusInternalServerError:
-		// all non-server error status codes translated to user error staus code
+		// all non-server error status codes translated to user error status code
 		httpCode = http.StatusBadRequest
 	default:
 		// all server errors left unchanged
@@ -101,41 +98,41 @@ func (erc *errResponseClassifier) classifyApiError(e *runtime.APIError, ctx []in
 	// the message should contain the flow related information and
 	if hasLabel(ctx, "validation") {
 		// provider, service, region - path data
-		tcCode = ErrCloudInfoUnavailable
-		tcMsg = "validation failed - no cloud information available for the request path data"
+		details = "validation failed - no cloud information available for the request path data"
+		return NewValidationProblem(httpCode, details)
 	}
 
 	if hasLabel(ctx, recommenderErrorTag) {
 		// zone, network etc ..
-		tcCode = ErrNoCloudInfoForRequestedResources
-		tcMsg = "recommendation failed - no cloud info available for the requested resources"
+		details = "recommendation failed - no cloud info available for the requested resources"
+		return NewRecommendationProblem(httpCode, details)
 	}
 
-	return httpCode, tcCode, tcMsg
+	return problems.NewDetailedProblem(httpCode, details)
 }
 
-func (erc *errResponseClassifier) classifyUrlError(e *url.Error, ctx []interface{}) (int, int, string) {
+func (erc *errClassifier) classifyUrlError(e *url.Error, ctx []interface{}) *problems.DefaultProblem {
 
 	var (
-		httpCode int    = http.StatusInternalServerError
-		tcCode   int    = -1
-		tcMsg    string = "unknown failure"
+		problem = NewUnknownProblem(e)
 	)
 
 	if hasLabel(ctx, cloudInfoCliErrTag) {
-		return httpCode, ErrCloudInfoUnavailable, fmt.Sprint("failed to connect to cloud info service") // connectivity to CI service
+		problem = NewRecommendationProblem(http.StatusInternalServerError, "failed to connect to the cloud info service")
 	}
 
-	return httpCode, tcCode, tcMsg
+	return problem
 }
 
-func (erc *errResponseClassifier) classifyGenericError(e error, ctx []interface{}) (int, int, string) {
+func (erc *errClassifier) classifyGenericError(e error, ctx []interface{}) *problems.DefaultProblem {
+
+	var problem = NewUnknownProblem(e)
 
 	if hasLabel(ctx, recommenderErrorTag) {
-		return http.StatusBadRequest, ErrNoCloudInfoForRequestedResources, e.Error()
+		problem = NewRecommendationProblem(http.StatusBadRequest, e.Error())
 	}
 
-	return http.StatusInternalServerError, -1, "recommendation failed"
+	return problem
 }
 
 func hasLabel(ctx []interface{}, s interface{}) bool {

@@ -58,7 +58,7 @@ type Engine struct {
 }
 
 // NewEngine creates a new Engine instance
-func NewEngine(pis CloudInfoSource) (*Engine) {
+func NewEngine(pis CloudInfoSource) *Engine {
 	return &Engine{
 		piSource: pis,
 	}

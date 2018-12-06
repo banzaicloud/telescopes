@@ -17,6 +17,7 @@ package recommender
 import (
 	"github.com/go-openapi/runtime"
 	"github.com/goph/emperror"
+	"github.com/moogar0880/problems"
 	"github.com/pkg/errors"
 	"github.com/stretchr/testify/assert"
 	"net/http"
@@ -28,64 +29,59 @@ func TestErrResponseClassifier_Classify(t *testing.T) {
 	tests := []struct {
 		name    string
 		error   interface{}
-		checker func(t *testing.T, er errorResponse, e error)
+		checker func(t *testing.T, pb *problems.DefaultProblem, e error)
 	}{
 		{
 			name:  "url error - cloud info service unavailable",
 			error: emperror.With(&url.Error{}, cloudInfoCliErrTag),
-			checker: func(t *testing.T, er errorResponse, e error) {
+			checker: func(t *testing.T, pb *problems.DefaultProblem, e error) {
 				assert.Nil(t, e, "could not create classifier")
-				assert.Equal(t, http.StatusInternalServerError, er.HttpResponseCode, "invalid http status code")
-				assert.Equal(t, ErrCloudInfoUnavailable, er.ErrorCode, "invalid error code")
+				assert.Equal(t, http.StatusInternalServerError, pb.Status, "invalid http status code")
 			},
 		},
 		{
 			name:  "api error - no resource available, validation",
 			error: emperror.With(&runtime.APIError{Code: http.StatusBadRequest}, "validation"),
-			checker: func(t *testing.T, er errorResponse, e error) {
+			checker: func(t *testing.T, pb *problems.DefaultProblem, e error) {
 				assert.Nil(t, e, "could not create classifier")
-				assert.Equal(t, http.StatusBadRequest, er.HttpResponseCode, "invalid http status code")
-				assert.Equal(t, ErrCloudInfoUnavailable, er.ErrorCode, "invalid error code")
+				assert.Equal(t, http.StatusBadRequest, pb.Status, "invalid http status code")
 			},
 		},
 		{
 			name:  "api error - no resource available, recommendation",
 			error: emperror.With(&runtime.APIError{Code: http.StatusBadRequest}, recommenderErrorTag),
-			checker: func(t *testing.T, er errorResponse, e error) {
+			checker: func(t *testing.T, pb *problems.DefaultProblem, e error) {
 				assert.Nil(t, e, "could not create classifier")
-				assert.Equal(t, http.StatusBadRequest, er.HttpResponseCode, "invalid http status code")
-				assert.Equal(t, ErrNoCloudInfoForRequestedResources, er.ErrorCode, "invalid error code")
+				assert.Equal(t, http.StatusBadRequest, pb.Status, "invalid http status code")
 			},
 		},
 		{
 			name:  "generic error -  recommendation",
 			error: emperror.With(errors.New("test recommender error with context"), recommenderErrorTag),
-			checker: func(t *testing.T, er errorResponse, e error) {
+			checker: func(t *testing.T, pb *problems.DefaultProblem, e error) {
 				assert.Nil(t, e, "could not create classifier")
-				assert.Equal(t, http.StatusBadRequest, er.HttpResponseCode, "invalid http status code")
-				assert.Equal(t, ErrNoCloudInfoForRequestedResources, er.ErrorCode, "invalid error code")
+				assert.Equal(t, http.StatusBadRequest, pb.Status, "invalid http status code")
 			},
 		},
 		{
 			name:  "generic error -  no tags",
 			error: emperror.With(errors.New("test error - no context")),
-			checker: func(t *testing.T, er errorResponse, e error) {
+			checker: func(t *testing.T, pb *problems.DefaultProblem, e error) {
 				assert.Nil(t, e, "could not create classifier")
-				assert.Equal(t, http.StatusInternalServerError, er.HttpResponseCode, "invalid http status code")
-				assert.Equal(t, -1, er.ErrorCode, "invalid error code")
+				assert.Equal(t, http.StatusInternalServerError, pb.Status, "invalid http status code")
 			},
 		},
 	}
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
 			// create the classifier
-			erc := NewErrorResponseClassifier()
+			erc := NewErrorClassifier()
 
 			// execute the classification
 			rsp, e := erc.Classify(test.error)
 
 			// check the response
-			test.checker(t, rsp.(errorResponse), e)
+			test.checker(t, rsp.(*problems.DefaultProblem), e)
 
 		})
 	}
