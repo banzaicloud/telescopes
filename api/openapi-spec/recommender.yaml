@@ -25,6 +25,24 @@ paths:
         specific region.
       operationId: recommendClusterSetup
       parameters:
+        - x-go-name: Provider
+          name: provider
+          in: path
+          required: true
+          schema:
+            type: string
+        - x-go-name: Service
+          name: service
+          in: path
+          required: true
+          schema:
+            type: string
+        - x-go-name: Region
+          name: region
+          in: path
+          required: true
+          schema:
+            type: string
         - x-go-name: SumCpu
           description: Total number of CPUs requested for the cluster
           name: sumCpu
@@ -121,24 +139,6 @@ paths:
           in: query
           schema:
             type: boolean
-        - x-go-name: Provider
-          name: provider
-          in: path
-          required: true
-          schema:
-            type: string
-        - x-go-name: Service
-          name: service
-          in: path
-          required: true
-          schema:
-            type: string
-        - x-go-name: Region
-          name: region
-          in: path
-          required: true
-          schema:
-            type: string
       responses:
         '200':
           description: RecommendationResponse
@@ -469,6 +469,12 @@ components:
         details
       type: object
       properties:
+        attributes:
+          description: attributes
+          type: object
+          additionalProperties:
+            type: string
+          x-go-name: Attributes
         burst:
           description: Burst this is derived for now
           type: boolean
@@ -517,6 +523,12 @@ components:
           description: type
           type: string
           x-go-name: Type
+        zones:
+          description: zones
+          type: array
+          items:
+            type: string
+          x-go-name: Zones
       x-go-package: >-
         github.com/banzaicloud/telescopes/vendor/github.com/banzaicloud/cloudinfo/pkg/cloudinfo-client/models
     ProductDetailsResponse:
@@ -669,6 +681,28 @@ components:
       additionalProperties:
         type: number
         format: double
+      x-go-package: >-
+        github.com/banzaicloud/telescopes/vendor/github.com/banzaicloud/productinfo/pkg/productinfo-client/models
+    Version:
+      description: Version Version represents a version
+      type: object
+      properties:
+        versions:
+          description: version
+          type: string
+          x-go-name: Version
+      x-go-package: >-
+        github.com/banzaicloud/telescopes/vendor/github.com/banzaicloud/productinfo/pkg/productinfo-client/models
+    VersionsResponse:
+      description: VersionsResponse VersionsResponse holds the list of available versions
+      type: object
+      properties:
+        versions:
+          description: versions
+          type: array
+          items:
+            $ref: '#/components/schemas/Version'
+          x-go-name: Versions
       x-go-package: >-
         github.com/banzaicloud/telescopes/vendor/github.com/banzaicloud/cloudinfo/pkg/cloudinfo-client/models
     VirtualMachine:

@@ -2,6 +2,7 @@
 bin/*
 /telescopes
 /cloudinfo
+/build
 conf/config.toml
 *.swp
 test.txt

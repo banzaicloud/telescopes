@@ -56,7 +56,7 @@ func (piCli *dummyCloudInfoSource) GetAttributeValues(provider string, service s
 	return []float64{15, 16, 17}, nil
 }
 
-func (piCli *dummyCloudInfoSource) GetRegion(provider string, service string, region string) ([]string, error) {
+func (piCli *dummyCloudInfoSource) GetZones(provider string, service string, region string) ([]string, error) {
 	switch piCli.TcId {
 	case DescribeRegionError:
 		return nil, errors.New(DescribeRegionError)
@@ -260,8 +260,7 @@ func TestEngine_RecommendAttrValues(t *testing.T) {
 	}
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
-			engine, err := NewEngine(test.pi)
-			assert.Nil(t, err, "the engine couldn't be created")
+			engine := NewEngine(test.pi)
 			test.check(engine.RecommendAttrValues(context.TODO(), "dummy", "region", "service", test.attribute, test.request))
 		})
 	}
@@ -317,8 +316,7 @@ func TestEngine_RecommendVms(t *testing.T) {
 	}
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
-			engine, err := NewEngine(test.pi)
-			assert.Nil(t, err, "the engine couldn't be created")
+			engine := NewEngine(test.pi)
 
 			test.check(engine.RecommendVms(context.TODO(), "dummy", "dummyService", "dummyRegion", test.attribute, test.values, test.filters, test.request))
 
@@ -375,8 +373,7 @@ func TestEngine_RecommendNodePools(t *testing.T) {
 	}
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
-			engine, err := NewEngine(test.pi)
-			assert.Nil(t, err, "the engine couldn't be created")
+			engine := NewEngine(test.pi)
 
 			test.check(engine.RecommendNodePools(context.TODO(), test.attr, test.vms, []float64{4}, req))
 
@@ -548,7 +545,7 @@ func TestEngine_RecommendCluster(t *testing.T) {
 			},
 			check: func(resp *ClusterRecommendationResp, err error) {
 				assert.Nil(t, resp, "the response should be nil")
-				assert.EqualError(t, err, "error while recommending node pools for attr: [cpu], cause: [no vms suitable for spot pools]")
+				assert.EqualError(t, err, "failed to recommend nodepools: no vms suitable for spot pools")
 			},
 		},
 		{
@@ -562,7 +559,7 @@ func TestEngine_RecommendCluster(t *testing.T) {
 			},
 			check: func(resp *ClusterRecommendationResp, err error) {
 				assert.Nil(t, resp, "the response should be nil")
-				assert.EqualError(t, err, "could not get virtual machines for attr: [cpu], cause: [could not get product details]")
+				assert.EqualError(t, err, "failed to recommend virtual machines: could not get product details")
 			},
 		},
 		{
@@ -582,8 +579,7 @@ func TestEngine_RecommendCluster(t *testing.T) {
 	}
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
-			engine, err := NewEngine(test.pi)
-			assert.Nil(t, err, "the engine couldn't be created")
+			engine := NewEngine(test.pi)
 
 			test.check(engine.RecommendCluster(context.TODO(), "dummy", "dummyService", "dummyRegion", test.request))
 		})

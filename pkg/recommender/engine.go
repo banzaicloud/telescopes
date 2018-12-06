@@ -17,7 +17,7 @@ package recommender
 import (
 	"context"
 	"errors"
-	"fmt"
+	"github.com/goph/emperror"
 	"math"
 	"sort"
 
@@ -33,6 +33,8 @@ const (
 	Memory = "memory"
 	// Cpu represents the cpu attribute for the recommender
 	Cpu = "cpu"
+
+	recommenderErrorTag = "recommender"
 )
 
 // ClusterRecommender defines operations for cluster recommendations
@@ -56,10 +58,10 @@ type Engine struct {
 }
 
 // NewEngine creates a new Engine instance
-func NewEngine(pis CloudInfoSource) (*Engine, error) {
+func NewEngine(pis CloudInfoSource) *Engine {
 	return &Engine{
 		piSource: pis,
-	}, nil
+	}
 }
 
 // ClusterRecommendationReq encapsulates the recommendation input data
@@ -207,16 +209,20 @@ func (e *Engine) RecommendCluster(ctx context.Context, provider string, service 
 
 		values, err := e.RecommendAttrValues(ctx, provider, service, region, attr, req)
 		if err != nil {
-			return nil, fmt.Errorf("could not get values for attr: [%s], cause: [%s]", attr, err.Error())
+			return nil, emperror.Wrap(err, "failed to recommend attribute values")
 		}
 		log.Debugf("recommended values for [%s]: count:[%d] , values: [%#v./te]", attr, len(values), values)
 
-		vmFilters, _ := e.filtersForAttr(ctx, attr, provider)
+		vmFilters, err := e.filtersForAttr(ctx, attr, provider)
+		if err != nil {
+			return nil, emperror.Wrap(err, "failed to identify filters")
+		}
 
 		filteredVms, err := e.RecommendVms(ctx, provider, service, region, attr, values, vmFilters, req)
 		if err != nil {
-			return nil, fmt.Errorf("could not get virtual machines for attr: [%s], cause: [%s]", attr, err.Error())
+			return nil, emperror.Wrap(err, "failed to recommend virtual machines")
 		}
+
 		if len(filteredVms) == 0 {
 			log.Debugf("no vms with the requested resources found. attribute: %s", attr)
 			// skip the nodepool creation, go to the next attr
@@ -232,7 +238,7 @@ func (e *Engine) RecommendCluster(ctx context.Context, provider string, service 
 		}
 		nps, err := e.RecommendNodePools(ctx, attr, filteredVms, values, req)
 		if err != nil {
-			return nil, fmt.Errorf("error while recommending node pools for attr: [%s], cause: [%s]", attr, err.Error())
+			return nil, emperror.Wrap(err, "failed to recommend nodepools")
 		}
 		log.Debugf("recommended node pools for [%s]: count:[%d] , values: [%#v]", attr, len(nps), nps)
 
@@ -241,7 +247,7 @@ func (e *Engine) RecommendCluster(ctx context.Context, provider string, service 
 
 	if len(nodePools) == 0 {
 		log.Debugf("could not recommend node pools for request: %v", req)
-		return nil, errors.New("could not recommend cluster with the requested resources")
+		return nil, emperror.With(errors.New("could not recommend cluster with the requested resources"), recommenderErrorTag)
 	}
 
 	cheapestNodePoolSet := e.findCheapestNodePoolSet(ctx, nodePools)
@@ -366,7 +372,7 @@ func (e *Engine) RecommendVms(ctx context.Context, provider string, service stri
 
 	vmsInRange, err := e.findVmsWithAttrValues(ctx, provider, service, region, req.Zones, attr, values)
 	if err != nil {
-		return nil, err
+		return nil, emperror.With(err, recommenderErrorTag, "vms")
 	}
 
 	var filteredVms []VirtualMachine
@@ -384,6 +390,7 @@ func (e *Engine) RecommendVms(ctx context.Context, provider string, service stri
 }
 
 func (e *Engine) findVmsWithAttrValues(ctx context.Context, provider string, service string, region string, zones []string, attr string, values []float64) ([]VirtualMachine, error) {
+	var err error
 	log := logger.Extract(ctx)
 	log.Infof("looking for instance types and on demand prices with value %v, attribute %s", values, attr)
 	var (
@@ -391,18 +398,16 @@ func (e *Engine) findVmsWithAttrValues(ctx context.Context, provider string, ser
 	)
 
 	if len(zones) == 0 {
-		if z, err := e.piSource.GetRegion(provider, service, region); err == nil {
-			zones = z
-		} else {
+		if zones, err = e.piSource.GetZones(provider, service, region); err != nil {
 			log.WithError(err).Debugf("couldn't describe region: %s, provider: %s", region, provider)
-			return nil, err
+			return nil, emperror.With(err, "retrieval", "region")
 		}
 	}
 
 	allProducts, err := e.piSource.GetProductDetails(provider, service, region)
 	if err != nil {
 		log.WithError(err).Debugf("couldn't get product details. region: %s, provider: %s", region, provider)
-		return nil, err
+		return nil, emperror.With(err, "retrieval", "productdetails")
 	}
 
 	for _, v := range values {
@@ -418,7 +423,7 @@ func (e *Engine) findVmsWithAttrValues(ctx context.Context, provider string, ser
 					continue
 				}
 			default:
-				return nil, fmt.Errorf("unsupported attribute: %s", attr)
+				return nil, errors.New("unsupported attribute")
 			}
 			filteredProducts = append(filteredProducts, *p)
 		}
@@ -477,12 +482,12 @@ func (e *Engine) RecommendAttrValues(ctx context.Context, provider string, servi
 
 	allValues, err := e.piSource.GetAttributeValues(provider, service, region, attr)
 	if err != nil {
-		return nil, err
+		return nil, emperror.With(err, recommenderErrorTag, "attributes")
 	}
 
 	values, err := AttributeValues(allValues).SelectAttributeValues(ctx, req.minValuePerVm(ctx, attr), req.maxValuePerVm(ctx, attr))
 	if err != nil {
-		return nil, err
+		return nil, emperror.With(err, recommenderErrorTag, "attributes")
 	}
 
 	return values, nil
@@ -509,7 +514,7 @@ func (e *Engine) filtersForAttr(ctx context.Context, attr string, provider strin
 	case Memory:
 		filters = append(filters, e.minCpuRatioFilter)
 	default:
-		return nil, fmt.Errorf("unsupported attribute: [%s]", attr)
+		return nil, emperror.With(errors.New("unsupported attribute"), recommenderErrorTag, "attrVal", attr)
 	}
 
 	return filters, nil

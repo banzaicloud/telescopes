@@ -25,8 +25,6 @@ import (
 	"github.com/banzaicloud/telescopes/pkg/recommender"
 	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
-	"github.com/gin-gonic/gin/binding"
-	"gopkg.in/go-playground/validator.v8"
 )
 
 const (
@@ -38,13 +36,15 @@ const (
 type RouteHandler struct {
 	engine    *recommender.Engine
 	buildInfo buildinfo.BuildInfo
+	ciCli     *recommender.CloudInfoClient
 }
 
 // NewRouteHandler creates a new RouteHandler and returns a reference to it
-func NewRouteHandler(e *recommender.Engine, info buildinfo.BuildInfo) *RouteHandler {
+func NewRouteHandler(e *recommender.Engine, info buildinfo.BuildInfo, ciCli *recommender.CloudInfoClient) *RouteHandler {
 	return &RouteHandler{
 		engine:    e,
 		buildInfo: info,
+		ciCli:     ciCli,
 	}
 }
 
@@ -67,8 +67,6 @@ func (r *RouteHandler) ConfigureRoutes(ctx context.Context, router *gin.Engine) 
 	ctxLog := logger.Extract(ctx)
 	ctxLog.Info("configuring routes")
 
-	v := binding.Validator.Engine().(*validator.Validate)
-
 	basePath := "/"
 
 	if basePathFromEnv := os.Getenv(appBasePath); basePathFromEnv != "" {
@@ -86,7 +84,6 @@ func (r *RouteHandler) ConfigureRoutes(ctx context.Context, router *gin.Engine) 
 	}
 
 	v1 := base.Group("/api/v1")
-	v1.Use(ValidatePathData(ctx, v))
 
 	recGroup := v1.Group("/recommender")
 	{
