@@ -16,8 +16,9 @@ package api
 
 import (
 	"context"
-	"errors"
 	"reflect"
+
+	"github.com/pkg/errors"
 
 	"github.com/banzaicloud/cloudinfo/pkg/cloudinfo-client/client/regions"
 	"github.com/banzaicloud/telescopes/pkg/recommender"
@@ -95,7 +96,7 @@ type CloudInfoValidator interface {
 }
 
 type pathParamValidator struct {
-	piCli *recommender.CloudInfoClient
+	ciCli *recommender.CloudInfoClient
 }
 
 // Validate validates path parameters against the connected cloud info service
@@ -126,7 +127,7 @@ func (ppV *pathParamValidator) Validate(params interface{}) error {
 }
 
 func (ppV *pathParamValidator) validateProvider(prv string) error {
-	if ciPrv, e := ppV.piCli.GetProvider(prv); e != nil {
+	if ciPrv, e := ppV.ciCli.GetProvider(prv); e != nil {
 		return e
 	} else if ciPrv == "" {
 		return errors.New("provider not found")
@@ -135,7 +136,7 @@ func (ppV *pathParamValidator) validateProvider(prv string) error {
 }
 
 func (ppV *pathParamValidator) validateService(prv, svc string) error {
-	if cis, e := ppV.piCli.GetService(prv, svc); e != nil {
+	if cis, e := ppV.ciCli.GetService(prv, svc); e != nil {
 		return e
 	} else if cis == "" {
 		return errors.New("service not found")
@@ -144,7 +145,7 @@ func (ppV *pathParamValidator) validateService(prv, svc string) error {
 }
 
 func (ppV *pathParamValidator) validateRegion(prv, svc, region string) error {
-	if ciReg, e := ppV.piCli.GetRegion(prv, svc, region); e != nil {
+	if ciReg, e := ppV.ciCli.GetRegion(prv, svc, region); e != nil {
 		return e
 	} else if ciReg == "" {
 		return errors.New("region not found")

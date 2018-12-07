@@ -25,24 +25,6 @@ paths:
         specific region.
       operationId: recommendClusterSetup
       parameters:
-        - x-go-name: Provider
-          name: provider
-          in: path
-          required: true
-          schema:
-            type: string
-        - x-go-name: Service
-          name: service
-          in: path
-          required: true
-          schema:
-            type: string
-        - x-go-name: Region
-          name: region
-          in: path
-          required: true
-          schema:
-            type: string
         - x-go-name: SumCpu
           description: Total number of CPUs requested for the cluster
           name: sumCpu
@@ -139,6 +121,24 @@ paths:
           in: query
           schema:
             type: boolean
+        - x-go-name: Provider
+          name: provider
+          in: path
+          required: true
+          schema:
+            type: string
+        - x-go-name: Service
+          name: service
+          in: path
+          required: true
+          schema:
+            type: string
+        - x-go-name: Region
+          name: region
+          in: path
+          required: true
+          schema:
+            type: string
       responses:
         '200':
           description: RecommendationResponse
@@ -682,7 +682,7 @@ components:
         type: number
         format: double
       x-go-package: >-
-        github.com/banzaicloud/telescopes/vendor/github.com/banzaicloud/productinfo/pkg/productinfo-client/models
+        github.com/banzaicloud/telescopes/vendor/github.com/banzaicloud/cloudinfo/pkg/cloudinfo-client/models
     Version:
       description: Version Version represents a version
       type: object
@@ -692,7 +692,7 @@ components:
           type: string
           x-go-name: Version
       x-go-package: >-
-        github.com/banzaicloud/telescopes/vendor/github.com/banzaicloud/productinfo/pkg/productinfo-client/models
+        github.com/banzaicloud/telescopes/vendor/github.com/banzaicloud/cloudinfo/pkg/cloudinfo-client/models
     VersionsResponse:
       description: VersionsResponse VersionsResponse holds the list of available versions
       type: object

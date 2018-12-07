@@ -16,10 +16,10 @@ package recommender
 
 import (
 	"context"
-	"errors"
 	"testing"
 
-	"fmt"
+	"github.com/pkg/errors"
+
 	"github.com/banzaicloud/cloudinfo/pkg/cloudinfo-client/models"
 	"github.com/stretchr/testify/assert"
 )
@@ -51,7 +51,7 @@ func (piCli *dummyCloudInfoSource) GetAttributeValues(provider string, service s
 	case MinLargerThanMax:
 		return []float64{1}, nil
 	case Error:
-		return nil, fmt.Errorf(Error)
+		return nil, errors.New(Error)
 	}
 	return []float64{15, 16, 17}, nil
 }

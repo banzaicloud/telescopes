@@ -55,10 +55,10 @@ func NewCloudInfoClient(pic *client.Cloudinfo) *CloudInfoClient {
 }
 
 // GetAttributeValues retrieves available attribute values on the provider in the region for the attribute
-func (piCli *CloudInfoClient) GetAttributeValues(provider string, service string, region string, attr string) ([]float64, error) {
+func (ciCli *CloudInfoClient) GetAttributeValues(provider string, service string, region string, attr string) ([]float64, error) {
 	attrParams := attributes.NewGetAttrValuesParams().WithProvider(provider).WithRegion(region).WithAttribute(attr).WithService(service)
 
-	allValues, err := piCli.Attributes.GetAttrValues(attrParams)
+	allValues, err := ciCli.Attributes.GetAttrValues(attrParams)
 	if err != nil {
 		return nil, discriminateErrCtx(err)
 	}
@@ -66,10 +66,10 @@ func (piCli *CloudInfoClient) GetAttributeValues(provider string, service string
 }
 
 // GetZones describes the region (eventually returns the zones in the region)
-func (piCli *CloudInfoClient) GetZones(provider string, service string, region string) ([]string, error) {
+func (ciCli *CloudInfoClient) GetZones(provider string, service string, region string) ([]string, error) {
 	grp := regions.NewGetRegionParams().WithProvider(provider).WithService(service).WithRegion(region)
 
-	r, err := piCli.Regions.GetRegion(grp)
+	r, err := ciCli.Regions.GetRegion(grp)
 	if err != nil {
 		return nil, discriminateErrCtx(err)
 	}
@@ -77,10 +77,10 @@ func (piCli *CloudInfoClient) GetZones(provider string, service string, region s
 }
 
 // GetProductDetails gets the available product details from the provider in the region
-func (piCli *CloudInfoClient) GetProductDetails(provider string, service string, region string) ([]*models.ProductDetails, error) {
+func (ciCli *CloudInfoClient) GetProductDetails(provider string, service string, region string) ([]*models.ProductDetails, error) {
 	gpdp := products.NewGetProductsParams().WithRegion(region).WithProvider(provider).WithService(service)
 
-	allProducts, err := piCli.Products.GetProducts(gpdp)
+	allProducts, err := ciCli.Products.GetProducts(gpdp)
 	if err != nil {
 		return nil, discriminateErrCtx(err)
 	}
@@ -88,10 +88,10 @@ func (piCli *CloudInfoClient) GetProductDetails(provider string, service string,
 }
 
 // GetProductDetails gets the available product details from the provider in the region
-func (piCli *CloudInfoClient) GetProvider(prv string) (string, error) {
+func (ciCli *CloudInfoClient) GetProvider(prv string) (string, error) {
 	gpp := provider.NewGetProviderParams().WithProvider(prv)
 
-	provider, err := piCli.Provider.GetProvider(gpp)
+	provider, err := ciCli.Provider.GetProvider(gpp)
 	if err != nil {
 		return "", discriminateErrCtx(err)
 	}
@@ -100,10 +100,10 @@ func (piCli *CloudInfoClient) GetProvider(prv string) (string, error) {
 }
 
 // GetProductDetails gets the available product details from the provider in the region
-func (piCli *CloudInfoClient) GetService(prv string, svc string) (string, error) {
+func (ciCli *CloudInfoClient) GetService(prv string, svc string) (string, error) {
 	gsp := service.NewGetServiceParams().WithProvider(prv).WithService(svc)
 
-	provider, err := piCli.Service.GetService(gsp)
+	provider, err := ciCli.Service.GetService(gsp)
 	if err != nil {
 		return "", discriminateErrCtx(err)
 	}
@@ -112,10 +112,10 @@ func (piCli *CloudInfoClient) GetService(prv string, svc string) (string, error)
 }
 
 // GetProductDetails gets the available product details from the provider in the region
-func (piCli *CloudInfoClient) GetRegion(prv, svc, reg string) (string, error) {
+func (ciCli *CloudInfoClient) GetRegion(prv, svc, reg string) (string, error) {
 	grp := regions.NewGetRegionParams().WithProvider(prv).WithService(svc).WithRegion(reg)
 
-	r, err := piCli.Regions.GetRegion(grp)
+	r, err := ciCli.Regions.GetRegion(grp)
 	if err != nil {
 		return "", discriminateErrCtx(err)
 	}
