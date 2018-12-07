@@ -91,7 +91,7 @@ func TestEngine_filtersApply(t *testing.T) {
 	}
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
-			filters, err := test.engine.filtersForAttr(context.TODO(), test.attr, test.provider, false)
+			filters, err := test.engine.filtersForAttr(context.TODO(), test.attr, test.provider)
 			assert.Nil(t, err, "should get filters for attribute")
 			test.check(test.engine.filtersApply(context.TODO(), test.vm, filters, test.req))
 		})

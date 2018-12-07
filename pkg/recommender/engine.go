@@ -228,7 +228,7 @@ func (a ByAvgPricePerMemory) Less(i, j int) bool {
 	return pricePerMem1 < pricePerMem2
 }
 
-type ByNonZeroNodePools []NodePoolDesc
+type ByNonZeroNodePools []NodePool
 
 func (a ByNonZeroNodePools) Len() int      { return len(a) }
 func (a ByNonZeroNodePools) Swap(i, j int) { a[i], a[j] = a[j], a[i] }
@@ -237,7 +237,7 @@ func (a ByNonZeroNodePools) Less(i, j int) bool {
 }
 
 // RecommendCluster performs recommendation based on the provided arguments
-func (e *Engine) RecommendCluster(ctx context.Context, provider string, service string, region string, req ClusterRecommendationReq, layout []NodePoolDesc) (*ClusterRecommendationResp, error) {
+func (e *Engine) RecommendCluster(ctx context.Context, provider string, service string, region string, req ClusterRecommendationReq, layoutDesc []NodePoolDesc) (*ClusterRecommendationResp, error) {
 	log := logger.Extract(ctx)
 	log.Infof("recommending cluster configuration. request: [%#v]", req)
 
@@ -248,10 +248,8 @@ func (e *Engine) RecommendCluster(ctx context.Context, provider string, service 
 		var (
 			values    []float64
 			err       error
-			noExclude = true
 		)
-		if layout == nil {
-			noExclude = false
+		if layoutDesc == nil {
 			values, err = e.RecommendAttrValues(ctx, provider, service, region, attr, req)
 			if err != nil {
 				return nil, emperror.Wrap(err, "failed to recommend attribute values")
@@ -259,11 +257,18 @@ func (e *Engine) RecommendCluster(ctx context.Context, provider string, service 
 			log.Debugf("recommended values for [%s]: count:[%d] , values: [%#v./te]", attr, len(values), values)
 		}
 
-		vmFilters, _ := e.filtersForAttr(ctx, attr, provider, noExclude)
+		vmsInRange, err := e.findVmsWithAttrValues(ctx, provider, service, region, req.Zones, attr, values)
+		if err != nil {
+			return nil, emperror.With(err, recommenderErrorTag, "vms")
+		}
+
+		layout := e.transformLayout(layoutDesc, vmsInRange)
+
+		vmFilters, _ := e.filtersForAttr(ctx, attr, provider)
 		if err != nil {
 			return nil, emperror.Wrap(err, "failed to identify filters")
 		}
-		odVms, spotVms, err := e.RecommendVms(ctx, provider, service, region, attr, values, vmFilters, req, layout)
+		odVms, spotVms, err := e.RecommendVms(ctx, vmsInRange, attr, vmFilters, req, layout)
 		if err != nil {
 			return nil, emperror.Wrap(err, "failed to recommend virtual machines")
 		}
@@ -432,17 +437,12 @@ func findN(avg int) int {
 }
 
 // RecommendVms selects a slice of VirtualMachines for the given attribute and requirements in the request
-func (e *Engine) RecommendVms(ctx context.Context, provider string, service string, region string, attr string, values []float64, filters []vmFilter, req ClusterRecommendationReq, layout []NodePoolDesc) ([]VirtualMachine, []VirtualMachine, error) {
+func (e *Engine) RecommendVms(ctx context.Context, vms []VirtualMachine, attr string, filters []vmFilter, req ClusterRecommendationReq, layout []NodePool) ([]VirtualMachine, []VirtualMachine, error) {
 	log := logger.Extract(ctx)
 	log.Infof("recommending virtual machines for attribute: [%s]", attr)
 
-	vmsInRange, err := e.findVmsWithAttrValues(ctx, provider, service, region, req.Zones, attr, values)
-	if err != nil {
-		return nil, nil, emperror.With(err, recommenderErrorTag, "vms")
-	}
-
 	var filteredVms []VirtualMachine
-	for _, vm := range vmsInRange {
+	for _, vm := range vms {
 		if e.filtersApply(ctx, vm, filters, req) {
 			filteredVms = append(filteredVms, vm)
 		}
@@ -457,10 +457,10 @@ func (e *Engine) RecommendVms(ctx context.Context, provider string, service stri
 	if layout == nil {
 		odVms, spotVms = filteredVms, filteredVms
 	} else {
-		for _, npd := range layout {
+		for _, np := range layout {
 			for _, vm := range filteredVms {
-				if vm.Type == npd.InstanceType {
-					if npd.getVmClass() == regular {
+				if np.VmType.Type == vm.Type{
+					if np.VmClass == regular {
 						odVms = append(odVms, vm)
 					} else {
 						spotVms = append(spotVms, vm)
@@ -545,6 +545,26 @@ func (e *Engine) findVmsWithAttrValues(ctx context.Context, provider string, ser
 	return vms, nil
 }
 
+func (e *Engine) transformLayout(layoutDesc []NodePoolDesc, vms []VirtualMachine) []NodePool {
+	if layoutDesc == nil {
+		return nil
+	}
+	nps := make([]NodePool, len(layoutDesc))
+	for i, npd := range layoutDesc {
+		for _, vm := range vms {
+			if vm.Type == npd.InstanceType {
+				nps[i] = 	NodePool{
+					VmType:   vm,
+					VmClass:  npd.getVmClass(),
+					SumNodes: npd.SumNodes,
+				}
+				break
+			}
+		}
+	}
+	return nps
+}
+
 func avg(prices []*models.ZonePrice, recZones []string) float64 {
 	if len(prices) == 0 {
 		return 0.0
@@ -590,12 +610,9 @@ func (e *Engine) RecommendAttrValues(ctx context.Context, provider string, servi
 }
 
 // filtersForAttr returns the slice for
-func (e *Engine) filtersForAttr(ctx context.Context, attr string, provider string, noExclude bool) ([]vmFilter, error) {
+func (e *Engine) filtersForAttr(ctx context.Context, attr string, provider string) ([]vmFilter, error) {
 	// generic filters - not depending on providers and attributes
-	var filters = []vmFilter{e.includesFilter}
-	if !noExclude {
-		filters = append(filters, e.excludesFilter)
-	}
+	var filters = []vmFilter{e.includesFilter, e.excludesFilter}
 
 	// provider specific filters
 	switch provider {
@@ -632,19 +649,11 @@ func (e *Engine) sortByAttrValue(ctx context.Context, attr string, vms []Virtual
 }
 
 // RecommendNodePools finds the slice of NodePools that may participate in the recommendation process
-func (e *Engine) RecommendNodePools(ctx context.Context, attr string, odVms []VirtualMachine, spotVms []VirtualMachine, req ClusterRecommendationReq, layout []NodePoolDesc) ([]NodePool, error) {
+func (e *Engine) RecommendNodePools(ctx context.Context, attr string, odVms []VirtualMachine, spotVms []VirtualMachine, req ClusterRecommendationReq, layout []NodePool) ([]NodePool, error) {
 	log := logger.Extract(ctx)
 	odNps := make([]NodePool, 0)
 	spotNps := make([]NodePool, 0)
-	exSpotNps := make([]NodePool, 0)
-
-	spotVmsExcluded := make([]VirtualMachine, 0)
-
-	for _, spotVm := range spotVms {
-		if !contains(req.Excludes, spotVm.Type) {
-			spotVmsExcluded = append(spotVmsExcluded, spotVm)
-		}
-	}
+	excludedSpotNps := make([]NodePool, 0)
 
 	log.Debugf("requested sum for attribute [%s]: [%f]", attr, req.sum(ctx, attr))
 	var sumOnDemandValue = req.sum(ctx, attr) * float64(req.OnDemandPct) / 100
@@ -674,19 +683,19 @@ func (e *Engine) RecommendNodePools(ctx context.Context, attr string, odVms []Vi
 	}
 
 	// vms are sorted by attribute value
-	e.sortByAttrValue(ctx, attr, spotVmsExcluded)
+	e.sortByAttrValue(ctx, attr, spotVms)
 
 	var N int
 
 	if layout == nil {
 		// the "magic" number of machines for diversifying the types
-		N = int(math.Min(float64(findN(avgNodeCount(req.MinNodes, req.MaxNodes))), float64(len(spotVmsExcluded))))
+		N = int(math.Min(float64(findN(avgNodeCount(req.MinNodes, req.MaxNodes))), float64(len(spotVms))))
 		// the second "magic" number for diversifying the layout
-		M := int(math.Min(math.Ceil(float64(N)*1.5), float64(len(spotVmsExcluded))))
+		M := int(math.Min(math.Ceil(float64(N)*1.5), float64(len(spotVms))))
 		log.Debugf("Magic 'Marton' numbers: N=%d, M=%d", N, M)
 
 		// the first M vm-s
-		recommendedVms := spotVmsExcluded[:M]
+		recommendedVms := spotVms[:M]
 
 		// create spot nodepools - one for the first M vm-s
 		for _, vm := range recommendedVms {
@@ -699,36 +708,29 @@ func (e *Engine) RecommendNodePools(ctx context.Context, attr string, odVms []Vi
 	} else {
 		sort.Sort(ByNonZeroNodePools(layout))
 		var nonZeroNPs int
-		for _, npd := range layout {
+		for _, np := range layout {
+			if np.SumNodes > 0 {
+				nonZeroNPs += 1
+			}
+			included := false
 			for _, vm := range spotVms {
-				if npd.getVmClass() == spot && vm.Type == npd.InstanceType {
-					if !contains(req.Excludes, npd.InstanceType) {
-						spotNps = append(spotNps, NodePool{
-							VmType:   vm,
-							VmClass:  spot,
-							SumNodes: npd.SumNodes,
-						})
-					} else {
-						exSpotNps = append(exSpotNps, NodePool{
-							VmType:   vm,
-							VmClass:  spot,
-							SumNodes: npd.SumNodes,
-						})
-					}
-					if npd.SumNodes > 0 {
-						nonZeroNPs += 1
-					}
+				if np.VmClass == spot && np.VmType.Type == vm.Type{
+					spotNps = append(spotNps, np)
+					included = true
 					break
 				}
 			}
+			if !included {
+				excludedSpotNps = append(excludedSpotNps, np)
+			}
 		}
-		N = min(nonZeroNPs, len(spotVmsExcluded))
+		N = min(nonZeroNPs, len(spotVms))
 		log.Debugf("Magic 'Marton' number: N=%d", N)
 	}
 	log.Debugf("created [%d] regular and [%d] spot price node pools", len(odNps), len(spotNps))
 	spotNps = fillSpotNodePools(ctx, sumSpotValue, N, spotNps, attr)
-	if len(exSpotNps) > 0 {
-		spotNps = append(spotNps, exSpotNps...)
+	if len(excludedSpotNps) > 0 {
+		spotNps = append(spotNps, excludedSpotNps...)
 	}
 	return append(odNps, spotNps...), nil
 }
