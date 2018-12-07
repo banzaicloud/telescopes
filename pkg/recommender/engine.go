@@ -16,10 +16,11 @@ package recommender
 
 import (
 	"context"
-	"errors"
-	"github.com/goph/emperror"
 	"math"
 	"sort"
+
+	"github.com/goph/emperror"
+	"github.com/pkg/errors"
 
 	"github.com/banzaicloud/cloudinfo/pkg/cloudinfo-client/models"
 	"github.com/banzaicloud/cloudinfo/pkg/logger"
@@ -54,13 +55,13 @@ type ClusterRecommender interface {
 
 // Engine represents the recommendation engine, it operates on a map of provider -> VmRegistry
 type Engine struct {
-	piSource CloudInfoSource
+	ciSource CloudInfoSource
 }
 
 // NewEngine creates a new Engine instance
-func NewEngine(pis CloudInfoSource) *Engine {
+func NewEngine(cis CloudInfoSource) *Engine {
 	return &Engine{
-		piSource: pis,
+		ciSource: cis,
 	}
 }
 
@@ -398,13 +399,13 @@ func (e *Engine) findVmsWithAttrValues(ctx context.Context, provider string, ser
 	)
 
 	if len(zones) == 0 {
-		if zones, err = e.piSource.GetZones(provider, service, region); err != nil {
+		if zones, err = e.ciSource.GetZones(provider, service, region); err != nil {
 			log.WithError(err).Debugf("couldn't describe region: %s, provider: %s", region, provider)
 			return nil, emperror.With(err, "retrieval", "region")
 		}
 	}
 
-	allProducts, err := e.piSource.GetProductDetails(provider, service, region)
+	allProducts, err := e.ciSource.GetProductDetails(provider, service, region)
 	if err != nil {
 		log.WithError(err).Debugf("couldn't get product details. region: %s, provider: %s", region, provider)
 		return nil, emperror.With(err, "retrieval", "productdetails")
@@ -480,7 +481,7 @@ func (e *Engine) filtersApply(ctx context.Context, vm VirtualMachine, filters []
 // RecommendAttrValues selects the attribute values allowed to participate in the recommendation process
 func (e *Engine) RecommendAttrValues(ctx context.Context, provider string, service string, region string, attr string, req ClusterRecommendationReq) ([]float64, error) {
 
-	allValues, err := e.piSource.GetAttributeValues(provider, service, region, attr)
+	allValues, err := e.ciSource.GetAttributeValues(provider, service, region, attr)
 	if err != nil {
 		return nil, emperror.With(err, recommenderErrorTag, "attributes")
 	}

@@ -28,7 +28,7 @@ package main
 
 import (
 	"context"
-	"fmt"
+	"github.com/pkg/errors"
 	"net/url"
 	"os"
 	"strings"
@@ -83,7 +83,7 @@ func defineFlags() {
 func bindFlags() {
 	flag.Parse()
 	if err := viper.BindPFlags(flag.CommandLine); err != nil {
-		panic(fmt.Errorf("could not parse flags. error: %s", err))
+		panic(errors.Wrap(err, "could not parse flags"))
 	}
 }
 
@@ -130,17 +130,17 @@ func main() {
 	transport := httptransport.New(piUrl.Host, piUrl.Path, []string{piUrl.Scheme})
 	pc := client.New(transport, strfmt.Default)
 
-	piCli := recommender.NewCloudInfoClient(pc)
+	ciCli := recommender.NewCloudInfoClient(pc)
 
-	engine := recommender.NewEngine(piCli)
+	engine := recommender.NewEngine(ciCli)
 
 	// configure the gin validator
-	if err := api.ConfigureValidator(appCtx, piCli); err != nil {
+	if err := api.ConfigureValidator(appCtx, ciCli); err != nil {
 		quitOnError(appCtx, "failed to start telescopes", err)
 	}
 
 	buildInfo := buildinfo.New(Version, CommitHash, BuildDate)
-	routeHandler := api.NewRouteHandler(engine, buildInfo, piCli)
+	routeHandler := api.NewRouteHandler(engine, buildInfo, ciCli)
 
 	// new default gin engine (recovery, logger middleware)
 	router := gin.Default()
@@ -156,7 +156,7 @@ func main() {
 
 	// add prometheus metric endpoint
 	if viper.GetBool(metricsEnabledFlag) {
-		p := ginprometheus.NewPrometheus("gin", []string{"provider", "service", "region"})
+		p := ginprometheus.NewPrometheus("http", []string{"provider", "service", "region"})
 		p.SetListenAddress(viper.GetString(metricsAddressFlag))
 		p.Use(router, "/metrics")
 	}
@@ -165,7 +165,7 @@ func main() {
 	ctxLog.Info("configured routes")
 
 	if err := router.Run(viper.GetString(listenAddressFlag)); err != nil {
-		panic(fmt.Errorf("could not run router. error: %s", err))
+		panic(errors.Wrap(err, "could not run router"))
 	}
 
 }
