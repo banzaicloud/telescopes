@@ -277,32 +277,6 @@ func TestEngine_RecommendVms(t *testing.T) {
 		check     func([]VirtualMachine, []VirtualMachine, error)
 	}{
 		{
-			name: "could not describe region",
-			filters: []vmFilter{func(ctx context.Context, vm VirtualMachine, req ClusterRecommendationReq) bool {
-				return true
-			}},
-			pi:     &dummyCloudInfoSource{DescribeRegionError},
-			values: []float64{1, 2},
-			check: func(odVms []VirtualMachine, spotVms []VirtualMachine, err error) {
-				assert.EqualError(t, err, DescribeRegionError)
-				assert.Nil(t, odVms, "the vms should be nil")
-				assert.Nil(t, spotVms, "the vms should be nil")
-			},
-		},
-		{
-			name: "could not get product details",
-			filters: []vmFilter{func(ctx context.Context, vm VirtualMachine, req ClusterRecommendationReq) bool {
-				return true
-			}},
-			pi:     &dummyCloudInfoSource{ProductDetailsError},
-			values: []float64{1, 2},
-			check: func(odVms []VirtualMachine, spotVms []VirtualMachine, err error) {
-				assert.EqualError(t, err, ProductDetailsError)
-				assert.Nil(t, odVms, "the vms should be nil")
-				assert.Nil(t, spotVms, "the vms should be nil")
-			},
-		},
-		{
 			name: "recommend three vm-s",
 			filters: []vmFilter{func(ctx context.Context, vm VirtualMachine, req ClusterRecommendationReq) bool {
 				return true
@@ -320,7 +294,8 @@ func TestEngine_RecommendVms(t *testing.T) {
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
 			engine := NewEngine(test.pi)
-			test.check(engine.RecommendVms(context.TODO(), "dummy", "dummyService", "dummyRegion", test.attribute, test.values, test.filters, test.request, nil))
+			vms,_ := engine.findVmsWithAttrValues(context.TODO(), "dummy", "dummyService", "dummyRegion", test.request.Zones, test.attribute, test.values)
+			test.check(engine.RecommendVms(context.TODO(), vms, test.attribute, test.filters, test.request, nil))
 		})
 	}
 }
@@ -532,7 +507,7 @@ func TestEngine_RecommendCluster(t *testing.T) {
 			},
 			check: func(resp *ClusterRecommendationResp, err error) {
 				assert.Nil(t, resp, "the response should be nil")
-				assert.EqualError(t, err, "failed to recommend virtual machines: could not get product details")
+				assert.EqualError(t, err, "could not get product details")
 			},
 		},
 		{
