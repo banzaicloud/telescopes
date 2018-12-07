@@ -247,8 +247,8 @@ func (e *Engine) RecommendCluster(ctx context.Context, provider string, service 
 
 	for _, attr := range attributes {
 		var (
-			values    []float64
-			err       error
+			values []float64
+			err    error
 		)
 		if layoutDesc == nil {
 			values, err = e.RecommendAttrValues(ctx, provider, service, region, attr, req)
@@ -274,7 +274,7 @@ func (e *Engine) RecommendCluster(ctx context.Context, provider string, service 
 			return nil, emperror.Wrap(err, "failed to recommend virtual machines")
 		}
 
-		if len(odVms)+len(spotVms) == 0 {
+		if (len(odVms) == 0 && req.OnDemandPct > 0) || (len(spotVms) == 0 && req.OnDemandPct < 100) {
 			log.Debugf("no vms with the requested resources found. attribute: %s", attr)
 			// skip the nodepool creation, go to the next attr
 			continue
@@ -460,7 +460,7 @@ func (e *Engine) RecommendVms(ctx context.Context, vms []VirtualMachine, attr st
 	} else {
 		for _, np := range layout {
 			for _, vm := range filteredVms {
-				if np.VmType.Type == vm.Type{
+				if np.VmType.Type == vm.Type {
 					if np.VmClass == regular {
 						odVms = append(odVms, vm)
 					} else {
@@ -554,7 +554,7 @@ func (e *Engine) transformLayout(layoutDesc []NodePoolDesc, vms []VirtualMachine
 	for i, npd := range layoutDesc {
 		for _, vm := range vms {
 			if vm.Type == npd.InstanceType {
-				nps[i] = 	NodePool{
+				nps[i] = NodePool{
 					VmType:   vm,
 					VmClass:  npd.getVmClass(),
 					SumNodes: npd.SumNodes,
@@ -652,9 +652,6 @@ func (e *Engine) sortByAttrValue(ctx context.Context, attr string, vms []Virtual
 // RecommendNodePools finds the slice of NodePools that may participate in the recommendation process
 func (e *Engine) RecommendNodePools(ctx context.Context, attr string, odVms []VirtualMachine, spotVms []VirtualMachine, req ClusterRecommendationReq, layout []NodePool) ([]NodePool, error) {
 	log := logger.Extract(ctx)
-	odNps := make([]NodePool, 0)
-	spotNps := make([]NodePool, 0)
-	excludedSpotNps := make([]NodePool, 0)
 
 	log.Debugf("requested sum for attribute [%s]: [%f]", attr, req.sum(ctx, attr))
 	var sumOnDemandValue = req.sum(ctx, attr) * float64(req.OnDemandPct) / 100
@@ -663,8 +660,15 @@ func (e *Engine) RecommendNodePools(ctx context.Context, attr string, odVms []Vi
 	log.Debugf("on demand sum value for attr [%s]: [%f]", attr, sumOnDemandValue)
 	log.Debugf("spot sum value for attr [%s]: [%f]", attr, sumSpotValue)
 
-	//TODO: what if there's no on-demand in layout but we want to add ondemands?? validate -> cannot do that?
+	// recommend on-demands
+	odNps := make([]NodePool, 0)
 
+	//TODO: validate if there's no on-demand in layout but we want to add ondemands
+	for _, np := range layout {
+		if np.VmClass == regular {
+			odNps = append(odNps, np)
+		}
+	}
 	if len(odVms) > 0 {
 		// find cheapest onDemand instance from the list - based on price per attribute
 		selectedOnDemand := odVms[0]
@@ -673,21 +677,29 @@ func (e *Engine) RecommendNodePools(ctx context.Context, attr string, odVms []Vi
 				selectedOnDemand = vm
 			}
 		}
-
-		// create and append on-demand pool
-		onDemandPool := NodePool{
-			SumNodes: int(math.Ceil(sumOnDemandValue / selectedOnDemand.getAttrValue(attr))),
-			VmClass:  regular,
-			VmType:   selectedOnDemand,
+		nodesToAdd := int(math.Ceil(sumOnDemandValue / selectedOnDemand.getAttrValue(attr)))
+		if layout == nil {
+			odNps = append(odNps, NodePool{
+				SumNodes: nodesToAdd,
+				VmClass:  regular,
+				VmType:   selectedOnDemand,
+			})
+		} else {
+			for i, np := range odNps {
+				if np.VmType.Type == selectedOnDemand.Type {
+					odNps[i].SumNodes += nodesToAdd
+				}
+			}
 		}
-		odNps = append(odNps, onDemandPool)
 	}
 
-	// vms are sorted by attribute value
+	// recommend spot pools
+	spotNps := make([]NodePool, 0)
+	excludedSpotNps := make([]NodePool, 0)
+
 	e.sortByAttrValue(ctx, attr, spotVms)
 
 	var N int
-
 	if layout == nil {
 		// the "magic" number of machines for diversifying the types
 		N = int(math.Min(float64(findN(avgNodeCount(req.MinNodes, req.MaxNodes))), float64(len(spotVms))))
@@ -710,19 +722,21 @@ func (e *Engine) RecommendNodePools(ctx context.Context, attr string, odVms []Vi
 		sort.Sort(ByNonZeroNodePools(layout))
 		var nonZeroNPs int
 		for _, np := range layout {
-			if np.SumNodes > 0 {
-				nonZeroNPs += 1
-			}
-			included := false
-			for _, vm := range spotVms {
-				if np.VmClass == spot && np.VmType.Type == vm.Type{
-					spotNps = append(spotNps, np)
-					included = true
-					break
+			if np.VmClass == spot {
+				if np.SumNodes > 0 {
+					nonZeroNPs += 1
 				}
-			}
-			if !included {
-				excludedSpotNps = append(excludedSpotNps, np)
+				included := false
+				for _, vm := range spotVms {
+					if np.VmType.Type == vm.Type {
+						spotNps = append(spotNps, np)
+						included = true
+						break
+					}
+				}
+				if !included {
+					excludedSpotNps = append(excludedSpotNps, np)
+				}
 			}
 		}
 		N = min(nonZeroNPs, len(spotVms))
@@ -750,8 +764,6 @@ func fillSpotNodePools(ctx context.Context, sumSpotValue float64, N int, nps []N
 		sumValueInPools, minValue float64
 		idx, minIndex             int
 	)
-	// sum value in pools should contain excluded items as well
-
 	for i := 0; i < N; i++ {
 		v := float64(nps[i].SumNodes) * nps[i].VmType.getAttrValue(attr)
 		sumValueInPools += v
