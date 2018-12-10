@@ -65,7 +65,7 @@ func TestEngine_filtersApply(t *testing.T) {
 		{
 			name:   "filter applies for mem/cpu and burst allowed",
 			engine: Engine{},
-			// minRatio = AumMem/SumCpu = 2
+			// minRatio = SumMem/SumCpu = 2
 			req: ClusterRecommendationReq{SumMem: float64(8), SumCpu: 4, AllowBurst: &trueVal},
 			// ratio = Mem/Cpus = 1
 			vm:       VirtualMachine{Mem: float64(20), Cpus: 4, Burst: true, CurrentGen: true},
@@ -78,7 +78,7 @@ func TestEngine_filtersApply(t *testing.T) {
 		{
 			name:   "filter doesn't apply for mem/cpu and burst not allowed ",
 			engine: Engine{},
-			// minRatio = AumMem/SumCpu = 2
+			// minRatio = SumMem/SumCpu = 2
 			req: ClusterRecommendationReq{SumMem: float64(8), SumCpu: 4, AllowBurst: &falseVal},
 			// ratio = Mem/Cpus = 1
 			vm:       VirtualMachine{Mem: float64(20), Cpus: 4, Burst: true, CurrentGen: true},

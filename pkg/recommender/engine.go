@@ -84,33 +84,29 @@ type ClusterRecommendationReq struct {
 // ClusterRecommendationReq encapsulates the recommendation input data
 // swagger:parameters recommendClusterScaleOut
 type ClusterScaleoutRecommendationReq struct {
-	// Total number of CPUs requested for the cluster
-	SumCpu float64 `json:"sumCpu" binding:"min=1"`
-	// Total memory requested for the cluster (GB)
-	SumMem float64 `json:"sumMem" binding:"min=1"`
-	// Total number of GPUs requested for the cluster
-	SumGpu int `json:"sumGpu,omitempty"`
-	// Minimum number of nodes in the recommended cluster
-	MinNodes int `json:"minNodes,omitempty" binding:"min=1,ltefield=MaxNodes"`
-	// Maximum number of nodes in the recommended cluster
-	MaxNodes int `json:"maxNodes,omitempty"`
-	// Percentage of regular (on-demand) nodes in the recommended cluster
+	// Total number of scale out CPUs requested
+	AdditionalCpu float64 `json:"additionalCpu" binding:"min=1"`
+	// Total scale out memory requested (GB)
+	AdditionalMem float64 `json:"additionalMem" binding:"min=1"`
+	// Total number of scale out GPUs requested
+	AdditionalGpu int `json:"sumGpu,omitempty"`
+	// Percentage of regular (on-demand) nodes among the scale out nodes
 	OnDemandPct int `json:"onDemandPct,omitempty" binding:"min=0,max=100"`
 	// Availability zones to be included in the recommendation
 	Zones []string `json:"zones,omitempty" binding:"dive,zone"`
 	// Excludes is a blacklist - a slice with vm types to be excluded from the recommendation
 	Excludes []string `json:"excludes,omitempty"`
-	// Current layout
-	Layout []NodePoolDesc `json:"layout,omitempty"`
+	// Description of the current cluster layout
+	ActualLayout []NodePoolDesc `json:"actualLayout" binding:"required"`
 }
 
 type NodePoolDesc struct {
 	// Instance type of VMs in the node pool
-	InstanceType string `json:"instanceType"`
+	InstanceType string `json:"instanceType" binding:"required"`
 	// Signals that the node pool consists of regular or spot/preemptible instance types
-	VmClass string `json:"vmClass"`
+	VmClass string `json:"vmClass" binding:"required"`
 	// Number of VMs in the node pool
-	SumNodes int `json:"sumNodes"`
+	SumNodes int `json:"sumNodes" binding:"required"`
 	// TODO: AZ?
 	// Zones []string `json:"zones,omitempty" binding:"dive,zone"`
 }
@@ -322,8 +318,8 @@ func (e *Engine) RecommendClusterScaleOut(ctx context.Context, provider string, 
 	log := logger.Extract(ctx)
 	log.Infof("recommending cluster configuration. request: [%#v]", req)
 
-	includes := make([]string, len(req.Layout))
-	for i, npd := range req.Layout {
+	includes := make([]string, len(req.ActualLayout))
+	for i, npd := range req.ActualLayout {
 		includes[i] = npd.InstanceType
 	}
 	clReq := ClusterRecommendationReq{
@@ -332,17 +328,17 @@ func (e *Engine) RecommendClusterScaleOut(ctx context.Context, provider string, 
 		Includes:      includes,
 		Excludes:      req.Excludes,
 		AllowOlderGen: boolPointer(true),
-		MaxNodes:      req.MaxNodes,
-		MinNodes:      req.MinNodes,
+		MaxNodes:      math.MaxInt8,
+		MinNodes:      1,
 		NetworkPerf:   nil,
 		OnDemandPct:   req.OnDemandPct,
 		SameSize:      false,
-		SumCpu:        req.SumCpu,
-		SumMem:        req.SumMem,
-		SumGpu:        req.SumGpu,
+		SumCpu:        req.AdditionalCpu,
+		SumMem:        req.AdditionalMem,
+		SumGpu:        req.AdditionalGpu,
 	}
 
-	return e.RecommendCluster(ctx, provider, service, region, clReq, req.Layout)
+	return e.RecommendCluster(ctx, provider, service, region, clReq, req.ActualLayout)
 }
 
 func findResponseSum(zones []string, nodePoolSet []NodePool) ClusterRecommendationAccuracy {
