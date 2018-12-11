@@ -734,7 +734,7 @@ func (e *Engine) RecommendNodePools(ctx context.Context, attr string, odVms []Vi
 				}
 			}
 		}
-		N = min(nonZeroNPs, len(spotVms))
+		N = findNWithLayout(nonZeroNPs, len(spotVms))
 		log.Debugf("Magic 'Marton' number: N=%d", N)
 	}
 	log.Debugf("created [%d] regular and [%d] spot price node pools", len(odNps), len(spotNps))
@@ -745,11 +745,15 @@ func (e *Engine) RecommendNodePools(ctx context.Context, attr string, odVms []Vi
 	return append(odNps, spotNps...), nil
 }
 
-func min(x, y int) int {
-	if x < y {
-		return x
+func findNWithLayout(nonZeroNps, vmOptions int) int {
+	// vmOptions cannot be 0 because validation would fail sooner
+	if nonZeroNps == 0 {
+		return 1
+	}
+	if nonZeroNps < vmOptions {
+		return nonZeroNps
 	} else {
-		return y
+		return vmOptions
 	}
 }
 
