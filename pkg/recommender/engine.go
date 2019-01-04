@@ -85,12 +85,12 @@ type ClusterRecommendationReq struct {
 // ClusterRecommendationReq encapsulates the recommendation input data
 // swagger:parameters recommendClusterScaleOut
 type ClusterScaleoutRecommendationReq struct {
-	// Total number of scale out CPUs requested
-	AdditionalCpu float64 `json:"additionalCpu" binding:"min=1"`
-	// Total scale out memory requested (GB)
-	AdditionalMem float64 `json:"additionalMem" binding:"min=1"`
-	// Total number of scale out GPUs requested
-	AdditionalGpu int `json:"sumGpu,omitempty"`
+	// Total desired number of CPUs in the cluster after the scale out
+	DesiredCpu float64 `json:"desiredCpu" binding:"min=1"`
+	// Total desired memory (GB) in the cluster after the scale out
+	DesiredMem float64 `json:"desiredCpu" binding:"min=1"`
+	// Total desired number of GPUs in the cluster after the scale out
+	DesiredGpu int `json:"desiredCpu" binding:"min=1"`
 	// Percentage of regular (on-demand) nodes among the scale out nodes
 	OnDemandPct int `json:"onDemandPct,omitempty" binding:"min=0,max=100"`
 	// Availability zones to be included in the recommendation
@@ -261,6 +261,14 @@ func (e *Engine) RecommendCluster(ctx context.Context, provider string, service 
 
 		layout := e.transformLayout(layoutDesc, vmsInRange)
 
+		var sumCurrentCpu, sumCurrentMem float64
+		for _, np := range layout {
+			sumCurrentCpu += float64(np.SumNodes) * np.VmType.Cpus
+			sumCurrentMem += float64(np.SumNodes) * np.VmType.Mem
+		}
+		req.SumCpu = req.SumCpu - sumCurrentCpu
+		req.SumMem = req.SumMem - sumCurrentMem
+
 		vmFilters, _ := e.filtersForAttr(ctx, attr, provider)
 		if err != nil {
 			return nil, emperror.Wrap(err, "failed to identify filters")
@@ -323,6 +331,7 @@ func (e *Engine) RecommendClusterScaleOut(ctx context.Context, provider string, 
 	for i, npd := range req.ActualLayout {
 		includes[i] = npd.InstanceType
 	}
+
 	clReq := ClusterRecommendationReq{
 		Zones:         req.Zones,
 		AllowBurst:    boolPointer(true),
@@ -334,9 +343,9 @@ func (e *Engine) RecommendClusterScaleOut(ctx context.Context, provider string, 
 		NetworkPerf:   nil,
 		OnDemandPct:   req.OnDemandPct,
 		SameSize:      false,
-		SumCpu:        req.AdditionalCpu,
-		SumMem:        req.AdditionalMem,
-		SumGpu:        req.AdditionalGpu,
+		SumCpu:        req.DesiredCpu,
+		SumMem:        req.DesiredMem,
+		SumGpu:        req.DesiredGpu,
 	}
 
 	return e.RecommendCluster(ctx, provider, service, region, clReq, req.ActualLayout)
