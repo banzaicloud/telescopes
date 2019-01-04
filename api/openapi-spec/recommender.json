@@ -20,6 +20,78 @@
   "basePath": "/api/v1",
   "paths": {
     "/recommender/:provider/:region/cluster": {
+      "put": {
+        "consumes": [
+          "application/json"
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "schemes": [
+          "http"
+        ],
+        "tags": [
+          "recommend"
+        ],
+        "summary": "Provides a recommendation for a scale-out, based on a current cluster layout on a given provider in a specific region.",
+        "operationId": "recommendClusterScaleOut",
+        "parameters": [
+          {
+            "type": "integer",
+            "format": "int64",
+            "x-go-name": "DesiredGpu",
+            "description": "Total desired number of GPUs in the cluster after the scale out",
+            "name": "desiredCpu",
+            "in": "query"
+          },
+          {
+            "type": "integer",
+            "format": "int64",
+            "x-go-name": "OnDemandPct",
+            "description": "Percentage of regular (on-demand) nodes among the scale out nodes",
+            "name": "onDemandPct",
+            "in": "query"
+          },
+          {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "x-go-name": "Zones",
+            "description": "Availability zones to be included in the recommendation",
+            "name": "zones",
+            "in": "query"
+          },
+          {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "x-go-name": "Excludes",
+            "description": "Excludes is a blacklist - a slice with vm types to be excluded from the recommendation",
+            "name": "excludes",
+            "in": "query"
+          },
+          {
+            "type": "array",
+            "items": {
+              "$ref": "#/definitions/NodePoolDesc"
+            },
+            "x-go-name": "ActualLayout",
+            "description": "Description of the current cluster layout",
+            "name": "actualLayout",
+            "in": "query"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "RecommendationResponse",
+            "schema": {
+              "$ref": "#/definitions/RecommendationResponse"
+            }
+          }
+        }
+      },
       "post": {
         "consumes": [
           "application/json"
@@ -36,6 +108,27 @@
         "summary": "Provides a recommended set of node pools on a given provider in a specific region.",
         "operationId": "recommendClusterSetup",
         "parameters": [
+          {
+            "type": "string",
+            "x-go-name": "Provider",
+            "name": "provider",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "x-go-name": "Service",
+            "name": "service",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "x-go-name": "Region",
+            "name": "region",
+            "in": "path",
+            "required": true
+          },
           {
             "type": "number",
             "format": "double",
@@ -141,27 +234,6 @@
             "description": "AllowOlderGen allow older generations of virtual machines (applies for EC2 only)",
             "name": "allowOlderGen",
             "in": "query"
-          },
-          {
-            "type": "string",
-            "x-go-name": "Provider",
-            "name": "provider",
-            "in": "path",
-            "required": true
-          },
-          {
-            "type": "string",
-            "x-go-name": "Service",
-            "name": "service",
-            "in": "path",
-            "required": true
-          },
-          {
-            "type": "string",
-            "x-go-name": "Region",
-            "name": "region",
-            "in": "path",
-            "required": true
           }
         ],
         "responses": {
@@ -210,6 +282,13 @@
       "type": "array",
       "items": {
         "$ref": "#/definitions/VirtualMachine"
+      },
+      "x-go-package": "github.com/banzaicloud/telescopes/pkg/recommender"
+    },
+    "ByNonZeroNodePools": {
+      "type": "array",
+      "items": {
+        "$ref": "#/definitions/NodePool"
       },
       "x-go-package": "github.com/banzaicloud/telescopes/pkg/recommender"
     },
@@ -363,9 +442,47 @@
       },
       "x-go-package": "github.com/banzaicloud/telescopes/pkg/recommender"
     },
-    "ClusterRecommender": {
-      "description": "ClusterRecommender defines operations for cluster recommendations",
+    "ClusterScaleoutRecommendationReq": {
+      "description": "ClusterRecommendationReq encapsulates the recommendation input data",
       "type": "object",
+      "properties": {
+        "actualLayout": {
+          "description": "Description of the current cluster layout",
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/NodePoolDesc"
+          },
+          "x-go-name": "ActualLayout"
+        },
+        "desiredCpu": {
+          "description": "Total desired number of GPUs in the cluster after the scale out",
+          "type": "integer",
+          "format": "int64",
+          "x-go-name": "DesiredGpu"
+        },
+        "excludes": {
+          "description": "Excludes is a blacklist - a slice with vm types to be excluded from the recommendation",
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "x-go-name": "Excludes"
+        },
+        "onDemandPct": {
+          "description": "Percentage of regular (on-demand) nodes among the scale out nodes",
+          "type": "integer",
+          "format": "int64",
+          "x-go-name": "OnDemandPct"
+        },
+        "zones": {
+          "description": "Availability zones to be included in the recommendation",
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "x-go-name": "Zones"
+        }
+      },
       "x-go-package": "github.com/banzaicloud/telescopes/pkg/recommender"
     },
     "Engine": {
@@ -535,6 +652,28 @@
         },
         "vmClass": {
           "description": "Specifies if the recommended node pool consists of regular or spot/preemptible instance types",
+          "type": "string",
+          "x-go-name": "VmClass"
+        }
+      },
+      "x-go-package": "github.com/banzaicloud/telescopes/pkg/recommender"
+    },
+    "NodePoolDesc": {
+      "type": "object",
+      "properties": {
+        "instanceType": {
+          "description": "Instance type of VMs in the node pool",
+          "type": "string",
+          "x-go-name": "InstanceType"
+        },
+        "sumNodes": {
+          "description": "Number of VMs in the node pool",
+          "type": "integer",
+          "format": "int64",
+          "x-go-name": "SumNodes"
+        },
+        "vmClass": {
+          "description": "Signals that the node pool consists of regular or spot/preemptible instance types",
           "type": "string",
           "x-go-name": "VmClass"
         }
