@@ -88,9 +88,9 @@ type ClusterScaleoutRecommendationReq struct {
 	// Total desired number of CPUs in the cluster after the scale out
 	DesiredCpu float64 `json:"desiredCpu" binding:"min=1"`
 	// Total desired memory (GB) in the cluster after the scale out
-	DesiredMem float64 `json:"desiredCpu" binding:"min=1"`
+	DesiredMem float64 `json:"desiredMem" binding:"min=1"`
 	// Total desired number of GPUs in the cluster after the scale out
-	DesiredGpu int `json:"desiredCpu" binding:"min=1"`
+	DesiredGpu int `json:"desiredGpu" binding:"min=0"`
 	// Percentage of regular (on-demand) nodes among the scale out nodes
 	OnDemandPct int `json:"onDemandPct,omitempty" binding:"min=0,max=100"`
 	// Availability zones to be included in the recommendation
@@ -241,6 +241,10 @@ func (e *Engine) RecommendCluster(ctx context.Context, provider string, service 
 	attributes := []string{Cpu, Memory}
 	nodePools := make(map[string][]NodePool, 2)
 
+	desiredCpu := req.SumCpu
+	desiredMem := req.SumMem
+	desiredOdPct := req.OnDemandPct
+
 	for _, attr := range attributes {
 		var (
 			values []float64
@@ -260,14 +264,12 @@ func (e *Engine) RecommendCluster(ctx context.Context, provider string, service 
 		}
 
 		layout := e.transformLayout(layoutDesc, vmsInRange)
-
-		var sumCurrentCpu, sumCurrentMem float64
-		for _, np := range layout {
-			sumCurrentCpu += float64(np.SumNodes) * np.VmType.Cpus
-			sumCurrentMem += float64(np.SumNodes) * np.VmType.Mem
+		if layout != nil {
+			req.SumCpu, req.SumMem, req.OnDemandPct, err = computeScaleoutResources(layout, attr, desiredCpu, desiredMem, desiredOdPct)
+			if err != nil {
+				return nil, emperror.Wrap(err, "failed to compute scaleout resources")
+			}
 		}
-		req.SumCpu = req.SumCpu - sumCurrentCpu
-		req.SumMem = req.SumMem - sumCurrentMem
 
 		vmFilters, _ := e.filtersForAttr(ctx, attr, provider)
 		if err != nil {
@@ -320,6 +322,37 @@ func (e *Engine) RecommendCluster(ctx context.Context, provider string, service 
 
 func boolPointer(b bool) *bool {
 	return &b
+}
+
+func computeScaleoutResources(layout []NodePool, attr string, desiredCpu, desiredMem float64, desiredOdPct int) (float64, float64, int, error) {
+	var sumCurrentCpu, sumCurrentMem, sumCurrentOdCpu, sumCurrentOdMem float64
+	var scaleoutOdPct int
+	for _, np := range layout {
+		if np.VmClass == regular {
+			sumCurrentOdCpu += float64(np.SumNodes) * np.VmType.Cpus
+			sumCurrentOdMem += float64(np.SumNodes) * np.VmType.Mem
+		}
+		sumCurrentCpu += float64(np.SumNodes) * np.VmType.Cpus
+		sumCurrentMem += float64(np.SumNodes) * np.VmType.Mem
+	}
+
+	scaleoutSumCpu := desiredCpu - sumCurrentCpu
+	scaleoutSumMem := desiredMem - sumCurrentMem
+
+	switch attr {
+	case Cpu:
+		desiredOdCpu := desiredCpu * float64(desiredOdPct) / 100
+		scaleoutOdCpu := desiredOdCpu - sumCurrentOdCpu
+		scaleoutOdPct = int(scaleoutOdCpu / scaleoutSumCpu * 100)
+	case Memory:
+		desiredOdMem := desiredMem * float64(desiredOdPct) / 100
+		scaleoutOdMem := desiredOdMem - sumCurrentOdMem
+		scaleoutOdPct = int(scaleoutOdMem / scaleoutSumMem * 100)
+	}
+	if scaleoutOdPct > 100 || scaleoutOdPct < 0 {
+		return 0, 0, 0, emperror.With(errors.New("couldn't scale out cluster with the provided parameters"), "onDemandPct", desiredOdPct)
+	}
+	return scaleoutSumCpu, scaleoutSumMem, scaleoutOdPct, nil
 }
 
 // RecommendClusterScaleOut performs recommendation for an existing layout's scale out
