@@ -17,16 +17,16 @@ The `Banzai Cloud Telescopes` is a cluster recommender application; its main pur
 
 ## Quick start
 
-Building the project is as simple as running a go build command. The result is a statically linked executable binary.
+Building the project is as simple as running a `make build` command. The result is a statically linked executable binary in the `./build` directory.
 
 ```
-go build .
+make build
 ```
 
 The application can be started with the following arguments:
 
 ```
-Usage of ./telescopes:
+Usage of ./build/telescopes:
       --cloudinfo-address string   the address of the Cloud Info service to retrieve attribute and pricing info [format=scheme://host:port/basepath] (default "http://localhost:9090/api/v1")
       --dev-mode                   development mode, if true token based authentication is disabled, false by default
       --help                       print usage
