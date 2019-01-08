@@ -265,9 +265,13 @@ func (e *Engine) RecommendCluster(ctx context.Context, provider string, service 
 
 		layout := e.transformLayout(layoutDesc, vmsInRange)
 		if layout != nil {
-			req.SumCpu, req.SumMem, req.OnDemandPct, err = computeScaleoutResources(layout, attr, desiredCpu, desiredMem, desiredOdPct)
+			req.SumCpu, req.SumMem, req.OnDemandPct, err = computeScaleoutResources(ctx, layout, attr, desiredCpu, desiredMem, desiredOdPct)
 			if err != nil {
-				return nil, emperror.Wrap(err, "failed to compute scaleout resources")
+				log.WithError(err).Debugf("failed to compute scaleout resources")
+				continue
+			}
+			if req.SumCpu < 0 || req.SumMem < 0 {
+				log.Debug("there's already enough resources in the cluster. Scaleout Cpu/Mem: %v/%v", req.SumCpu, req.SumMem)
 			}
 		}
 
@@ -324,35 +328,47 @@ func boolPointer(b bool) *bool {
 	return &b
 }
 
-func computeScaleoutResources(layout []NodePool, attr string, desiredCpu, desiredMem float64, desiredOdPct int) (float64, float64, int, error) {
-	var sumCurrentCpu, sumCurrentMem, sumCurrentOdCpu, sumCurrentOdMem float64
+func computeScaleoutResources(ctx context.Context, layout []NodePool, attr string, desiredCpu, desiredMem float64, desiredOdPct int) (float64, float64, int, error) {
+	log := logger.Extract(ctx)
+	var currentCpuTotal, currentMemTotal, sumCurrentOdCpu, sumCurrentOdMem float64
 	var scaleoutOdPct int
 	for _, np := range layout {
 		if np.VmClass == regular {
 			sumCurrentOdCpu += float64(np.SumNodes) * np.VmType.Cpus
 			sumCurrentOdMem += float64(np.SumNodes) * np.VmType.Mem
 		}
-		sumCurrentCpu += float64(np.SumNodes) * np.VmType.Cpus
-		sumCurrentMem += float64(np.SumNodes) * np.VmType.Mem
+		currentCpuTotal += float64(np.SumNodes) * np.VmType.Cpus
+		currentMemTotal += float64(np.SumNodes) * np.VmType.Mem
 	}
 
-	scaleoutSumCpu := desiredCpu - sumCurrentCpu
-	scaleoutSumMem := desiredMem - sumCurrentMem
+	scaleoutCpu := desiredCpu - currentCpuTotal
+	scaleoutMem := desiredMem - currentMemTotal
+
+	log.Debugf("desiredCpu: %v, desiredMem: %v, currentCpuTotal/currentCpuOnDemand: %v/%v, currentMemTotal/currentMemOnDemand: %v/%v", desiredCpu, desiredMem, currentCpuTotal, currentMemTotal, sumCurrentOdCpu, sumCurrentOdMem)
+	log.Debugf("total scaleout cpu/mem needed: %v/%v", scaleoutCpu, scaleoutMem)
+	log.Debugf("desired on-demand percentage: %v", desiredOdPct)
 
 	switch attr {
 	case Cpu:
 		desiredOdCpu := desiredCpu * float64(desiredOdPct) / 100
 		scaleoutOdCpu := desiredOdCpu - sumCurrentOdCpu
-		scaleoutOdPct = int(scaleoutOdCpu / scaleoutSumCpu * 100)
+		scaleoutOdPct = int(scaleoutOdCpu / scaleoutCpu * 100)
+		log.Debugf("desired on-demand cpu: %v, cpu to add with the scaleout: %v", desiredOdCpu, scaleoutOdCpu)
 	case Memory:
 		desiredOdMem := desiredMem * float64(desiredOdPct) / 100
 		scaleoutOdMem := desiredOdMem - sumCurrentOdMem
-		scaleoutOdPct = int(scaleoutOdMem / scaleoutSumMem * 100)
+		log.Debugf("desired on-demand memory: %v, memory to add with the scaleout: %v", desiredOdMem, scaleoutOdMem)
+		scaleoutOdPct = int(scaleoutOdMem / scaleoutMem * 100)
 	}
-	if scaleoutOdPct > 100 || scaleoutOdPct < 0 {
-		return 0, 0, 0, emperror.With(errors.New("couldn't scale out cluster with the provided parameters"), "onDemandPct", desiredOdPct)
+	if scaleoutOdPct > 100 {
+		// even if we add only on-demand instances, we still we can't reach the minimum ratio
+		return 0, 0, 0, emperror.With(errors.New("couldn't scale out cluster with the provided parameters"), "onDemandPct", desiredOdPct) //
+	} else if scaleoutOdPct < 0 {
+		// means that we already have enough resources in the cluster to keep the minimum ratio
+		scaleoutOdPct = 0
 	}
-	return scaleoutSumCpu, scaleoutSumMem, scaleoutOdPct, nil
+	log.Debugf("percentage of on-demand resources in the scaleout: %v", scaleoutOdPct)
+	return scaleoutCpu, scaleoutMem, scaleoutOdPct, nil
 }
 
 // RecommendClusterScaleOut performs recommendation for an existing layout's scale out
