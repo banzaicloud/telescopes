@@ -24,6 +24,7 @@ import (
 
 	"github.com/banzaicloud/cloudinfo/pkg/cloudinfo-client/models"
 	"github.com/banzaicloud/cloudinfo/pkg/logger"
+	"fmt"
 )
 
 const (
@@ -270,8 +271,8 @@ func (e *Engine) RecommendCluster(ctx context.Context, provider string, service 
 				log.WithError(err).Debugf("failed to compute scaleout resources")
 				continue
 			}
-			if req.SumCpu < 0 || req.SumMem < 0 {
-				log.Debug("there's already enough resources in the cluster. Scaleout Cpu/Mem: %v/%v", req.SumCpu, req.SumMem)
+			if req.SumCpu < 0 && req.SumMem < 0 {
+				return nil, emperror.With(fmt.Errorf("there's already enough resources in the cluster. Total resources available: CPU: %v, Mem: %v", desiredCpu-req.SumCpu, desiredMem-req.SumMem))
 			}
 		}
 
@@ -344,17 +345,27 @@ func computeScaleoutResources(ctx context.Context, layout []NodePool, attr strin
 	scaleoutCpu := desiredCpu - currentCpuTotal
 	scaleoutMem := desiredMem - currentMemTotal
 
-	log.Debugf("desiredCpu: %v, desiredMem: %v, currentCpuTotal/currentCpuOnDemand: %v/%v, currentMemTotal/currentMemOnDemand: %v/%v", desiredCpu, desiredMem, currentCpuTotal, currentMemTotal, sumCurrentOdCpu, sumCurrentOdMem)
+	if scaleoutCpu < 0 && scaleoutMem < 0 {
+		return scaleoutCpu, scaleoutMem, 0, nil
+	}
+
+	log.Debugf("desiredCpu: %v, desiredMem: %v, currentCpuTotal/currentCpuOnDemand: %v/%v, currentMemTotal/currentMemOnDemand: %v/%v", desiredCpu, desiredMem, currentCpuTotal, sumCurrentOdCpu, currentMemTotal, sumCurrentOdMem)
 	log.Debugf("total scaleout cpu/mem needed: %v/%v", scaleoutCpu, scaleoutMem)
 	log.Debugf("desired on-demand percentage: %v", desiredOdPct)
 
 	switch attr {
 	case Cpu:
+		if scaleoutCpu < 0 {
+			return 0, 0, 0, emperror.With(errors.New("there's already enough CPU resources in the cluster"))
+		}
 		desiredOdCpu := desiredCpu * float64(desiredOdPct) / 100
 		scaleoutOdCpu := desiredOdCpu - sumCurrentOdCpu
 		scaleoutOdPct = int(scaleoutOdCpu / scaleoutCpu * 100)
 		log.Debugf("desired on-demand cpu: %v, cpu to add with the scaleout: %v", desiredOdCpu, scaleoutOdCpu)
 	case Memory:
+		if scaleoutMem < 0 {
+			return 0, 0, 0, emperror.With(errors.New("there's already enough memory resources in the cluster"))
+		}
 		desiredOdMem := desiredMem * float64(desiredOdPct) / 100
 		scaleoutOdMem := desiredOdMem - sumCurrentOdMem
 		log.Debugf("desired on-demand memory: %v, memory to add with the scaleout: %v", desiredOdMem, scaleoutOdMem)
@@ -362,7 +373,7 @@ func computeScaleoutResources(ctx context.Context, layout []NodePool, attr strin
 	}
 	if scaleoutOdPct > 100 {
 		// even if we add only on-demand instances, we still we can't reach the minimum ratio
-		return 0, 0, 0, emperror.With(errors.New("couldn't scale out cluster with the provided parameters"), "onDemandPct", desiredOdPct) //
+		return 0, 0, 0, emperror.With(errors.New("couldn't scale out cluster with the provided parameters"), "onDemandPct", desiredOdPct)
 	} else if scaleoutOdPct < 0 {
 		// means that we already have enough resources in the cluster to keep the minimum ratio
 		scaleoutOdPct = 0
@@ -467,8 +478,12 @@ func (e *Engine) findCheapestNodePoolSet(ctx context.Context, nodePoolSets map[s
 	return cheapestNpSet
 }
 
-func avgNodeCount(minNodes, maxNodes int) int {
-	return (minNodes + maxNodes) / 2
+func avgSpotNodeCount(minNodes, maxNodes, odNodes int) int {
+	spotCount := (minNodes - odNodes + maxNodes - odNodes) / 2
+	if spotCount < 0 {
+		return 0
+	}
+	return spotCount
 }
 
 // findN returns the number of nodes required
@@ -489,6 +504,14 @@ func findN(avg int) int {
 		N = 8
 	}
 	return N
+}
+
+func findM(N int, spotVms []VirtualMachine) int {
+	if N > 0 {
+		return int(math.Min(math.Ceil(float64(N)*1.5), float64(len(spotVms))))
+	} else {
+		return int(math.Min(3, float64(len(spotVms))))
+	}
 }
 
 // RecommendVms selects a slice of VirtualMachines for the given attribute and requirements in the request
@@ -709,10 +732,7 @@ func (e *Engine) RecommendNodePools(ctx context.Context, attr string, odVms []Vi
 
 	log.Debugf("requested sum for attribute [%s]: [%f]", attr, req.sum(ctx, attr))
 	var sumOnDemandValue = req.sum(ctx, attr) * float64(req.OnDemandPct) / 100
-	var sumSpotValue = req.sum(ctx, attr) - sumOnDemandValue
-
 	log.Debugf("on demand sum value for attr [%s]: [%f]", attr, sumOnDemandValue)
-	log.Debugf("spot sum value for attr [%s]: [%f]", attr, sumSpotValue)
 
 	// recommend on-demands
 	odNps := make([]NodePool, 0)
@@ -723,6 +743,8 @@ func (e *Engine) RecommendNodePools(ctx context.Context, attr string, odVms []Vi
 			odNps = append(odNps, np)
 		}
 	}
+	var actualOnDemandResources float64
+	var odNodesToAdd int
 	if len(odVms) > 0 {
 		// find cheapest onDemand instance from the list - based on price per attribute
 		selectedOnDemand := odVms[0]
@@ -731,21 +753,26 @@ func (e *Engine) RecommendNodePools(ctx context.Context, attr string, odVms []Vi
 				selectedOnDemand = vm
 			}
 		}
-		nodesToAdd := int(math.Ceil(sumOnDemandValue / selectedOnDemand.getAttrValue(attr)))
+		odNodesToAdd = int(math.Ceil(sumOnDemandValue / selectedOnDemand.getAttrValue(attr)))
 		if layout == nil {
 			odNps = append(odNps, NodePool{
-				SumNodes: nodesToAdd,
+				SumNodes: odNodesToAdd,
 				VmClass:  regular,
 				VmType:   selectedOnDemand,
 			})
 		} else {
 			for i, np := range odNps {
 				if np.VmType.Type == selectedOnDemand.Type {
-					odNps[i].SumNodes += nodesToAdd
+					odNps[i].SumNodes += odNodesToAdd
 				}
 			}
 		}
+		actualOnDemandResources = selectedOnDemand.getAttrValue(attr) * float64(odNodesToAdd)
 	}
+
+	// recalculate required spot resources by taking actual on-demand resources into account
+	var sumSpotValue = req.sum(ctx, attr) - actualOnDemandResources
+	log.Debugf("spot sum value for attr [%s]: [%f]", attr, sumSpotValue)
 
 	// recommend spot pools
 	spotNps := make([]NodePool, 0)
@@ -756,9 +783,9 @@ func (e *Engine) RecommendNodePools(ctx context.Context, attr string, odVms []Vi
 	var N int
 	if layout == nil {
 		// the "magic" number of machines for diversifying the types
-		N = int(math.Min(float64(findN(avgNodeCount(req.MinNodes, req.MaxNodes))), float64(len(spotVms))))
+		N = int(math.Min(float64(findN(avgSpotNodeCount(req.MinNodes, req.MaxNodes, odNodesToAdd))), float64(len(spotVms))))
 		// the second "magic" number for diversifying the layout
-		M := int(math.Min(math.Ceil(float64(N)*1.5), float64(len(spotVms))))
+		M := findM(N, spotVms)
 		log.Debugf("Magic 'Marton' numbers: N=%d, M=%d", N, M)
 
 		// the first M vm-s
