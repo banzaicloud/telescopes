@@ -18,9 +18,8 @@ import (
 	"context"
 	"testing"
 
-	"github.com/pkg/errors"
-
 	"github.com/banzaicloud/cloudinfo/pkg/cloudinfo-client/models"
+	"github.com/pkg/errors"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -294,7 +293,7 @@ func TestEngine_RecommendVms(t *testing.T) {
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
 			engine := NewEngine(test.pi)
-			vms,_ := engine.findVmsWithAttrValues(context.TODO(), "dummy", "dummyService", "dummyRegion", test.request.Zones, test.attribute, test.values)
+			vms, _ := engine.findVmsWithAttrValues(context.TODO(), "dummy", "dummyService", "dummyRegion", test.request.Zones, test.attribute, test.values)
 			test.check(engine.RecommendVms(context.TODO(), vms, test.attribute, test.filters, test.request, nil))
 		})
 	}
