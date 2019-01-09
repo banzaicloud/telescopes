@@ -16,15 +16,14 @@ package recommender
 
 import (
 	"context"
+	"fmt"
 	"math"
 	"sort"
 
-	"github.com/goph/emperror"
-	"github.com/pkg/errors"
-
 	"github.com/banzaicloud/cloudinfo/pkg/cloudinfo-client/models"
 	"github.com/banzaicloud/cloudinfo/pkg/logger"
-	"fmt"
+	"github.com/goph/emperror"
+	"github.com/pkg/errors"
 )
 
 const (
