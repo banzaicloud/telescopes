@@ -238,7 +238,7 @@ Other than that, these are the things we are planning to add soon:
 
 ### License
 
-Copyright (c) 2017-2018 [Banzai Cloud, Inc.](https://banzaicloud.com)
+Copyright (c) 2017-2019 [Banzai Cloud, Inc.](https://banzaicloud.com)
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
