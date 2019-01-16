@@ -9,7 +9,7 @@
 
 [[constraint]]
   name = "github.com/banzaicloud/cloudinfo"
-  version = "0.4.6"
+  version = "0.4.10"
 
 [[constraint]]
   name = "github.com/gin-contrib/cors"

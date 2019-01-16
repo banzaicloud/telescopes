@@ -54,8 +54,8 @@
     "pkg/logger",
   ]
   pruneopts = "NUT"
-  revision = "ae602882ac11e7b8440dc72cbaff52f4886dfefc"
-  version = "0.4.6"
+  revision = "6992a4a0f9c2520836fef0fa5de9ac2eae157552"
+  version = "0.4.10"
 
 [[projects]]
   branch = "master"
