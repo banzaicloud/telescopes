@@ -67,7 +67,7 @@ type ClusterRecommendationReq struct {
 	// Percentage of regular (on-demand) nodes in the recommended cluster
 	OnDemandPct int `json:"onDemandPct,omitempty" binding:"min=0,max=100"`
 	// Availability zones that the cluster should expand to
-	Zones []string `json:"zones,omitempty" binding:"dive,zone"`
+	Zones []string `json:"zones,omitempty"`
 	// Total number of GPUs requested for the cluster
 	SumGpu int `json:"sumGpu,omitempty"`
 	// Are burst instances allowed in recommendation

@@ -20,7 +20,6 @@ import (
 
 	"github.com/pkg/errors"
 
-	"github.com/banzaicloud/cloudinfo/pkg/cloudinfo-client/client/regions"
 	"github.com/banzaicloud/telescopes/pkg/recommender"
 	"github.com/gin-gonic/gin/binding"
 	"github.com/goph/emperror"
@@ -43,36 +42,10 @@ const (
 func ConfigureValidator(ctx context.Context, pc *recommender.CloudInfoClient) error {
 	v := binding.Validator.Engine().(*validator.Validate)
 
-	if err := v.RegisterValidation("zone", zoneValidator(pc)); err != nil {
-		return emperror.Wrap(err, "could not register zone validator")
-	}
-
 	if err := v.RegisterValidation("network", networkPerfValidator()); err != nil {
 		return emperror.Wrap(err, "could not register network validator")
 	}
 	return nil
-}
-
-// zoneValidator validates the zone in the recommendation request.
-func zoneValidator(pc *recommender.CloudInfoClient) validator.Func {
-	return func(v *validator.Validate, topStruct reflect.Value, currentStruct reflect.Value, field reflect.Value,
-		fieldtype reflect.Type, fieldKind reflect.Kind, param string) bool {
-
-		provider := reflect.Indirect(topStruct).FieldByName("Provider").String()
-		svc := reflect.Indirect(topStruct).FieldByName("Service").String()
-		region := reflect.Indirect(topStruct).FieldByName("Region").String()
-
-		response, _ := pc.Regions.GetRegion(regions.NewGetRegionParams().
-			WithProvider(provider).
-			WithService(svc).
-			WithRegion(region))
-		for _, zone := range response.Payload.Zones {
-			if zone == field.String() {
-				return true
-			}
-		}
-		return false
-	}
 }
 
 // networkPerfValidator validates the network performance in the recommendation request.
