@@ -37,11 +37,27 @@
         "operationId": "recommendClusterScaleOut",
         "parameters": [
           {
+            "type": "number",
+            "format": "double",
+            "x-go-name": "DesiredCpu",
+            "description": "Total desired number of CPUs in the cluster after the scale out",
+            "name": "desiredCpu",
+            "in": "query"
+          },
+          {
+            "type": "number",
+            "format": "double",
+            "x-go-name": "DesiredMem",
+            "description": "Total desired memory (GB) in the cluster after the scale out",
+            "name": "desiredMem",
+            "in": "query"
+          },
+          {
             "type": "integer",
             "format": "int64",
             "x-go-name": "DesiredGpu",
             "description": "Total desired number of GPUs in the cluster after the scale out",
-            "name": "desiredCpu",
+            "name": "desiredGpu",
             "in": "query"
           },
           {
@@ -108,27 +124,6 @@
         "summary": "Provides a recommended set of node pools on a given provider in a specific region.",
         "operationId": "recommendClusterSetup",
         "parameters": [
-          {
-            "type": "string",
-            "x-go-name": "Provider",
-            "name": "provider",
-            "in": "path",
-            "required": true
-          },
-          {
-            "type": "string",
-            "x-go-name": "Service",
-            "name": "service",
-            "in": "path",
-            "required": true
-          },
-          {
-            "type": "string",
-            "x-go-name": "Region",
-            "name": "region",
-            "in": "path",
-            "required": true
-          },
           {
             "type": "number",
             "format": "double",
@@ -234,6 +229,27 @@
             "description": "AllowOlderGen allow older generations of virtual machines (applies for EC2 only)",
             "name": "allowOlderGen",
             "in": "query"
+          },
+          {
+            "type": "string",
+            "x-go-name": "Provider",
+            "name": "provider",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "x-go-name": "Service",
+            "name": "service",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "x-go-name": "Region",
+            "name": "region",
+            "in": "path",
+            "required": true
           }
         ],
         "responses": {
@@ -455,10 +471,22 @@
           "x-go-name": "ActualLayout"
         },
         "desiredCpu": {
+          "description": "Total desired number of CPUs in the cluster after the scale out",
+          "type": "number",
+          "format": "double",
+          "x-go-name": "DesiredCpu"
+        },
+        "desiredGpu": {
           "description": "Total desired number of GPUs in the cluster after the scale out",
           "type": "integer",
           "format": "int64",
           "x-go-name": "DesiredGpu"
+        },
+        "desiredMem": {
+          "description": "Total desired memory (GB) in the cluster after the scale out",
+          "type": "number",
+          "format": "double",
+          "x-go-name": "DesiredMem"
         },
         "excludes": {
           "description": "Excludes is a blacklist - a slice with vm types to be excluded from the recommendation",
