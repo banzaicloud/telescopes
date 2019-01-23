@@ -25,9 +25,23 @@ paths:
         layout on a given provider in a specific region.
       operationId: recommendClusterScaleOut
       parameters:
+        - x-go-name: DesiredCpu
+          description: Total desired number of CPUs in the cluster after the scale out
+          name: desiredCpu
+          in: query
+          schema:
+            type: number
+            format: double
+        - x-go-name: DesiredMem
+          description: Total desired memory (GB) in the cluster after the scale out
+          name: desiredMem
+          in: query
+          schema:
+            type: number
+            format: double
         - x-go-name: DesiredGpu
           description: Total desired number of GPUs in the cluster after the scale out
-          name: desiredCpu
+          name: desiredGpu
           in: query
           schema:
             type: integer
@@ -80,24 +94,6 @@ paths:
         specific region.
       operationId: recommendClusterSetup
       parameters:
-        - x-go-name: Provider
-          name: provider
-          in: path
-          required: true
-          schema:
-            type: string
-        - x-go-name: Service
-          name: service
-          in: path
-          required: true
-          schema:
-            type: string
-        - x-go-name: Region
-          name: region
-          in: path
-          required: true
-          schema:
-            type: string
         - x-go-name: SumCpu
           description: Total number of CPUs requested for the cluster
           name: sumCpu
@@ -194,6 +190,24 @@ paths:
           in: query
           schema:
             type: boolean
+        - x-go-name: Provider
+          name: provider
+          in: path
+          required: true
+          schema:
+            type: string
+        - x-go-name: Service
+          name: service
+          in: path
+          required: true
+          schema:
+            type: string
+        - x-go-name: Region
+          name: region
+          in: path
+          required: true
+          schema:
+            type: string
       responses:
         '200':
           description: RecommendationResponse
@@ -376,10 +390,20 @@ components:
             $ref: '#/components/schemas/NodePoolDesc'
           x-go-name: ActualLayout
         desiredCpu:
+          description: Total desired number of CPUs in the cluster after the scale out
+          type: number
+          format: double
+          x-go-name: DesiredCpu
+        desiredGpu:
           description: Total desired number of GPUs in the cluster after the scale out
           type: integer
           format: int64
           x-go-name: DesiredGpu
+        desiredMem:
+          description: Total desired memory (GB) in the cluster after the scale out
+          type: number
+          format: double
+          x-go-name: DesiredMem
         excludes:
           description: >-
             Excludes is a blacklist - a slice with vm types to be excluded from
