@@ -478,7 +478,8 @@ func (e *Engine) findCheapestNodePoolSet(ctx context.Context, nodePoolSets map[s
 }
 
 func avgSpotNodeCount(minNodes, maxNodes, odNodes int) int {
-	spotCount := (minNodes - odNodes + maxNodes - odNodes) / 2
+	count := float64(minNodes-odNodes+maxNodes-odNodes) / 2
+	spotCount := int(math.Ceil(count))
 	if spotCount < 0 {
 		return 0
 	}
