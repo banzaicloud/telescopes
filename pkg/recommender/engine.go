@@ -94,7 +94,7 @@ type ClusterScaleoutRecommendationReq struct {
 	// Percentage of regular (on-demand) nodes among the scale out nodes
 	OnDemandPct int `json:"onDemandPct,omitempty" binding:"min=0,max=100"`
 	// Availability zones to be included in the recommendation
-	Zones []string `json:"zones,omitempty" binding:"dive,zone"`
+	Zones []string `json:"zones,omitempty"`
 	// Excludes is a blacklist - a slice with vm types to be excluded from the recommendation
 	Excludes []string `json:"excludes,omitempty"`
 	// Description of the current cluster layout
