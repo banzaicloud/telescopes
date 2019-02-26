@@ -15,7 +15,6 @@
 package recommender
 
 import (
-	"context"
 	"github.com/stretchr/testify/assert"
 	"testing"
 )
@@ -81,7 +80,7 @@ func TestAttributeValues_SelectAttributeValues(t *testing.T) {
 	}
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
-			test.check(test.values.SelectAttributeValues(context.TODO(), test.min, test.max))
+			test.check(test.values.SelectAttributeValues(test.min, test.max))
 		})
 	}
 }

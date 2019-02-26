@@ -14,20 +14,14 @@
 
 package recommender
 
-import (
-	"context"
+type vmFilter func(vm VirtualMachine, req ClusterRecommendationReq) bool
 
-	"github.com/banzaicloud/cloudinfo/pkg/logger"
-)
-
-type vmFilter func(ctx context.Context, vm VirtualMachine, req ClusterRecommendationReq) bool
-
-func (e *Engine) minMemRatioFilter(ctx context.Context, vm VirtualMachine, req ClusterRecommendationReq) bool {
+func (e *Engine) minMemRatioFilter(vm VirtualMachine, req ClusterRecommendationReq) bool {
 	minMemToCpuRatio := req.SumMem / req.SumCpu
 	return minMemToCpuRatio <= vm.Mem/vm.Cpus
 }
 
-func (e *Engine) burstFilter(ctx context.Context, vm VirtualMachine, req ClusterRecommendationReq) bool {
+func (e *Engine) burstFilter(vm VirtualMachine, req ClusterRecommendationReq) bool {
 	// if not specified in req or it's allowed the filter passes
 	if (req.AllowBurst == nil) || *(req.AllowBurst) {
 		return true
@@ -36,12 +30,12 @@ func (e *Engine) burstFilter(ctx context.Context, vm VirtualMachine, req Cluster
 	return !vm.Burst
 }
 
-func (e *Engine) minCpuRatioFilter(ctx context.Context, vm VirtualMachine, req ClusterRecommendationReq) bool {
+func (e *Engine) minCpuRatioFilter(vm VirtualMachine, req ClusterRecommendationReq) bool {
 	minCpuToMemRatio := req.SumCpu / req.SumMem
 	return minCpuToMemRatio <= vm.Cpus/vm.Mem
 }
 
-func (e *Engine) ntwPerformanceFilter(ctx context.Context, vm VirtualMachine, req ClusterRecommendationReq) bool {
+func (e *Engine) ntwPerformanceFilter(vm VirtualMachine, req ClusterRecommendationReq) bool {
 	if req.NetworkPerf == nil { //there is no filter set
 		return true
 	}
@@ -52,36 +46,34 @@ func (e *Engine) ntwPerformanceFilter(ctx context.Context, vm VirtualMachine, re
 }
 
 // excludeFilter checks for the vm type in the request' exclude list, the filter  passes if the type is not excluded
-func (e *Engine) excludesFilter(ctx context.Context, vm VirtualMachine, req ClusterRecommendationReq) bool {
-	ctxLog := logger.Extract(ctx)
+func (e *Engine) excludesFilter(vm VirtualMachine, req ClusterRecommendationReq) bool {
 	if req.Excludes == nil || len(req.Excludes) == 0 {
-		ctxLog.Debug("no blacklist provided - all vm types are welcome")
+		e.log.Debug("no blacklist provided - all vm types are welcome")
 		return true
 	}
 	if contains(req.Excludes, vm.Type) {
-		ctxLog.Debugf("the vm type [%s] is blacklisted", vm.Type)
+		e.log.Debug("the vm type is blacklisted", map[string]interface{}{"type": vm.Type})
 		return false
 	}
 	return true
 }
 
 // includesFilter checks whether the vm type is in the includes list; the filter passes if the type is in the list
-func (e *Engine) includesFilter(ctx context.Context, vm VirtualMachine, req ClusterRecommendationReq) bool {
-	ctxLog := logger.Extract(ctx)
+func (e *Engine) includesFilter(vm VirtualMachine, req ClusterRecommendationReq) bool {
 	if req.Includes == nil || len(req.Includes) == 0 {
-		ctxLog.Debug("no whitelist specified - all vm types are welcome")
+		e.log.Debug("no whitelist specified - all vm types are welcome")
 		return true
 	}
 	if contains(req.Includes, vm.Type) {
-		ctxLog.Debugf("the vm type [%s] is whitelisted", vm.Type)
+		e.log.Debug("the vm type is whitelisted", map[string]interface{}{"type": vm.Type})
 		return true
 	}
 	return false
 }
 
 // filterSpots selects vm-s that potentially can be part of "spot" node pools
-func (e *Engine) filterSpots(ctx context.Context, vms []VirtualMachine) []VirtualMachine {
-	logger.Extract(ctx).Debug("selecting spot instances for recommending spot pools")
+func (e *Engine) filterSpots(vms []VirtualMachine) []VirtualMachine {
+	e.log.Debug("selecting spot instances for recommending spot pools")
 	fvms := make([]VirtualMachine, 0)
 	for _, vm := range vms {
 		if vm.AvgPrice != 0 {
@@ -92,7 +84,7 @@ func (e *Engine) filterSpots(ctx context.Context, vms []VirtualMachine) []Virtua
 }
 
 // currentGenFilter removes instance types that are not the current generation (amazon only)
-func (e *Engine) currentGenFilter(ctx context.Context, vm VirtualMachine, req ClusterRecommendationReq) bool {
+func (e *Engine) currentGenFilter(vm VirtualMachine, req ClusterRecommendationReq) bool {
 	if req.AllowOlderGen == nil || !*req.AllowOlderGen {
 		// filter by current generation by default (if it's not specified in the request) or it's explicitly set to false
 		return vm.CurrentGen

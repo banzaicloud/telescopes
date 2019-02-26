@@ -15,16 +15,17 @@
 package api
 
 import (
-	"context"
-	"github.com/banzaicloud/telescopes/internal/platform"
 	"net/http"
 	"os"
 
 	"github.com/banzaicloud/bank-vaults/auth"
-	"github.com/banzaicloud/cloudinfo/pkg/logger"
+	"github.com/banzaicloud/go-gin-prometheus"
+	"github.com/banzaicloud/telescopes/internal/platform/buildinfo"
+	"github.com/banzaicloud/telescopes/internal/platform/log"
 	"github.com/banzaicloud/telescopes/pkg/recommender"
 	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
+	"github.com/goph/logur"
 )
 
 const (
@@ -37,14 +38,16 @@ type RouteHandler struct {
 	engine    *recommender.Engine
 	buildInfo buildinfo.BuildInfo
 	ciCli     *recommender.CloudInfoClient
+	log       logur.Logger
 }
 
 // NewRouteHandler creates a new RouteHandler and returns a reference to it
-func NewRouteHandler(e *recommender.Engine, info buildinfo.BuildInfo, ciCli *recommender.CloudInfoClient) *RouteHandler {
+func NewRouteHandler(e *recommender.Engine, info buildinfo.BuildInfo, ciCli *recommender.CloudInfoClient, log logur.Logger) *RouteHandler {
 	return &RouteHandler{
 		engine:    e,
 		buildInfo: info,
 		ciCli:     ciCli,
+		log:       log,
 	}
 }
 
@@ -63,9 +66,8 @@ func getCorsConfig() cors.Config {
 }
 
 // ConfigureRoutes configures the gin engine, defines the rest API for this application
-func (r *RouteHandler) ConfigureRoutes(ctx context.Context, router *gin.Engine) {
-	ctxLog := logger.Extract(ctx)
-	ctxLog.Info("configuring routes")
+func (r *RouteHandler) ConfigureRoutes(router *gin.Engine) {
+	r.log.Info("configuring routes")
 
 	basePath := "/"
 
@@ -73,8 +75,8 @@ func (r *RouteHandler) ConfigureRoutes(ctx context.Context, router *gin.Engine) 
 		basePath = basePathFromEnv
 	}
 
-	router.Use(logger.MiddlewareCorrelationId())
-	router.Use(logger.Middleware())
+	router.Use(log.MiddlewareCorrelationId())
+	router.Use(log.Middleware())
 	router.Use(cors.New(getCorsConfig()))
 
 	base := router.Group(basePath)
@@ -87,8 +89,8 @@ func (r *RouteHandler) ConfigureRoutes(ctx context.Context, router *gin.Engine) 
 
 	recGroup := v1.Group("/recommender")
 	{
-		recGroup.POST("/:provider/:service/:region/cluster", r.recommendClusterSetup(ctx))
-		recGroup.PUT("/:provider/:service/:region/cluster", r.recommendClusterScaleOut(ctx))
+		recGroup.POST("/:provider/:service/:region/cluster", r.recommendClusterSetup())
+		recGroup.PUT("/:provider/:service/:region/cluster", r.recommendClusterScaleOut())
 	}
 }
 
@@ -99,4 +101,10 @@ func (r *RouteHandler) EnableAuth(router *gin.Engine, role string, sgnKey string
 
 func (r *RouteHandler) signalStatus(c *gin.Context) {
 	c.JSON(http.StatusOK, "ok")
+}
+
+func (r *RouteHandler) EnableMetrics(router *gin.Engine, metricsAddr string) {
+	p := ginprometheus.NewPrometheus("http", []string{"provider", "service", "region"})
+	p.SetListenAddress(metricsAddr)
+	p.Use(router, "/metrics")
 }

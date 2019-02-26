@@ -15,11 +15,11 @@
 package api
 
 import (
-	"context"
 	"fmt"
-	"github.com/banzaicloud/cloudinfo/pkg/logger"
+	"github.com/banzaicloud/telescopes/internal/platform/log"
 	"github.com/banzaicloud/telescopes/pkg/recommender"
 	"github.com/gin-gonic/gin"
+	"github.com/goph/emperror"
 	"github.com/mitchellh/mapstructure"
 	"net/http"
 )
@@ -40,7 +40,7 @@ import (
 //
 //     Responses:
 //       200: RecommendationResponse
-func (r *RouteHandler) recommendClusterSetup(ctx context.Context) gin.HandlerFunc {
+func (r *RouteHandler) recommendClusterSetup() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		pathParams := GetRecommendationParams{}
 
@@ -49,15 +49,10 @@ func (r *RouteHandler) recommendClusterSetup(ctx context.Context) gin.HandlerFun
 			return
 		}
 
-		ctxLog := logger.ToContext(ctx, logger.NewLogCtxBuilder().
-			WithProvider(pathParams.Provider).
-			WithService(pathParams.Service).
-			WithRegion(pathParams.Region).
-			WithCorrelationId(logger.GetCorrelationId(c)).
-			Build())
+		logger := log.WithFieldsForHandlers(c, r.log,
+			map[string]interface{}{"provider": pathParams.Provider, "service": pathParams.Service, "region": pathParams.Region})
 
-		log := logger.Extract(ctxLog)
-		log.Info("recommend cluster setup")
+		logger.Info("recommend cluster setup")
 
 		if e := NewCloudInfoValidator(r.ciCli).Validate(pathParams); e != nil {
 			recommender.NewErrorResponder(c).Respond(e)
@@ -68,7 +63,7 @@ func (r *RouteHandler) recommendClusterSetup(ctx context.Context) gin.HandlerFun
 		req := recommender.ClusterRecommendationReq{}
 
 		if err := c.BindJSON(&req); err != nil {
-			log.WithError(err).Error("failed to bind request body")
+			logger.Error(emperror.Wrap(err, "failed to bind request body").Error())
 			c.JSON(http.StatusBadRequest, gin.H{
 				"code":    "bad_params",
 				"message": "validation failed",
@@ -77,7 +72,7 @@ func (r *RouteHandler) recommendClusterSetup(ctx context.Context) gin.HandlerFun
 			return
 		}
 
-		if response, err := r.engine.RecommendCluster(ctxLog, pathParams.Provider, pathParams.Service, pathParams.Region, req, nil); err != nil {
+		if response, err := r.engine.RecommendCluster(pathParams.Provider, pathParams.Service, pathParams.Region, req, nil, logger); err != nil {
 			recommender.NewErrorResponder(c).Respond(err)
 			return
 		} else {
@@ -102,7 +97,7 @@ func (r *RouteHandler) recommendClusterSetup(ctx context.Context) gin.HandlerFun
 //
 //     Responses:
 //       200: RecommendationResponse
-func (r *RouteHandler) recommendClusterScaleOut(ctx context.Context) gin.HandlerFunc {
+func (r *RouteHandler) recommendClusterScaleOut() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		pathParams := GetRecommendationParams{}
 
@@ -111,15 +106,10 @@ func (r *RouteHandler) recommendClusterScaleOut(ctx context.Context) gin.Handler
 			return
 		}
 
-		ctxLog := logger.ToContext(ctx, logger.NewLogCtxBuilder().
-			WithProvider(pathParams.Provider).
-			WithService(pathParams.Service).
-			WithRegion(pathParams.Region).
-			WithCorrelationId(logger.GetCorrelationId(c)).
-			Build())
+		logger := log.WithFieldsForHandlers(c, r.log,
+			map[string]interface{}{"provider": pathParams.Provider, "service": pathParams.Service, "region": pathParams.Region})
 
-		log := logger.Extract(ctxLog)
-		log.Info("recommend cluster scale out")
+		logger.Info("recommend cluster scale out")
 
 		if e := NewCloudInfoValidator(r.ciCli).Validate(pathParams); e != nil {
 			recommender.NewErrorResponder(c).Respond(e)
@@ -129,7 +119,7 @@ func (r *RouteHandler) recommendClusterScaleOut(ctx context.Context) gin.Handler
 		req := recommender.ClusterScaleoutRecommendationReq{}
 
 		if err := c.BindJSON(&req); err != nil {
-			log.WithError(err).Error("failed to bind request body")
+			logger.Error(emperror.Wrap(err, "failed to bind request body").Error())
 			c.JSON(http.StatusBadRequest, gin.H{
 				"code":    "bad_params",
 				"message": "validation failed",
@@ -138,7 +128,7 @@ func (r *RouteHandler) recommendClusterScaleOut(ctx context.Context) gin.Handler
 			return
 		}
 
-		if response, err := r.engine.RecommendClusterScaleOut(ctxLog, pathParams.Provider, pathParams.Service, pathParams.Region, req); err != nil {
+		if response, err := r.engine.RecommendClusterScaleOut(pathParams.Provider, pathParams.Service, pathParams.Region, req, logger); err != nil {
 			recommender.NewErrorResponder(c).Respond(err)
 			return
 		} else {

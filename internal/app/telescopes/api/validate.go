@@ -15,14 +15,12 @@
 package api
 
 import (
-	"context"
 	"reflect"
-
-	"github.com/pkg/errors"
 
 	"github.com/banzaicloud/telescopes/pkg/recommender"
 	"github.com/gin-gonic/gin/binding"
 	"github.com/goph/emperror"
+	"github.com/pkg/errors"
 	"gopkg.in/go-playground/validator.v8"
 )
 
@@ -39,7 +37,7 @@ const (
 )
 
 // ConfigureValidator configures the Gin validator with custom validator functions
-func ConfigureValidator(ctx context.Context, pc *recommender.CloudInfoClient) error {
+func ConfigureValidator(pc *recommender.CloudInfoClient) error {
 	v := binding.Validator.Engine().(*validator.Validate)
 
 	if err := v.RegisterValidation("network", networkPerfValidator()); err != nil {

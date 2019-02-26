@@ -15,10 +15,10 @@
 package recommender
 
 import (
-	"context"
 	"testing"
 
 	"github.com/banzaicloud/cloudinfo/pkg/cloudinfo-client/models"
+	"github.com/goph/logur"
 	"github.com/pkg/errors"
 	"github.com/stretchr/testify/assert"
 )
@@ -259,8 +259,8 @@ func TestEngine_RecommendAttrValues(t *testing.T) {
 	}
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
-			engine := NewEngine(test.pi)
-			test.check(engine.RecommendAttrValues(context.TODO(), "dummy", "region", "service", test.attribute, test.request))
+			engine := NewEngine(test.pi, logur.NewTestLogger())
+			test.check(engine.recommendAttrValues("dummy", "region", "service", test.attribute, test.request))
 		})
 	}
 }
@@ -277,7 +277,7 @@ func TestEngine_RecommendVms(t *testing.T) {
 	}{
 		{
 			name: "recommend three vm-s",
-			filters: []vmFilter{func(ctx context.Context, vm VirtualMachine, req ClusterRecommendationReq) bool {
+			filters: []vmFilter{func(vm VirtualMachine, req ClusterRecommendationReq) bool {
 				return true
 			}},
 			pi:        &dummyCloudInfoSource{},
@@ -292,9 +292,9 @@ func TestEngine_RecommendVms(t *testing.T) {
 	}
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
-			engine := NewEngine(test.pi)
-			vms, _ := engine.findVmsWithAttrValues(context.TODO(), "dummy", "dummyService", "dummyRegion", test.request.Zones, test.attribute, test.values)
-			test.check(engine.RecommendVms(context.TODO(), vms, test.attribute, test.filters, test.request, nil))
+			engine := NewEngine(test.pi, logur.NewTestLogger())
+			vms, _ := engine.findVmsWithAttrValues("dummy", "dummyService", "dummyRegion", test.request.Zones, test.attribute, test.values)
+			test.check(engine.RecommendVms(vms, test.attribute, test.filters, test.request, nil))
 		})
 	}
 }
@@ -336,8 +336,8 @@ func TestEngine_RecommendNodePools(t *testing.T) {
 	}
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
-			engine := NewEngine(test.pi)
-			test.check(engine.RecommendNodePools(context.TODO(), test.attr, test.vms, test.vms, req, nil))
+			engine := NewEngine(test.pi, logur.NewTestLogger())
+			test.check(engine.RecommendNodePools(test.attr, test.vms, test.vms, req, nil))
 		})
 	}
 }
@@ -526,9 +526,9 @@ func TestEngine_RecommendCluster(t *testing.T) {
 	}
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
-			engine := NewEngine(test.pi)
+			engine := NewEngine(test.pi, logur.NewTestLogger())
 
-			test.check(engine.RecommendCluster(context.TODO(), "dummy", "dummyService", "dummyRegion", test.request, nil))
+			test.check(engine.RecommendCluster("dummyProvider", "dummyService", "dummyRegion", test.request, nil, logur.NewTestLogger()))
 		})
 	}
 }
