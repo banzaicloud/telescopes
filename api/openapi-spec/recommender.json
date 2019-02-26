@@ -19,7 +19,7 @@
   },
   "basePath": "/api/v1",
   "paths": {
-    "/recommender/:provider/:region/cluster": {
+    "/recommender/{provider}/{service}/{region}/cluster": {
       "put": {
         "consumes": [
           "application/json"
@@ -36,6 +36,27 @@
         "summary": "Provides a recommendation for a scale-out, based on a current cluster layout on a given provider in a specific region.",
         "operationId": "recommendClusterScaleOut",
         "parameters": [
+          {
+            "type": "string",
+            "x-go-name": "Provider",
+            "name": "provider",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "x-go-name": "Service",
+            "name": "service",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "x-go-name": "Region",
+            "name": "region",
+            "in": "path",
+            "required": true
+          },
           {
             "type": "number",
             "format": "double",
@@ -89,14 +110,16 @@
             "in": "query"
           },
           {
-            "type": "array",
-            "items": {
-              "$ref": "#/definitions/NodePoolDesc"
-            },
             "x-go-name": "ActualLayout",
             "description": "Description of the current cluster layout",
             "name": "actualLayout",
-            "in": "query"
+            "in": "body",
+            "schema": {
+              "type": "array",
+              "items": {
+                "$ref": "#/definitions/NodePoolDesc"
+              }
+            }
           }
         ],
         "responses": {
@@ -124,6 +147,27 @@
         "summary": "Provides a recommended set of node pools on a given provider in a specific region.",
         "operationId": "recommendClusterSetup",
         "parameters": [
+          {
+            "type": "string",
+            "x-go-name": "Provider",
+            "name": "provider",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "x-go-name": "Service",
+            "name": "service",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "x-go-name": "Region",
+            "name": "region",
+            "in": "path",
+            "required": true
+          },
           {
             "type": "number",
             "format": "double",
@@ -229,27 +273,6 @@
             "description": "AllowOlderGen allow older generations of virtual machines (applies for EC2 only)",
             "name": "allowOlderGen",
             "in": "query"
-          },
-          {
-            "type": "string",
-            "x-go-name": "Provider",
-            "name": "provider",
-            "in": "path",
-            "required": true
-          },
-          {
-            "type": "string",
-            "x-go-name": "Service",
-            "name": "service",
-            "in": "path",
-            "required": true
-          },
-          {
-            "type": "string",
-            "x-go-name": "Region",
-            "name": "region",
-            "in": "path",
-            "required": true
           }
         ],
         "responses": {
@@ -459,11 +482,11 @@
       "x-go-package": "github.com/banzaicloud/telescopes/pkg/recommender"
     },
     "ClusterScaleoutRecommendationReq": {
-      "description": "ClusterRecommendationReq encapsulates the recommendation input data",
+      "description": "ClusterScaleoutRecommendationReq encapsulates the recommendation input data",
       "type": "object",
       "properties": {
         "actualLayout": {
-          "description": "Description of the current cluster layout",
+          "description": "Description of the current cluster layout\nin:body",
           "type": "array",
           "items": {
             "$ref": "#/definitions/NodePoolDesc"
@@ -562,6 +585,23 @@
       },
       "x-go-package": "github.com/banzaicloud/telescopes/vendor/github.com/banzaicloud/cloudinfo/pkg/cloudinfo-client/models"
     },
+    "GetImagesQueryParams": {
+      "description": "GetImagesQueryParams GetImagesQueryParams is a placeholder for the get images query parameters",
+      "type": "object",
+      "properties": {
+        "gpu": {
+          "description": "in:query",
+          "type": "string",
+          "x-go-name": "Gpu"
+        },
+        "version": {
+          "description": "in:query",
+          "type": "string",
+          "x-go-name": "Version"
+        }
+      },
+      "x-go-package": "github.com/banzaicloud/telescopes/vendor/github.com/banzaicloud/cloudinfo/pkg/cloudinfo-client/models"
+    },
     "GetProviderPathParams": {
       "description": "GetProviderPathParams GetProviderPathParams is a placeholder for the providers related route path parameters",
       "type": "object",
@@ -642,10 +682,20 @@
       "description": "Image Image represents an image",
       "type": "object",
       "properties": {
-        "image": {
-          "description": "image",
+        "gpu": {
+          "description": "gpu available",
+          "type": "boolean",
+          "x-go-name": "GpuAvailable"
+        },
+        "name": {
+          "description": "name",
           "type": "string",
-          "x-go-name": "Image"
+          "x-go-name": "Name"
+        },
+        "version": {
+          "description": "version",
+          "type": "string",
+          "x-go-name": "Version"
         }
       },
       "x-go-package": "github.com/banzaicloud/telescopes/vendor/github.com/banzaicloud/cloudinfo/pkg/cloudinfo-client/models"
@@ -915,6 +965,10 @@
       "type": "object",
       "title": "Service Service represents a service supported by a given provider.",
       "properties": {
+        "IsStatic": {
+          "description": "is static",
+          "type": "boolean"
+        },
         "service": {
           "description": "service",
           "type": "string",

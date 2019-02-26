@@ -24,7 +24,7 @@ import (
 	"net/http"
 )
 
-// swagger:route POST /recommender/:provider/:region/cluster recommend recommendClusterSetup
+// swagger:route POST /recommender/{provider}/{service}/{region}/cluster recommend recommendClusterSetup
 //
 // Provides a recommended set of node pools on a given provider in a specific region.
 //
@@ -76,12 +76,12 @@ func (r *RouteHandler) recommendClusterSetup() gin.HandlerFunc {
 			recommender.NewErrorResponder(c).Respond(err)
 			return
 		} else {
-			c.JSON(http.StatusOK, *response)
+			c.JSON(http.StatusOK, RecommendationResponse{*response})
 		}
 	}
 }
 
-// swagger:route PUT /recommender/:provider/:region/cluster recommend recommendClusterScaleOut
+// swagger:route PUT /recommender/{provider}/{service}/{region}/cluster recommend recommendClusterScaleOut
 //
 // Provides a recommendation for a scale-out, based on a current cluster layout on a given provider in a specific region.
 //
@@ -132,7 +132,7 @@ func (r *RouteHandler) recommendClusterScaleOut() gin.HandlerFunc {
 			recommender.NewErrorResponder(c).Respond(err)
 			return
 		} else {
-			c.JSON(http.StatusOK, *response)
+			c.JSON(http.StatusOK, RecommendationResponse{*response})
 		}
 	}
 }

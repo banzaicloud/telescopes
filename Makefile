@@ -60,3 +60,6 @@ swagger:
 	swagger generate spec -m -b ./cmd/telescopes -o $(SWAGGER_REC_TMP_FILE)
 	swagger2openapi -y $(SWAGGER_REC_TMP_FILE) > $(SWAGGER_REC_FILE)
 
+generate-client:
+	swagger generate client -f $(SWAGGER_REC_TMP_FILE) -A recommender -t pkg/recommender-client/
+

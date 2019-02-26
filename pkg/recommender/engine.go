@@ -83,7 +83,7 @@ type ClusterRecommendationReq struct {
 	AllowOlderGen *bool `json:"allowOlderGen,omitempty"`
 }
 
-// ClusterRecommendationReq encapsulates the recommendation input data
+// ClusterScaleoutRecommendationReq encapsulates the recommendation input data
 // swagger:parameters recommendClusterScaleOut
 type ClusterScaleoutRecommendationReq struct {
 	// Total desired number of CPUs in the cluster after the scale out
@@ -99,6 +99,7 @@ type ClusterScaleoutRecommendationReq struct {
 	// Excludes is a blacklist - a slice with vm types to be excluded from the recommendation
 	Excludes []string `json:"excludes,omitempty"`
 	// Description of the current cluster layout
+	// in:body
 	ActualLayout []NodePoolDesc `json:"actualLayout" binding:"required"`
 }
 
