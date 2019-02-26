@@ -15,13 +15,10 @@
 package recommender
 
 import (
-	"context"
-	"github.com/goph/emperror"
-	"github.com/pkg/errors"
 	"math"
 	"sort"
 
-	"github.com/banzaicloud/cloudinfo/pkg/logger"
+	"github.com/pkg/errors"
 )
 
 // AttributeValueSelector interface comprises attribute selection algorythm entrypoints
@@ -40,11 +37,9 @@ func (av AttributeValues) sort() {
 
 // SelectAttributeValues selects values between the min and max values considering the focus strategy
 // When the interval between min and max is "out of range" with respect to this slice the lowest or highest values are returned
-func (av AttributeValues) SelectAttributeValues(ctx context.Context, min float64, max float64) ([]float64, error) {
-	ctxLog := logger.Extract(ctx)
-	ctxLog.Debugf("selecting attributes from %f, min [%f], max [%f]", av, min, max)
+func (av AttributeValues) SelectAttributeValues(min float64, max float64) ([]float64, error) {
 	if len(av) == 0 {
-		return nil, emperror.With(errors.New("failed to select attribute values - no attributes"), "selector", "attributes")
+		return nil, errors.New("failed to select attribute values - no attributes")
 	}
 	var (
 		// holds the selected values
@@ -56,7 +51,6 @@ func (av AttributeValues) SelectAttributeValues(ctx context.Context, min float64
 	)
 	// sort the slice in increasing order
 	av.sort()
-	ctxLog.Debugf("sorted attributes: [%f]", av)
 
 	for i, v := range av {
 		if v < max {
@@ -73,12 +67,10 @@ func (av AttributeValues) SelectAttributeValues(ctx context.Context, min float64
 			}
 		}
 		if min <= v && v <= max {
-			ctxLog.Debugf("found value between min[%f]-max[%f]: [%f], index: [%d]", min, max, v, i)
 			selectedValues = append(selectedValues, v)
 		}
 	}
 
-	ctxLog.Debugf("lower-closest index: [%d], higher-closest index: [%d]", lIdx, rIdx)
 	if len(selectedValues) == 0 {
 		// there are no values between the two limits
 		if rIdx == -1 {
