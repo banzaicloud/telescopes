@@ -24,6 +24,12 @@ type ClusterRecommendationResp struct {
 	// The cloud provider
 	Provider string `json:"provider,omitempty"`
 
+	// Service's region
+	Region string `json:"region,omitempty"`
+
+	// Provider's service
+	Service string `json:"service,omitempty"`
+
 	// Availability zones in the recommendation - a multi-zone recommendation means that all node pools should expand to all zones
 	Zones []string `json:"zones"`
 

@@ -1,4 +1,4 @@
-// Copyright © 2018 Banzai Cloud
+// Copyright © 2019 Banzai Cloud
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -12,12 +12,14 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package recommender
+package errorresponse
 
 import (
-	"github.com/gin-gonic/gin"
-	"github.com/moogar0880/problems"
 	"net/http"
+
+	"github.com/banzaicloud/telescopes/internal/platform/classifier"
+	"github.com/banzaicloud/telescopes/internal/platform/problems"
+	"github.com/gin-gonic/gin"
 )
 
 // Responder marks responders
@@ -28,7 +30,7 @@ type Responder interface {
 
 // errorResponder struct in charge for assembling classified error responses
 type errorResponder struct {
-	errClassifier Classifier
+	errClassifier classifier.Classifier
 	gCtx          *gin.Context
 }
 
@@ -40,24 +42,24 @@ func (er *errorResponder) Respond(err error) {
 		return
 	}
 
-	er.gCtx.JSON(http.StatusInternalServerError, NewUnknownProblem(err))
-}
-
-// NewErrorResponder configures a new error responder
-func NewErrorResponder(ginCtx *gin.Context) Responder {
-	return &errorResponder{
-		errClassifier: NewErrorClassifier(),
-		gCtx:          ginCtx,
-	}
+	er.gCtx.JSON(http.StatusInternalServerError, problems.NewUnknownProblem(err))
 }
 
 // respond sets the response in the gin context
 func (er *errorResponder) respond(d interface{}) {
 
-	if pb, ok := d.(*problems.DefaultProblem); ok {
+	if pb, ok := d.(*problems.ProblemWrapper); ok {
 		er.gCtx.JSON(pb.Status, pb)
 		return
 	}
 
-	er.gCtx.JSON(http.StatusInternalServerError, NewUnknownProblem(d))
+	er.gCtx.JSON(http.StatusInternalServerError, problems.NewUnknownProblem(d))
+}
+
+// NewErrorResponder configures a new error responder
+func NewErrorResponder(ginCtx *gin.Context) Responder {
+	return &errorResponder{
+		errClassifier: classifier.NewErrorClassifier(),
+		gCtx:          ginCtx,
+	}
 }

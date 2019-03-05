@@ -16,10 +16,10 @@ package recommender
 
 import (
 	"github.com/banzaicloud/cloudinfo/pkg/cloudinfo-client/client"
-	"github.com/banzaicloud/cloudinfo/pkg/cloudinfo-client/client/attributes"
+	"github.com/banzaicloud/cloudinfo/pkg/cloudinfo-client/client/attribute"
 	"github.com/banzaicloud/cloudinfo/pkg/cloudinfo-client/client/products"
 	"github.com/banzaicloud/cloudinfo/pkg/cloudinfo-client/client/provider"
-	"github.com/banzaicloud/cloudinfo/pkg/cloudinfo-client/client/regions"
+	"github.com/banzaicloud/cloudinfo/pkg/cloudinfo-client/client/region"
 	"github.com/banzaicloud/cloudinfo/pkg/cloudinfo-client/client/service"
 	"github.com/banzaicloud/cloudinfo/pkg/cloudinfo-client/models"
 	"github.com/go-openapi/runtime"
@@ -56,9 +56,9 @@ func NewCloudInfoClient(pic *client.Cloudinfo) *CloudInfoClient {
 
 // GetAttributeValues retrieves available attribute values on the provider in the region for the attribute
 func (ciCli *CloudInfoClient) GetAttributeValues(provider string, service string, region string, attr string) ([]float64, error) {
-	attrParams := attributes.NewGetAttrValuesParams().WithProvider(provider).WithRegion(region).WithAttribute(attr).WithService(service)
+	attrParams := attribute.NewGetAttrValuesParams().WithProvider(provider).WithRegion(region).WithAttribute(attr).WithService(service)
 
-	allValues, err := ciCli.Attributes.GetAttrValues(attrParams)
+	allValues, err := ciCli.Attribute.GetAttrValues(attrParams)
 	if err != nil {
 		return nil, discriminateErrCtx(err)
 	}
@@ -66,10 +66,10 @@ func (ciCli *CloudInfoClient) GetAttributeValues(provider string, service string
 }
 
 // GetZones describes the region (eventually returns the zones in the region)
-func (ciCli *CloudInfoClient) GetZones(provider string, service string, region string) ([]string, error) {
-	grp := regions.NewGetRegionParams().WithProvider(provider).WithService(service).WithRegion(region)
+func (ciCli *CloudInfoClient) GetZones(prv string, svc string, reg string) ([]string, error) {
+	grp := region.NewGetRegionParams().WithProvider(prv).WithService(svc).WithRegion(reg)
 
-	r, err := ciCli.Regions.GetRegion(grp)
+	r, err := ciCli.Region.GetRegion(grp)
 	if err != nil {
 		return nil, discriminateErrCtx(err)
 	}
@@ -87,7 +87,7 @@ func (ciCli *CloudInfoClient) GetProductDetails(provider string, service string,
 	return allProducts.Payload.Products, nil
 }
 
-// GetProductDetails gets the available product details from the provider in the region
+// GetProvider validates provider
 func (ciCli *CloudInfoClient) GetProvider(prv string) (string, error) {
 	gpp := provider.NewGetProviderParams().WithProvider(prv)
 
@@ -99,7 +99,7 @@ func (ciCli *CloudInfoClient) GetProvider(prv string) (string, error) {
 	return provider.Payload.Provider.Provider, nil
 }
 
-// GetProductDetails gets the available product details from the provider in the region
+// GetService validates service
 func (ciCli *CloudInfoClient) GetService(prv string, svc string) (string, error) {
 	gsp := service.NewGetServiceParams().WithProvider(prv).WithService(svc)
 
@@ -111,11 +111,11 @@ func (ciCli *CloudInfoClient) GetService(prv string, svc string) (string, error)
 	return provider.Payload.Service.Service, nil
 }
 
-// GetProductDetails gets the available product details from the provider in the region
+// GetRegion validates region
 func (ciCli *CloudInfoClient) GetRegion(prv, svc, reg string) (string, error) {
-	grp := regions.NewGetRegionParams().WithProvider(prv).WithService(svc).WithRegion(reg)
+	grp := region.NewGetRegionParams().WithProvider(prv).WithService(svc).WithRegion(reg)
 
-	r, err := ciCli.Regions.GetRegion(grp)
+	r, err := ciCli.Region.GetRegion(grp)
 	if err != nil {
 		return "", discriminateErrCtx(err)
 	}

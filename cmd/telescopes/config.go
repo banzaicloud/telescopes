@@ -44,7 +44,7 @@ func defineFlags(pf *pflag.FlagSet) {
 	pf.String(logLevelFlag, "info", "log level")
 	pf.String(logFormatFlag, "", "log format")
 	pf.String(listenAddressFlag, ":9090", "the address where the server listens to HTTP requests.")
-	pf.String(cloudInfoFlag, "http://localhost:9090/api/v1", "the address of the Cloud Info service to retrieve attribute and pricing info [format=scheme://host:port/basepath]")
+	pf.String(cloudInfoFlag, "https://beta.banzaicloud.io/cloudinfo/api/v1", "the address of the Cloud Info service to retrieve attribute and pricing info [format=scheme://host:port/basepath]")
 	pf.Bool(devModeFlag, false, "development mode, if true token based authentication is disabled, false by default")
 	pf.String(tokenSigningKeyFlag, "", "The token signing key for the authentication process")
 	pf.String(vaultAddrFlag, ":8200", "The vault address for authentication token management")

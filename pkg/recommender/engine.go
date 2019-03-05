@@ -74,7 +74,7 @@ type ClusterRecommendationReq struct {
 	// Are burst instances allowed in recommendation
 	AllowBurst *bool `json:"allowBurst,omitempty"`
 	// NetworkPerf specifies the network performance category
-	NetworkPerf *string `json:"networkPerf" binding:"omitempty,network"`
+	NetworkPerf *string `json:"networkPerf" binding:"omitempty,networkPerf"`
 	// Excludes is a blacklist - a slice with vm types to be excluded from the recommendation
 	Excludes []string `json:"excludes,omitempty"`
 	// Includes is a whitelist - a slice with vm types to be contained in the recommendation
@@ -130,6 +130,10 @@ func (n NodePoolDesc) getVmClass() string {
 type ClusterRecommendationResp struct {
 	// The cloud provider
 	Provider string `json:"provider"`
+	// Provider's service
+	Service  string `json:"service"`
+	// Service's region
+	Region   string `json:"region"`
 	// Availability zones in the recommendation - a multi-zone recommendation means that all node pools should expand to all zones
 	Zones []string `json:"zones,omitempty"`
 	// Recommended node pools
@@ -321,6 +325,8 @@ func (e *Engine) RecommendCluster(provider string, service string, region string
 
 	return &ClusterRecommendationResp{
 		Provider:  provider,
+		Service:   service,
+		Region:    region,
 		Zones:     req.Zones,
 		NodePools: cheapestNodePoolSet,
 		Accuracy:  accuracy,

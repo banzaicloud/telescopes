@@ -1,4 +1,4 @@
-// Copyright © 2018 Banzai Cloud
+// Copyright © 2019 Banzai Cloud
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -12,29 +12,30 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package recommender
+package classifier
 
 import (
-	"github.com/go-openapi/runtime"
-	"github.com/goph/emperror"
-	"github.com/moogar0880/problems"
-	"github.com/pkg/errors"
-	"github.com/stretchr/testify/assert"
 	"net/http"
 	"net/url"
 	"testing"
+
+	"github.com/banzaicloud/telescopes/internal/platform/problems"
+	"github.com/go-openapi/runtime"
+	"github.com/goph/emperror"
+	"github.com/pkg/errors"
+	"github.com/stretchr/testify/assert"
 )
 
 func TestErrResponseClassifier_Classify(t *testing.T) {
 	tests := []struct {
 		name    string
 		error   interface{}
-		checker func(t *testing.T, pb *problems.DefaultProblem, e error)
+		checker func(t *testing.T, pb *problems.ProblemWrapper, e error)
 	}{
 		{
 			name:  "url error - cloud info service unavailable",
 			error: emperror.With(&url.Error{}, cloudInfoCliErrTag),
-			checker: func(t *testing.T, pb *problems.DefaultProblem, e error) {
+			checker: func(t *testing.T, pb *problems.ProblemWrapper, e error) {
 				assert.Nil(t, e, "could not create classifier")
 				assert.Equal(t, http.StatusInternalServerError, pb.Status, "invalid http status code")
 			},
@@ -42,7 +43,7 @@ func TestErrResponseClassifier_Classify(t *testing.T) {
 		{
 			name:  "api error - no resource available, validation",
 			error: emperror.With(&runtime.APIError{Code: http.StatusBadRequest}, "validation"),
-			checker: func(t *testing.T, pb *problems.DefaultProblem, e error) {
+			checker: func(t *testing.T, pb *problems.ProblemWrapper, e error) {
 				assert.Nil(t, e, "could not create classifier")
 				assert.Equal(t, http.StatusBadRequest, pb.Status, "invalid http status code")
 			},
@@ -50,7 +51,7 @@ func TestErrResponseClassifier_Classify(t *testing.T) {
 		{
 			name:  "api error - no resource available, recommendation",
 			error: emperror.With(&runtime.APIError{Code: http.StatusBadRequest}, recommenderErrorTag),
-			checker: func(t *testing.T, pb *problems.DefaultProblem, e error) {
+			checker: func(t *testing.T, pb *problems.ProblemWrapper, e error) {
 				assert.Nil(t, e, "could not create classifier")
 				assert.Equal(t, http.StatusBadRequest, pb.Status, "invalid http status code")
 			},
@@ -58,7 +59,7 @@ func TestErrResponseClassifier_Classify(t *testing.T) {
 		{
 			name:  "generic error -  recommendation",
 			error: emperror.With(errors.New("test recommender error with context"), recommenderErrorTag),
-			checker: func(t *testing.T, pb *problems.DefaultProblem, e error) {
+			checker: func(t *testing.T, pb *problems.ProblemWrapper, e error) {
 				assert.Nil(t, e, "could not create classifier")
 				assert.Equal(t, http.StatusBadRequest, pb.Status, "invalid http status code")
 			},
@@ -66,7 +67,7 @@ func TestErrResponseClassifier_Classify(t *testing.T) {
 		{
 			name:  "generic error -  no tags",
 			error: emperror.With(errors.New("test error - no context")),
-			checker: func(t *testing.T, pb *problems.DefaultProblem, e error) {
+			checker: func(t *testing.T, pb *problems.ProblemWrapper, e error) {
 				assert.Nil(t, e, "could not create classifier")
 				assert.Equal(t, http.StatusInternalServerError, pb.Status, "invalid http status code")
 			},
@@ -81,7 +82,7 @@ func TestErrResponseClassifier_Classify(t *testing.T) {
 			rsp, e := erc.Classify(test.error)
 
 			// check the response
-			test.checker(t, rsp.(*problems.DefaultProblem), e)
+			test.checker(t, rsp.(*problems.ProblemWrapper), e)
 
 		})
 	}
