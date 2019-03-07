@@ -1,4 +1,4 @@
-// Copyright © 2018 Banzai Cloud
+// Copyright © 2019 Banzai Cloud
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -12,16 +12,22 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package recommender
+package classifier
 
 import (
 	"net/http"
 	"net/url"
 
+	"github.com/banzaicloud/telescopes/internal/platform/problems"
 	"github.com/go-openapi/runtime"
 	"github.com/goph/emperror"
-	"github.com/moogar0880/problems"
 	"github.com/pkg/errors"
+)
+
+const (
+	cloudInfoCliErrTag  = "cloud-info-client"
+	recommenderErrorTag = "recommender"
+	ValidationErrTag    = "validation"
 )
 
 // Classifier represents a contract to classify passed in structs
@@ -44,7 +50,7 @@ func (erc *errClassifier) Classify(inErr interface{}) (interface{}, error) {
 	var (
 		err     error
 		ok      bool
-		problem *problems.DefaultProblem
+		problem *problems.ProblemWrapper
 	)
 
 	if err, ok = inErr.(error); !ok {
@@ -63,7 +69,7 @@ func (erc *errClassifier) Classify(inErr interface{}) (interface{}, error) {
 		problem = erc.classifyUrlError(e, emperror.Context(err))
 	default:
 		// unclassified error
-		problem = erc.classifyGenericError(cause, emperror.Context(err))
+		problem = erc.classifyGenericError(err, emperror.Context(err))
 	}
 
 	return problem, nil
@@ -71,7 +77,7 @@ func (erc *errClassifier) Classify(inErr interface{}) (interface{}, error) {
 }
 
 // classifyApiError assembles data to be sent in the response to the caller when the error originates from the cloud info service
-func (erc *errClassifier) classifyApiError(e *runtime.APIError, ctx []interface{}) *problems.DefaultProblem {
+func (erc *errClassifier) classifyApiError(e *runtime.APIError, ctx []interface{}) *problems.ProblemWrapper {
 
 	var (
 		httpCode int
@@ -90,40 +96,40 @@ func (erc *errClassifier) classifyApiError(e *runtime.APIError, ctx []interface{
 
 	// determine error code and status message - from the error and the context
 	// the message should contain the flow related information and
-	if hasLabel(ctx, "validation") {
+	if hasLabel(ctx, ValidationErrTag) {
 		// provider, service, region - path data
 		details = "validation failed - no cloud information available for the request path data"
-		return NewValidationProblem(httpCode, details)
+		return problems.NewValidationProblem(httpCode, details)
 	}
 
 	if hasLabel(ctx, recommenderErrorTag) {
 		// zone, network etc ..
 		details = "recommendation failed - no cloud info available for the requested resources"
-		return NewRecommendationProblem(httpCode, details)
+		return problems.NewRecommendationProblem(httpCode, details)
 	}
 
 	return problems.NewDetailedProblem(httpCode, details)
 }
 
-func (erc *errClassifier) classifyUrlError(e *url.Error, ctx []interface{}) *problems.DefaultProblem {
-
-	var (
-		problem = NewUnknownProblem(e)
-	)
+func (erc *errClassifier) classifyUrlError(e *url.Error, ctx []interface{}) *problems.ProblemWrapper {
+	var problem = problems.NewUnknownProblem(e)
 
 	if hasLabel(ctx, cloudInfoCliErrTag) {
-		problem = NewRecommendationProblem(http.StatusInternalServerError, "failed to connect to the cloud info service")
+		problem = problems.NewRecommendationProblem(http.StatusInternalServerError, "failed to connect to the cloud info service")
 	}
 
 	return problem
 }
 
-func (erc *errClassifier) classifyGenericError(e error, ctx []interface{}) *problems.DefaultProblem {
-
-	var problem = NewUnknownProblem(e)
+func (erc *errClassifier) classifyGenericError(e error, ctx []interface{}) *problems.ProblemWrapper {
+	var problem = problems.NewUnknownProblem(e)
 
 	if hasLabel(ctx, recommenderErrorTag) {
-		problem = NewRecommendationProblem(http.StatusBadRequest, e.Error())
+		problem = problems.NewRecommendationProblem(http.StatusBadRequest, e.Error())
+	}
+
+	if hasLabel(ctx, ValidationErrTag) {
+		problem = problems.NewValidationProblem(http.StatusBadRequest, e.Error())
 	}
 
 	return problem

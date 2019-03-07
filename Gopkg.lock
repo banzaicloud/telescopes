@@ -37,15 +37,16 @@
   version = "0.2.26"
 
 [[projects]]
-  digest = "1:0f1d9e8aef9d7b3a126f62fcb47e00cdc54bac253dbbb5945953a589c7b38ca7"
+  digest = "1:d83943b4561ac9b18367c475a97f9b0bd22b39a020337834ae8d8929ed3bc1b5"
   name = "github.com/banzaicloud/cloudinfo"
   packages = [
     "pkg/cloudinfo-client/client",
-    "pkg/cloudinfo-client/client/attributes",
+    "pkg/cloudinfo-client/client/attribute",
     "pkg/cloudinfo-client/client/images",
     "pkg/cloudinfo-client/client/products",
     "pkg/cloudinfo-client/client/provider",
     "pkg/cloudinfo-client/client/providers",
+    "pkg/cloudinfo-client/client/region",
     "pkg/cloudinfo-client/client/regions",
     "pkg/cloudinfo-client/client/service",
     "pkg/cloudinfo-client/client/services",
@@ -53,7 +54,7 @@
     "pkg/cloudinfo-client/models",
   ]
   pruneopts = "NUT"
-  revision = "e613f82fbfb788e6290be2a00e7006776a88270c"
+  revision = "d8e0c9f18796ab1cffd0e6eb464607cfd3c71187"
 
 [[projects]]
   digest = "1:2893d610c2ac37c521e873e77b6c0e36f91d6f9fad81250a46a21fa3dd944b6f"
@@ -175,8 +176,7 @@
   revision = "2a2b323bab96e6b1fdee110e57d959322446e9c9"
 
 [[projects]]
-  branch = "master"
-  digest = "1:0fb878600fb86b9c83c29711ded6e0d3314191ae5bfd981445b244904055bdc0"
+  digest = "1:757a8958779fedcfddafb3ac93f707876db7b4fbc71b76fbc25450b3f057025e"
   name = "github.com/go-openapi/runtime"
   packages = [
     ".",
@@ -189,7 +189,8 @@
     "security",
   ]
   pruneopts = "NUT"
-  revision = "90c7afbb4bd8b22431e1c32d65caf405abf170c3"
+  revision = "41e24cc66d7af6af39eb9b5a6418e901bcdd333c"
+  version = "v0.18.0"
 
 [[projects]]
   branch = "master"
@@ -681,11 +682,10 @@
 
 [[projects]]
   branch = "master"
-  digest = "1:0385a7e37d7c5dbbc427393163fec19142c3f074cd6bab86a63f3d4348ad5019"
+  digest = "1:c28f35e9b6ddbd06d81e37879f1274f65a0fd198e067572dec15d6f398540288"
   name = "golang.org/x/net"
   packages = [
     "context",
-    "context/ctxhttp",
     "html",
     "html/atom",
     "http/httpguts",
@@ -851,19 +851,19 @@
   input-imports = [
     "github.com/banzaicloud/bank-vaults/auth",
     "github.com/banzaicloud/cloudinfo/pkg/cloudinfo-client/client",
-    "github.com/banzaicloud/cloudinfo/pkg/cloudinfo-client/client/attributes",
     "github.com/banzaicloud/cloudinfo/pkg/cloudinfo-client/client/products",
     "github.com/banzaicloud/cloudinfo/pkg/cloudinfo-client/client/provider",
-    "github.com/banzaicloud/cloudinfo/pkg/cloudinfo-client/client/regions",
     "github.com/banzaicloud/cloudinfo/pkg/cloudinfo-client/client/service",
     "github.com/banzaicloud/cloudinfo/pkg/cloudinfo-client/models",
     "github.com/banzaicloud/go-gin-prometheus",
     "github.com/gin-contrib/cors",
     "github.com/gin-gonic/gin",
     "github.com/gin-gonic/gin/binding",
+    "github.com/go-openapi/errors",
     "github.com/go-openapi/runtime",
     "github.com/go-openapi/runtime/client",
     "github.com/go-openapi/strfmt",
+    "github.com/go-openapi/swag",
     "github.com/gofrs/uuid",
     "github.com/goph/emperror",
     "github.com/goph/logur",
@@ -875,6 +875,7 @@
     "github.com/spf13/pflag",
     "github.com/spf13/viper",
     "github.com/stretchr/testify/assert",
+    "golang.org/x/net/context",
     "gopkg.in/go-playground/validator.v8",
   ]
   solver-name = "gps-cdcl"

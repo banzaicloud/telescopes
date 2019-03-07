@@ -9,7 +9,7 @@
 
 [[constraint]]
   name = "github.com/banzaicloud/cloudinfo"
-  revision = "e613f82fbfb788e6290be2a00e7006776a88270c"
+  revision = "d8e0c9f18796ab1cffd0e6eb464607cfd3c71187"
 
 [[constraint]]
   name = "github.com/gin-contrib/cors"
@@ -58,3 +58,7 @@
 [[constraint]]
   name = "github.com/gofrs/uuid"
   version = "3.2.0"
+
+[[constraint]]
+  name = "github.com/go-openapi/runtime"
+  version = "v0.18.0"

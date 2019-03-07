@@ -17,6 +17,7 @@ package api
 import (
 	"reflect"
 
+	"github.com/banzaicloud/telescopes/internal/platform/classifier"
 	"github.com/banzaicloud/telescopes/pkg/recommender"
 	"github.com/gin-gonic/gin/binding"
 	"github.com/goph/emperror"
@@ -29,19 +30,14 @@ const (
 	ntwMedium = "medium"
 	ntwHigh   = "high"
 	ntwExtra  = "extra"
-
-	validationErrTag = "validation"
-	providerErrTag   = "provider"
-	serviceErrTag    = "service"
-	regionErrTag     = "region"
 )
 
 // ConfigureValidator configures the Gin validator with custom validator functions
-func ConfigureValidator(pc *recommender.CloudInfoClient) error {
+func ConfigureValidator(ciCli *recommender.CloudInfoClient) error {
 	v := binding.Validator.Engine().(*validator.Validate)
 
-	if err := v.RegisterValidation("network", networkPerfValidator()); err != nil {
-		return emperror.Wrap(err, "could not register network validator")
+	if err := v.RegisterValidation("networkPerf", networkPerfValidator()); err != nil {
+		return emperror.Wrap(err, "could not register networkPerf validator")
 	}
 	return nil
 }
@@ -83,15 +79,15 @@ func (ppV *pathParamValidator) Validate(params interface{}) error {
 	}
 
 	if e := ppV.validateProvider(pathParams.Provider); e != nil {
-		return emperror.With(e, validationErrTag, providerErrTag)
+		return emperror.With(e, classifier.ValidationErrTag)
 	}
 
 	if e := ppV.validateService(pathParams.Provider, pathParams.Service); e != nil {
-		return emperror.With(e, validationErrTag, serviceErrTag)
+		return emperror.With(e, classifier.ValidationErrTag)
 	}
 
 	if e := ppV.validateRegion(pathParams.Provider, pathParams.Service, pathParams.Region); e != nil {
-		return emperror.With(e, validationErrTag, regionErrTag)
+		return emperror.With(e, classifier.ValidationErrTag)
 	}
 
 	return nil

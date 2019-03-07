@@ -541,23 +541,6 @@
       "type": "object",
       "x-go-package": "github.com/banzaicloud/telescopes/pkg/recommender"
     },
-    "ErrorResponse": {
-      "description": "ErrorResponse ErrorResponse struct for error responses",
-      "type": "object",
-      "properties": {
-        "code": {
-          "description": "error code",
-          "type": "string",
-          "x-go-name": "ErrorCode"
-        },
-        "message": {
-          "description": "error message",
-          "type": "string",
-          "x-go-name": "ErrorMessage"
-        }
-      },
-      "x-go-package": "github.com/banzaicloud/telescopes/vendor/github.com/banzaicloud/cloudinfo/pkg/cloudinfo-client/models"
-    },
     "GetAttributeValuesPathParams": {
       "description": "GetAttributeValuesPathParams GetAttributeValuesPathParams is a placeholder for the get attribute values route's path parameters",
       "type": "object",
@@ -923,6 +906,16 @@
           "type": "string",
           "x-go-name": "Provider"
         },
+        "region": {
+          "description": "Service's region",
+          "type": "string",
+          "x-go-name": "Region"
+        },
+        "service": {
+          "description": "Provider's service",
+          "type": "string",
+          "x-go-name": "Service"
+        },
         "zones": {
           "description": "Availability zones in the recommendation - a multi-zone recommendation means that all node pools should expand to all zones",
           "type": "array",
@@ -999,15 +992,6 @@
           },
           "x-go-name": "Services"
         }
-      },
-      "x-go-package": "github.com/banzaicloud/telescopes/vendor/github.com/banzaicloud/cloudinfo/pkg/cloudinfo-client/models"
-    },
-    "SpotPriceInfo": {
-      "description": "SpotPriceInfo SpotPriceInfo represents different prices per availability zones",
-      "type": "object",
-      "additionalProperties": {
-        "type": "number",
-        "format": "double"
       },
       "x-go-package": "github.com/banzaicloud/telescopes/vendor/github.com/banzaicloud/cloudinfo/pkg/cloudinfo-client/models"
     },

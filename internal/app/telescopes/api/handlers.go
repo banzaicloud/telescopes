@@ -15,13 +15,15 @@
 package api
 
 import (
-	"fmt"
+	"net/http"
+
+	"github.com/banzaicloud/telescopes/internal/platform/classifier"
+	"github.com/banzaicloud/telescopes/internal/platform/errorresponse"
 	"github.com/banzaicloud/telescopes/internal/platform/log"
 	"github.com/banzaicloud/telescopes/pkg/recommender"
 	"github.com/gin-gonic/gin"
 	"github.com/goph/emperror"
 	"github.com/mitchellh/mapstructure"
-	"net/http"
 )
 
 // swagger:route POST /recommender/{provider}/{service}/{region}/cluster recommend recommendClusterSetup
@@ -45,7 +47,7 @@ func (r *RouteHandler) recommendClusterSetup() gin.HandlerFunc {
 		pathParams := GetRecommendationParams{}
 
 		if err := mapstructure.Decode(getPathParamMap(c), &pathParams); err != nil {
-			c.JSON(http.StatusBadRequest, gin.H{"status": http.StatusBadRequest, "message": fmt.Sprintf("%s", err)})
+			errorresponse.NewErrorResponder(c).Respond(emperror.Wrap(err, "failed to decode path parameters"))
 			return
 		}
 
@@ -54,8 +56,8 @@ func (r *RouteHandler) recommendClusterSetup() gin.HandlerFunc {
 
 		logger.Info("recommend cluster setup")
 
-		if e := NewCloudInfoValidator(r.ciCli).Validate(pathParams); e != nil {
-			recommender.NewErrorResponder(c).Respond(e)
+		if err := NewCloudInfoValidator(r.ciCli).Validate(pathParams); err != nil {
+			errorresponse.NewErrorResponder(c).Respond(err)
 			return
 		}
 
@@ -63,17 +65,13 @@ func (r *RouteHandler) recommendClusterSetup() gin.HandlerFunc {
 		req := recommender.ClusterRecommendationReq{}
 
 		if err := c.BindJSON(&req); err != nil {
-			logger.Error(emperror.Wrap(err, "failed to bind request body").Error())
-			c.JSON(http.StatusBadRequest, gin.H{
-				"code":    "bad_params",
-				"message": "validation failed",
-				"cause":   err.Error(),
-			})
+			errorresponse.NewErrorResponder(c).Respond(
+				emperror.WrapWith(err, "failed to bind request body", classifier.ValidationErrTag))
 			return
 		}
 
 		if response, err := r.engine.RecommendCluster(pathParams.Provider, pathParams.Service, pathParams.Region, req, nil, logger); err != nil {
-			recommender.NewErrorResponder(c).Respond(err)
+			errorresponse.NewErrorResponder(c).Respond(err)
 			return
 		} else {
 			c.JSON(http.StatusOK, RecommendationResponse{*response})
@@ -102,7 +100,7 @@ func (r *RouteHandler) recommendClusterScaleOut() gin.HandlerFunc {
 		pathParams := GetRecommendationParams{}
 
 		if err := mapstructure.Decode(getPathParamMap(c), &pathParams); err != nil {
-			c.JSON(http.StatusBadRequest, gin.H{"status": http.StatusBadRequest, "message": fmt.Sprintf("%s", err)})
+			errorresponse.NewErrorResponder(c).Respond(emperror.Wrap(err, "failed to decode path parameters"))
 			return
 		}
 
@@ -112,24 +110,20 @@ func (r *RouteHandler) recommendClusterScaleOut() gin.HandlerFunc {
 		logger.Info("recommend cluster scale out")
 
 		if e := NewCloudInfoValidator(r.ciCli).Validate(pathParams); e != nil {
-			recommender.NewErrorResponder(c).Respond(e)
+			errorresponse.NewErrorResponder(c).Respond(e)
 			return
 		}
 
 		req := recommender.ClusterScaleoutRecommendationReq{}
 
 		if err := c.BindJSON(&req); err != nil {
-			logger.Error(emperror.Wrap(err, "failed to bind request body").Error())
-			c.JSON(http.StatusBadRequest, gin.H{
-				"code":    "bad_params",
-				"message": "validation failed",
-				"cause":   err.Error(),
-			})
+			errorresponse.NewErrorResponder(c).Respond(
+				emperror.WrapWith(err, "failed to bind request body", classifier.ValidationErrTag))
 			return
 		}
 
 		if response, err := r.engine.RecommendClusterScaleOut(pathParams.Provider, pathParams.Service, pathParams.Region, req, logger); err != nil {
-			recommender.NewErrorResponder(c).Respond(err)
+			errorresponse.NewErrorResponder(c).Respond(err)
 			return
 		} else {
 			c.JSON(http.StatusOK, RecommendationResponse{*response})

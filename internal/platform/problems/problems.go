@@ -1,4 +1,4 @@
-// Copyright © 2018 Banzai Cloud
+// Copyright © 2019 Banzai Cloud
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -12,12 +12,13 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package recommender
+package problems
 
 import (
 	"fmt"
-	"github.com/moogar0880/problems"
 	"net/http"
+
+	"github.com/moogar0880/problems"
 )
 
 const (
@@ -25,19 +26,26 @@ const (
 	recommendationProblemTitle = "recommendation problem"
 )
 
-// NewValidationProblem identif
-func NewValidationProblem(code int, details string) *problems.DefaultProblem {
+type ProblemWrapper struct {
+	*problems.DefaultProblem
+}
+
+func NewValidationProblem(code int, details string) *ProblemWrapper {
 	pb := problems.NewDetailedProblem(code, details)
 	pb.Title = validationProblemTitle
-	return pb
+	return &ProblemWrapper{pb}
 }
 
-func NewRecommendationProblem(code int, details string) *problems.DefaultProblem {
+func NewRecommendationProblem(code int, details string) *ProblemWrapper {
 	pb := problems.NewDetailedProblem(code, details)
 	pb.Title = recommendationProblemTitle
-	return pb
+	return &ProblemWrapper{pb}
 }
 
-func NewUnknownProblem(un interface{}) *problems.DefaultProblem {
-	return problems.NewDetailedProblem(http.StatusInternalServerError, fmt.Sprintf("error: %#v", un))
+func NewUnknownProblem(un interface{}) *ProblemWrapper {
+	return &ProblemWrapper{problems.NewDetailedProblem(http.StatusInternalServerError, fmt.Sprintf("%s", un))}
+}
+
+func NewDetailedProblem(status int, details string) *ProblemWrapper {
+	return &ProblemWrapper{problems.NewDetailedProblem(status, details)}
 }
