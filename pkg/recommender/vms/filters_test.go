@@ -1,4 +1,4 @@
-// Copyright © 2018 Banzai Cloud
+// Copyright © 2019 Banzai Cloud
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -12,11 +12,12 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package recommender
+package vms
 
 import (
 	"testing"
 
+	"github.com/banzaicloud/telescopes/pkg/recommender"
 	"github.com/goph/logur"
 	"github.com/stretchr/testify/assert"
 )
@@ -26,11 +27,15 @@ var (
 	falseVal = false
 )
 
-func TestEngine_filtersApply(t *testing.T) {
+func boolPointer(b bool) *bool {
+	return &b
+}
+
+func TestVmSelector_filtersApply(t *testing.T) {
 	tests := []struct {
 		name     string
-		vm       VirtualMachine
-		req      ClusterRecommendationReq
+		vm       recommender.VirtualMachine
+		req      recommender.ClusterRecommendationReq
 		attr     string
 		provider string
 		check    func(filtersApply bool)
@@ -38,11 +43,11 @@ func TestEngine_filtersApply(t *testing.T) {
 		{
 			name: "filter applies for cpu/mem and burst allowed",
 			// minRatio = SumCpu/SumMem = 0.5
-			req: ClusterRecommendationReq{SumCpu: 4, SumMem: float64(8), AllowBurst: &trueVal},
+			req: recommender.ClusterRecommendationReq{SumCpu: 4, SumMem: 8, AllowBurst: &trueVal},
 			// ratio = Cpus/Mem = 1
-			vm:       VirtualMachine{Cpus: 4, Mem: float64(4), Burst: true, CurrentGen: true},
-			attr:     Memory,
-			provider: "ec2",
+			vm:       recommender.VirtualMachine{Cpus: 4, Mem: 4, Burst: true, CurrentGen: true},
+			attr:     recommender.Memory,
+			provider: "amazon",
 			check: func(filtersApply bool) {
 				assert.Equal(t, true, filtersApply, "vm should pass all filters")
 			},
@@ -50,11 +55,11 @@ func TestEngine_filtersApply(t *testing.T) {
 		{
 			name: "filter doesn't apply for cpu/mem and burst not allowed ",
 			// minRatio = SumCpu/SumMem = 0.5
-			req: ClusterRecommendationReq{SumCpu: 4, SumMem: float64(8), AllowBurst: &falseVal},
+			req: recommender.ClusterRecommendationReq{SumCpu: 4, SumMem: 8, AllowBurst: &falseVal},
 			// ratio = Cpus/Mem = 1
-			vm:       VirtualMachine{Cpus: 4, Mem: float64(4), Burst: true, CurrentGen: true},
-			attr:     Cpu,
-			provider: "ec2",
+			vm:       recommender.VirtualMachine{Cpus: 4, Mem: 4, Burst: true, CurrentGen: true},
+			attr:     recommender.Cpu,
+			provider: "amazon",
 			check: func(filtersApply bool) {
 				assert.Equal(t, false, filtersApply, "vm should not pass all filters")
 			},
@@ -62,11 +67,11 @@ func TestEngine_filtersApply(t *testing.T) {
 		{
 			name: "filter applies for mem/cpu and burst allowed",
 			// minRatio = SumMem/SumCpu = 2
-			req: ClusterRecommendationReq{SumMem: float64(8), SumCpu: 4, AllowBurst: &trueVal},
+			req: recommender.ClusterRecommendationReq{SumMem: 8, SumCpu: 4, AllowBurst: &trueVal},
 			// ratio = Mem/Cpus = 1
-			vm:       VirtualMachine{Mem: float64(20), Cpus: 4, Burst: true, CurrentGen: true},
-			attr:     Cpu,
-			provider: "ec2",
+			vm:       recommender.VirtualMachine{Mem: 20, Cpus: 4, Burst: true, CurrentGen: true},
+			attr:     recommender.Cpu,
+			provider: "amazon",
 			check: func(filtersApply bool) {
 				assert.Equal(t, true, filtersApply, "vm should pass all filters")
 			},
@@ -74,11 +79,11 @@ func TestEngine_filtersApply(t *testing.T) {
 		{
 			name: "filter doesn't apply for mem/cpu and burst not allowed ",
 			// minRatio = SumMem/SumCpu = 2
-			req: ClusterRecommendationReq{SumMem: float64(8), SumCpu: 4, AllowBurst: &falseVal},
+			req: recommender.ClusterRecommendationReq{SumMem: 8, SumCpu: 4, AllowBurst: &falseVal},
 			// ratio = Mem/Cpus = 1
-			vm:       VirtualMachine{Mem: float64(20), Cpus: 4, Burst: true, CurrentGen: true},
-			attr:     Memory,
-			provider: "ec2",
+			vm:       recommender.VirtualMachine{Mem: 20, Cpus: 4, Burst: true, CurrentGen: true},
+			attr:     recommender.Memory,
+			provider: "amazon",
 			check: func(filtersApply bool) {
 				assert.Equal(t, false, filtersApply, "vm should not pass all filters")
 			},
@@ -86,29 +91,28 @@ func TestEngine_filtersApply(t *testing.T) {
 	}
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
-			engine := NewEngine(nil, logur.NewTestLogger())
-			filters, err := engine.filtersForAttr(test.attr, test.provider)
-			assert.Nil(t, err, "should get filters for attribute")
-			test.check(engine.filtersApply(test.vm, filters, test.req))
+			selector := NewVmSelector(logur.NewTestLogger(), nil)
+			vmFilter, _ := selector.filtersForAttr(test.attr, test.provider)
+			test.check(selector.filtersApply(test.vm, vmFilter, test.req))
 		})
 	}
 }
 
-func TestEngine_minCpuRatioFilter(t *testing.T) {
+func TestVmSelector_minCpuRatioFilter(t *testing.T) {
 	tests := []struct {
 		name  string
-		vm    VirtualMachine
+		vm    recommender.VirtualMachine
 		attr  string
-		req   ClusterRecommendationReq
+		req   recommender.ClusterRecommendationReq
 		check func(filterApplies bool)
 	}{
 		{
 			name: "minCpuRatioFilter applies",
 			// minRatio = SumCpu/SumMem = 0.5
-			req: ClusterRecommendationReq{SumCpu: 4, SumMem: float64(8)},
+			req: recommender.ClusterRecommendationReq{SumCpu: 4, SumMem: 8},
 			// ratio = Cpus/Mem = 1
-			vm:   VirtualMachine{Cpus: 4, Mem: float64(4)},
-			attr: Cpu,
+			vm:   recommender.VirtualMachine{Cpus: 4, Mem: 4},
+			attr: recommender.Cpu,
 			check: func(filterApplies bool) {
 				assert.Equal(t, true, filterApplies, "vm should pass the minCpuRatioFilter")
 			},
@@ -116,10 +120,10 @@ func TestEngine_minCpuRatioFilter(t *testing.T) {
 		{
 			name: "minCpuRatioFilter doesn't apply",
 			// minRatio = SumCpu/SumMem = 1
-			req: ClusterRecommendationReq{SumCpu: 4, SumMem: float64(4)},
+			req: recommender.ClusterRecommendationReq{SumCpu: 4, SumMem: float64(4)},
 			// ratio = Cpus/Mem = 0.5
-			vm:   VirtualMachine{Cpus: 4, Mem: float64(8)},
-			attr: Cpu,
+			vm:   recommender.VirtualMachine{Cpus: 4, Mem: float64(8)},
+			attr: recommender.Cpu,
 			check: func(filterApplies bool) {
 				assert.Equal(t, false, filterApplies, "vm should not pass the minCpuRatioFilter")
 			},
@@ -127,28 +131,27 @@ func TestEngine_minCpuRatioFilter(t *testing.T) {
 	}
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
-			engine := NewEngine(nil, logur.NewTestLogger())
-			test.check(engine.minCpuRatioFilter(test.vm, test.req))
-
+			selector := NewVmSelector(logur.NewTestLogger(), nil)
+			test.check(selector.minCpuRatioFilter(test.vm, test.req))
 		})
 	}
 }
 
-func TestEngine_minMemRatioFilter(t *testing.T) {
+func TestVmSelector_minMemRatioFilter(t *testing.T) {
 	tests := []struct {
 		name  string
-		req   ClusterRecommendationReq
-		vm    VirtualMachine
+		req   recommender.ClusterRecommendationReq
+		vm    recommender.VirtualMachine
 		attr  string
 		check func(filterApplies bool)
 	}{
 		{
 			name: "minMemRatioFilter applies",
 			// minRatio = SumMem/SumCpu = 2
-			req: ClusterRecommendationReq{SumMem: float64(8), SumCpu: 4},
+			req: recommender.ClusterRecommendationReq{SumMem: 8, SumCpu: 4},
 			// ratio = Mem/Cpus = 4
-			vm:   VirtualMachine{Mem: float64(16), Cpus: 4},
-			attr: Cpu,
+			vm:   recommender.VirtualMachine{Mem: 16, Cpus: 4},
+			attr: recommender.Cpu,
 			check: func(filterApplies bool) {
 				assert.Equal(t, true, filterApplies, "vm should pass the minMemRatioFilter")
 			},
@@ -156,10 +159,10 @@ func TestEngine_minMemRatioFilter(t *testing.T) {
 		{
 			name: "minMemRatioFilter doesn't apply",
 			// minRatio = SumMem/SumCpu = 2
-			req: ClusterRecommendationReq{SumMem: float64(8), SumCpu: 4},
+			req: recommender.ClusterRecommendationReq{SumMem: 8, SumCpu: 4},
 			// ratio = Mem/Cpus = 0.5
-			vm:   VirtualMachine{Cpus: 4, Mem: float64(4)},
-			attr: Cpu,
+			vm:   recommender.VirtualMachine{Cpus: 4, Mem: 4},
+			attr: recommender.Cpu,
 			check: func(filterApplies bool) {
 				assert.Equal(t, false, filterApplies, "vm should not pass the minMemRatioFilter")
 			},
@@ -167,25 +170,23 @@ func TestEngine_minMemRatioFilter(t *testing.T) {
 	}
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
-
-			engine := NewEngine(nil, logur.NewTestLogger())
-			test.check(engine.minMemRatioFilter(test.vm, test.req))
-
+			selector := NewVmSelector(logur.NewTestLogger(), nil)
+			test.check(selector.minMemRatioFilter(test.vm, test.req))
 		})
 	}
 }
 
-func TestEngine_burstFilter(t *testing.T) {
+func TestVmSelector_burstFilter(t *testing.T) {
 	tests := []struct {
 		name  string
-		req   ClusterRecommendationReq
-		vm    VirtualMachine
+		req   recommender.ClusterRecommendationReq
+		vm    recommender.VirtualMachine
 		check func(filterApplies bool)
 	}{
 		{
 			name: "burst filter applies - burst vm, burst allowed in req",
-			req:  ClusterRecommendationReq{AllowBurst: &trueVal},
-			vm:   VirtualMachine{Burst: true},
+			req:  recommender.ClusterRecommendationReq{AllowBurst: &trueVal},
+			vm:   recommender.VirtualMachine{Burst: true},
 			check: func(filterApplies bool) {
 				assert.Equal(t, true, filterApplies, "vm should pass the burst filter")
 			},
@@ -193,25 +194,25 @@ func TestEngine_burstFilter(t *testing.T) {
 		{
 			name: "burst filter applies - burst vm, burst not set in req",
 			// BurstAllowed not specified
-			req: ClusterRecommendationReq{},
-			vm:  VirtualMachine{Burst: true},
+			req: recommender.ClusterRecommendationReq{},
+			vm:  recommender.VirtualMachine{Burst: true},
 			check: func(filterApplies bool) {
 				assert.Equal(t, true, filterApplies, "vm should pass the burst filter")
 			},
 		},
 		{
 			name: "burst filter doesn't apply - burst vm, burst not allowed",
-			req:  ClusterRecommendationReq{AllowBurst: &falseVal},
-			vm:   VirtualMachine{Burst: true},
+			req:  recommender.ClusterRecommendationReq{AllowBurst: &falseVal},
+			vm:   recommender.VirtualMachine{Burst: true},
 			check: func(filterApplies bool) {
 				assert.Equal(t, false, filterApplies, "vm should not pass the burst filter")
 			},
 		},
 		{
 			name: "burst filter applies - not burst vm, burst not allowed",
-			req:  ClusterRecommendationReq{AllowBurst: &falseVal},
+			req:  recommender.ClusterRecommendationReq{AllowBurst: &falseVal},
 			// not a burst vm!
-			vm: VirtualMachine{Burst: false},
+			vm: recommender.VirtualMachine{Burst: false},
 			check: func(filterApplies bool) {
 				assert.Equal(t, true, filterApplies, "vm should pass the burst filter")
 			},
@@ -219,35 +220,35 @@ func TestEngine_burstFilter(t *testing.T) {
 	}
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
-			engine := NewEngine(nil, logur.NewTestLogger())
-			test.check(engine.burstFilter(test.vm, test.req))
+			selector := NewVmSelector(logur.NewTestLogger(), nil)
+			test.check(selector.burstFilter(test.vm, test.req))
 		})
 	}
 }
 
-func TestEngine_ExcludesFilter(t *testing.T) {
+func TestVmSelector_excludesFilter(t *testing.T) {
 	tests := []struct {
 		name  string
-		vm    VirtualMachine
-		req   ClusterRecommendationReq
+		vm    recommender.VirtualMachine
+		req   recommender.ClusterRecommendationReq
 		check func(res bool)
 	}{
 		{
 			name: "nil blacklist",
-			vm: VirtualMachine{
+			vm: recommender.VirtualMachine{
 				Type: "vm-type",
 			},
-			req: ClusterRecommendationReq{},
+			req: recommender.ClusterRecommendationReq{},
 			check: func(res bool) {
 				assert.True(t, res, "all vms should pass")
 			},
 		},
 		{
 			name: "empty blacklist",
-			vm: VirtualMachine{
+			vm: recommender.VirtualMachine{
 				Type: "vm-type",
 			},
-			req: ClusterRecommendationReq{
+			req: recommender.ClusterRecommendationReq{
 				Excludes: []string{},
 			},
 			check: func(res bool) {
@@ -256,10 +257,10 @@ func TestEngine_ExcludesFilter(t *testing.T) {
 		},
 		{
 			name: "vm blacklisted",
-			vm: VirtualMachine{
+			vm: recommender.VirtualMachine{
 				Type: "blacklisted-type",
 			},
-			req: ClusterRecommendationReq{
+			req: recommender.ClusterRecommendationReq{
 				Excludes: []string{"blacklisted-type", "other type"},
 			},
 			check: func(res bool) {
@@ -268,10 +269,10 @@ func TestEngine_ExcludesFilter(t *testing.T) {
 		},
 		{
 			name: "vm not blacklisted",
-			vm: VirtualMachine{
+			vm: recommender.VirtualMachine{
 				Type: "not-blacklisted-type",
 			},
-			req: ClusterRecommendationReq{
+			req: recommender.ClusterRecommendationReq{
 				Excludes: []string{"blacklisted-type", "other type"},
 			},
 			check: func(res bool) {
@@ -281,35 +282,35 @@ func TestEngine_ExcludesFilter(t *testing.T) {
 	}
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
-			engine := NewEngine(nil, logur.NewTestLogger())
-			test.check(engine.excludesFilter(test.vm, test.req))
+			selector := NewVmSelector(logur.NewTestLogger(), nil)
+			test.check(selector.excludesFilter(test.vm, test.req))
 		})
 	}
 }
 
-func TestEngine_IncludesFilter(t *testing.T) {
+func TestVmSelector_includesFilter(t *testing.T) {
 	tests := []struct {
 		name  string
-		vm    VirtualMachine
-		req   ClusterRecommendationReq
+		vm    recommender.VirtualMachine
+		req   recommender.ClusterRecommendationReq
 		check func(res bool)
 	}{
 		{
 			name: "nil whitelist",
-			vm: VirtualMachine{
+			vm: recommender.VirtualMachine{
 				Type: "vm-type",
 			},
-			req: ClusterRecommendationReq{},
+			req: recommender.ClusterRecommendationReq{},
 			check: func(res bool) {
 				assert.True(t, res, "all vms should pass")
 			},
 		},
 		{
 			name: "empty whitelist",
-			vm: VirtualMachine{
+			vm: recommender.VirtualMachine{
 				Type: "vm-type",
 			},
-			req: ClusterRecommendationReq{
+			req: recommender.ClusterRecommendationReq{
 				Includes: []string{},
 			},
 			check: func(res bool) {
@@ -318,10 +319,10 @@ func TestEngine_IncludesFilter(t *testing.T) {
 		},
 		{
 			name: "vm whitelisted",
-			vm: VirtualMachine{
+			vm: recommender.VirtualMachine{
 				Type: "whitelisted-type",
 			},
-			req: ClusterRecommendationReq{
+			req: recommender.ClusterRecommendationReq{
 				Includes: []string{"whitelisted-type", "other type"},
 			},
 			check: func(res bool) {
@@ -330,10 +331,10 @@ func TestEngine_IncludesFilter(t *testing.T) {
 		},
 		{
 			name: "vm not whitelisted",
-			vm: VirtualMachine{
+			vm: recommender.VirtualMachine{
 				Type: "not-blacklisted-type",
 			},
-			req: ClusterRecommendationReq{
+			req: recommender.ClusterRecommendationReq{
 				Includes: []string{"blacklisted-type", "other type"},
 			},
 			check: func(res bool) {
@@ -343,85 +344,21 @@ func TestEngine_IncludesFilter(t *testing.T) {
 	}
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
-			engine := NewEngine(nil, logur.NewTestLogger())
-			test.check(engine.includesFilter(test.vm, test.req))
+			selector := NewVmSelector(logur.NewTestLogger(), nil)
+			test.check(selector.includesFilter(test.vm, test.req))
 		})
 	}
 }
 
-func TestEngine_findCheapestNodePoolSet(t *testing.T) {
-	tests := []struct {
-		name      string
-		nodePools map[string][]NodePool
-		check     func(npo []NodePool)
-	}{
-		{
-			name: "find cheapest node pool set",
-			nodePools: map[string][]NodePool{
-				"memory": {
-					NodePool{ // price = 2*3 +2*2 = 10
-						VmType: VirtualMachine{
-							AvgPrice:      2,
-							OnDemandPrice: 3,
-						},
-						SumNodes: 2,
-						VmClass:  regular,
-					}, NodePool{
-						VmType: VirtualMachine{
-							AvgPrice:      2,
-							OnDemandPrice: 3,
-						},
-						SumNodes: 2,
-						VmClass:  spot,
-					},
-				},
-				"cpu": { // price = 2*2 +2*2 = 8
-					NodePool{
-						VmType: VirtualMachine{
-							AvgPrice:      1,
-							OnDemandPrice: 2,
-						},
-						SumNodes: 2,
-						VmClass:  regular,
-					}, NodePool{
-						VmType: VirtualMachine{
-							AvgPrice:      2,
-							OnDemandPrice: 4,
-						},
-						SumNodes: 2,
-						VmClass:  spot,
-					}, NodePool{
-						VmType: VirtualMachine{
-							AvgPrice:      2,
-							OnDemandPrice: 4,
-						},
-						SumNodes: 0,
-						VmClass:  spot,
-					},
-				},
-			},
-			check: func(npo []NodePool) {
-				assert.Equal(t, 3, len(npo), "wrong selection")
-			},
-		},
-	}
-	for _, test := range tests {
-		t.Run(test.name, func(t *testing.T) {
-			engine := NewEngine(nil, logur.NewTestLogger())
-			test.check(engine.findCheapestNodePoolSet(test.nodePools))
-		})
-	}
-}
-
-func TestEngine_filterSpots(t *testing.T) {
+func TestVmSelector_filterSpots(t *testing.T) {
 	tests := []struct {
 		name  string
-		vms   []VirtualMachine
-		check func(filtered []VirtualMachine)
+		vms   []recommender.VirtualMachine
+		check func(filtered []recommender.VirtualMachine)
 	}{
 		{
 			name: "vm-s filtered out",
-			vms: []VirtualMachine{
+			vms: []recommender.VirtualMachine{
 				{
 					AvgPrice:      0,
 					OnDemandPrice: 1,
@@ -433,38 +370,38 @@ func TestEngine_filterSpots(t *testing.T) {
 					Type:          "t200",
 				},
 			},
-			check: func(filtered []VirtualMachine) {
+			check: func(filtered []recommender.VirtualMachine) {
 				assert.Equal(t, 1, len(filtered), "vm is not filtered out")
 			},
 		},
 	}
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
-			engine := NewEngine(nil, logur.NewTestLogger())
-			test.check(engine.filterSpots(test.vms))
+			selector := NewVmSelector(logur.NewTestLogger(), nil)
+			test.check(selector.filterSpots(test.vms))
 		})
 	}
 }
 
-func TestEngine_ntwPerformanceFilter(t *testing.T) {
+func TestVmSelector_ntwPerformanceFilter(t *testing.T) {
 
 	var (
-		NTW_LOW  = "low"
-		NTW_HIGH = "high"
+		ntwLow  = "low"
+		ntwHigh = "high"
 	)
 	tests := []struct {
 		name  string
-		req   ClusterRecommendationReq
-		vm    VirtualMachine
+		req   recommender.ClusterRecommendationReq
+		vm    recommender.VirtualMachine
 		check func(passed bool)
 	}{
 		{
 			name: "vm passes the network performance filter",
-			req: ClusterRecommendationReq{
-				NetworkPerf: &NTW_LOW,
+			req: recommender.ClusterRecommendationReq{
+				NetworkPerf: &ntwLow,
 			},
-			vm: VirtualMachine{
-				NetworkPerfCat: NTW_LOW,
+			vm: recommender.VirtualMachine{
+				NetworkPerfCat: ntwLow,
 				Type:           "instance type",
 			},
 			check: func(passed bool) {
@@ -473,11 +410,11 @@ func TestEngine_ntwPerformanceFilter(t *testing.T) {
 		},
 		{
 			name: "vm doesn't pass the network performance filter",
-			req: ClusterRecommendationReq{
-				NetworkPerf: &NTW_LOW,
+			req: recommender.ClusterRecommendationReq{
+				NetworkPerf: &ntwLow,
 			},
-			vm: VirtualMachine{
-				NetworkPerfCat: NTW_HIGH,
+			vm: recommender.VirtualMachine{
+				NetworkPerfCat: ntwHigh,
 				Type:           "instance type",
 			},
 			check: func(passed bool) {
@@ -486,10 +423,10 @@ func TestEngine_ntwPerformanceFilter(t *testing.T) {
 		},
 		{
 			name: "vm passes the network performance filter - no filter in req",
-			req:  ClusterRecommendationReq{ // filter is missing
+			req:  recommender.ClusterRecommendationReq{ // filter is missing
 			},
-			vm: VirtualMachine{
-				NetworkPerf: NTW_LOW,
+			vm: recommender.VirtualMachine{
+				NetworkPerf: ntwLow,
 				Type:        "instance type",
 			},
 			check: func(passed bool) {
@@ -499,24 +436,24 @@ func TestEngine_ntwPerformanceFilter(t *testing.T) {
 	}
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
-			engine := NewEngine(nil, logur.NewTestLogger())
-			test.check(engine.ntwPerformanceFilter(test.vm, test.req))
+			selector := NewVmSelector(logur.NewTestLogger(), nil)
+			test.check(selector.ntwPerformanceFilter(test.vm, test.req))
 		})
 	}
 }
 
-func TestEngine_CurrGenFilter(t *testing.T) {
+func TestVmSelector_currentGenFilter(t *testing.T) {
 	tests := []struct {
 		name  string
-		req   ClusterRecommendationReq
-		vm    VirtualMachine
+		req   recommender.ClusterRecommendationReq
+		vm    recommender.VirtualMachine
 		check func(passed bool)
 	}{
 		{
 			name: "filter should apply when AllowOlderGen IS NIL in the request and vm IS of current generation",
-			req:  ClusterRecommendationReq{ // AllowOlderGen is nil;
+			req:  recommender.ClusterRecommendationReq{ // AllowOlderGen is nil;
 			},
-			vm: VirtualMachine{
+			vm: recommender.VirtualMachine{
 				Type:       "instance type",
 				CurrentGen: true,
 			},
@@ -526,9 +463,9 @@ func TestEngine_CurrGenFilter(t *testing.T) {
 		},
 		{
 			name: "filter should not apply when AllowOlderGen IS NIL in the request and vm IS NOT of current generation",
-			req:  ClusterRecommendationReq{ // AllowOlderGen is nil;
+			req:  recommender.ClusterRecommendationReq{ // AllowOlderGen is nil;
 			},
-			vm: VirtualMachine{
+			vm: recommender.VirtualMachine{
 				Type:       "instance type",
 				CurrentGen: false,
 			},
@@ -538,10 +475,10 @@ func TestEngine_CurrGenFilter(t *testing.T) {
 		},
 		{
 			name: "filter should apply when AllowOlderGen is FALSE in the request and vm IS of current generation",
-			req: ClusterRecommendationReq{
+			req: recommender.ClusterRecommendationReq{
 				AllowOlderGen: boolPointer(false),
 			},
-			vm: VirtualMachine{
+			vm: recommender.VirtualMachine{
 				Type:       "instance type",
 				CurrentGen: true,
 			},
@@ -551,10 +488,10 @@ func TestEngine_CurrGenFilter(t *testing.T) {
 		},
 		{
 			name: "filter should not apply when AllowOlderGen is FALSE  in the request and vm IS NOT of current generation",
-			req: ClusterRecommendationReq{
+			req: recommender.ClusterRecommendationReq{
 				AllowOlderGen: boolPointer(false),
 			},
-			vm: VirtualMachine{
+			vm: recommender.VirtualMachine{
 				Type:       "instance type",
 				CurrentGen: false,
 			},
@@ -564,10 +501,10 @@ func TestEngine_CurrGenFilter(t *testing.T) {
 		},
 		{
 			name: "filter should apply when AllowOlderGen is TRUE  in the request and vm IS of current generation",
-			req: ClusterRecommendationReq{
+			req: recommender.ClusterRecommendationReq{
 				AllowOlderGen: boolPointer(true),
 			},
-			vm: VirtualMachine{
+			vm: recommender.VirtualMachine{
 				Type:       "instance type",
 				CurrentGen: true,
 			},
@@ -577,10 +514,10 @@ func TestEngine_CurrGenFilter(t *testing.T) {
 		},
 		{
 			name: "filter should apply when AllowOlderGen is TRUE  in the request and vm IS NOT of current generation",
-			req: ClusterRecommendationReq{
+			req: recommender.ClusterRecommendationReq{
 				AllowOlderGen: boolPointer(true),
 			},
-			vm: VirtualMachine{
+			vm: recommender.VirtualMachine{
 				Type:       "instance type",
 				CurrentGen: false,
 			},
@@ -591,8 +528,8 @@ func TestEngine_CurrGenFilter(t *testing.T) {
 	}
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
-			engine := NewEngine(nil, logur.NewTestLogger())
-			test.check(engine.currentGenFilter(test.vm, test.req))
+			selector := NewVmSelector(logur.NewTestLogger(), nil)
+			test.check(selector.currentGenFilter(test.vm, test.req))
 		})
 	}
 }
