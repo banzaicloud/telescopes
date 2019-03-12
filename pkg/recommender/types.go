@@ -80,6 +80,8 @@ type ClusterRecommendationReq struct {
 	Includes []string `json:"includes,omitempty"`
 	// AllowOlderGen allow older generations of virtual machines (applies for EC2 only)
 	AllowOlderGen *bool `json:"allowOlderGen,omitempty"`
+	// Category specifies the virtual machine category
+	Category []string `json:"category,omitempty"`
 }
 
 // ClusterScaleoutRecommendationReq encapsulates the recommendation input data
@@ -164,6 +166,8 @@ type ClusterRecommendationAccuracy struct {
 
 // VirtualMachine describes an instance type
 type VirtualMachine struct {
+	// Instance type category
+	Category string
 	// Instance type
 	Type string `json:"type"`
 	// Average price of the instance (differs from on demand price in case of spot or preemptible instances)

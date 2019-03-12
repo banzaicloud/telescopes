@@ -73,6 +73,11 @@ type RecommendClusterSetupParams struct {
 
 	*/
 	AllowOlderGen *bool
+	/*Category
+	  Category specifies the virtual machine category
+
+	*/
+	Category []string
 	/*Excludes
 	  Excludes is a blacklist - a slice with vm types to be excluded from the recommendation
 
@@ -193,6 +198,17 @@ func (o *RecommendClusterSetupParams) WithAllowOlderGen(allowOlderGen *bool) *Re
 // SetAllowOlderGen adds the allowOlderGen to the recommend cluster setup params
 func (o *RecommendClusterSetupParams) SetAllowOlderGen(allowOlderGen *bool) {
 	o.AllowOlderGen = allowOlderGen
+}
+
+// WithCategory adds the category to the recommend cluster setup params
+func (o *RecommendClusterSetupParams) WithCategory(category []string) *RecommendClusterSetupParams {
+	o.SetCategory(category)
+	return o
+}
+
+// SetCategory adds the category to the recommend cluster setup params
+func (o *RecommendClusterSetupParams) SetCategory(category []string) {
+	o.Category = category
 }
 
 // WithExcludes adds the excludes to the recommend cluster setup params
@@ -387,6 +403,14 @@ func (o *RecommendClusterSetupParams) WriteToRequest(r runtime.ClientRequest, re
 			}
 		}
 
+	}
+
+	valuesCategory := o.Category
+
+	joinedCategory := swag.JoinByFormat(valuesCategory, "")
+	// query array param category
+	if err := r.SetQueryParam("category", joinedCategory...); err != nil {
+		return err
 	}
 
 	valuesExcludes := o.Excludes

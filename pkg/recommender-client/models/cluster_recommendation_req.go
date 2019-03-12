@@ -21,6 +21,9 @@ type ClusterRecommendationReq struct {
 	// AllowOlderGen allow older generations of virtual machines (applies for EC2 only)
 	AllowOlderGen bool `json:"allowOlderGen,omitempty"`
 
+	// Category specifies the virtual machine category
+	Category []string `json:"category"`
+
 	// Excludes is a blacklist - a slice with vm types to be excluded from the recommendation
 	Excludes []string `json:"excludes"`
 

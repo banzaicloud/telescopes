@@ -141,6 +141,7 @@ func (s *vmSelector) FindVmsWithAttrValues(provider string, service string, regi
 		}
 		if included {
 			vms = append(vms, recommender.VirtualMachine{
+				Category:       p.Category,
 				Type:           p.Type,
 				OnDemandPrice:  p.OnDemandPrice,
 				AvgPrice:       avg(p.SpotPrice, zones),

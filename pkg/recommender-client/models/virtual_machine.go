@@ -21,6 +21,9 @@ type VirtualMachine struct {
 	// Burst signals a burst type instance
 	Burst bool `json:"burst,omitempty"`
 
+	// Instance type category
+	Category string `json:"Category,omitempty"`
+
 	// Number of CPUs in the instance type
 	Cpus float64 `json:"cpusPerVm,omitempty"`
 
