@@ -90,32 +90,22 @@ func (s *vmSelector) RecommendVms(provider string, vms []recommender.VirtualMach
 
 func (s *vmSelector) FindVmsWithAttrValues(provider string, service string, region string, attr string, req recommender.ClusterRecommendationReq, layoutDesc []recommender.NodePoolDesc) ([]recommender.VirtualMachine, error) {
 	var (
+		vms    []recommender.VirtualMachine
 		values []float64
 		err    error
 	)
-	if layoutDesc == nil {
-		values, err = s.recommendAttrValues(provider, service, region, attr, req)
-		if err != nil {
-			return nil, emperror.Wrap(err, "failed to recommend attribute values")
-		}
-		s.log.Debug(fmt.Sprintf("recommended values for [%s]: count:[%d] , values: [%#v./te]", attr, len(values), values))
-	}
-	s.log.Info("looking for instance types", map[string]interface{}{"attribute": attr, "values": values})
-
-	var (
-		vms []recommender.VirtualMachine
-	)
-	zones := req.Zones
-
-	if len(zones) == 0 {
-		if zones, err = s.ciSource.GetZones(provider, service, region); err != nil {
-			return nil, err
-		}
-	}
 
 	allProducts, err := s.ciSource.GetProductDetails(provider, service, region)
 	if err != nil {
 		return nil, err
+	}
+
+	if layoutDesc == nil {
+		values, err = s.recommendAttrValues(allProducts, attr, req)
+		if err != nil {
+			return nil, emperror.Wrap(err, "failed to recommend attribute values")
+		}
+		s.log.Debug(fmt.Sprintf("recommended values for [%s]: count:[%d] , values: [%#v./te]", attr, len(values), values))
 	}
 
 	for _, p := range allProducts {
@@ -144,7 +134,7 @@ func (s *vmSelector) FindVmsWithAttrValues(provider string, service string, regi
 				Category:       p.Category,
 				Type:           p.Type,
 				OnDemandPrice:  p.OnDemandPrice,
-				AvgPrice:       avg(p.SpotPrice, zones),
+				AvgPrice:       avg(p.SpotPrice),
 				Cpus:           p.Cpus,
 				Mem:            p.Mem,
 				Gpus:           p.Gpus,
@@ -161,11 +151,21 @@ func (s *vmSelector) FindVmsWithAttrValues(provider string, service string, regi
 }
 
 // recommendAttrValues selects the attribute values allowed to participate in the recommendation process
-func (s *vmSelector) recommendAttrValues(provider string, service string, region string, attr string, req recommender.ClusterRecommendationReq) ([]float64, error) {
+func (s *vmSelector) recommendAttrValues(allProducts []*models.ProductDetails, attr string, req recommender.ClusterRecommendationReq) ([]float64, error) {
 
-	allValues, err := s.ciSource.GetAttributeValues(provider, service, region, attr)
-	if err != nil {
-		return nil, err
+	allValues := make([]float64, 0)
+	valueSet := make(map[float64]interface{})
+
+	for _, vm := range allProducts {
+		switch attr {
+		case recommender.Cpu:
+			valueSet[vm.Cpus] = ""
+		case recommender.Memory:
+			valueSet[vm.Mem] = ""
+		}
+	}
+	for attr := range valueSet {
+		allValues = append(allValues, attr)
 	}
 
 	s.log.Debug("selecting attributes", map[string]interface{}{"attribute": attr, "values": allValues})
@@ -201,17 +201,13 @@ func minValuePerVm(req recommender.ClusterRecommendationReq, attr string) float6
 	}
 }
 
-func avg(prices []*models.ZonePrice, recZones []string) float64 {
+func avg(prices []*models.ZonePrice) float64 {
 	if len(prices) == 0 {
 		return 0.0
 	}
 	avgPrice := 0.0
 	for _, price := range prices {
-		for _, z := range recZones {
-			if z == price.Zone {
-				avgPrice += price.Price
-			}
-		}
+		avgPrice += price.Price
 	}
 	return avgPrice / float64(len(prices))
 }

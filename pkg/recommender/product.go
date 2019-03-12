@@ -16,7 +16,6 @@ package recommender
 
 import (
 	"github.com/banzaicloud/cloudinfo/pkg/cloudinfo-client/client"
-	"github.com/banzaicloud/cloudinfo/pkg/cloudinfo-client/client/attribute"
 	"github.com/banzaicloud/cloudinfo/pkg/cloudinfo-client/client/products"
 	"github.com/banzaicloud/cloudinfo/pkg/cloudinfo-client/client/provider"
 	"github.com/banzaicloud/cloudinfo/pkg/cloudinfo-client/client/region"
@@ -28,12 +27,6 @@ import (
 
 // CloudInfoSource declares operations for retrieving information required for the recommender engine
 type CloudInfoSource interface {
-	// GetAttributeValues retrieves attribute values based on the given arguments
-	GetAttributeValues(provider string, service string, region string, attr string) ([]float64, error)
-
-	// GetZones describes the given region fof the given provider
-	GetZones(provider string, service string, region string) ([]string, error)
-
 	// GetProductDetails retrieves the product details for the provider and region
 	GetProductDetails(provider string, service string, region string) ([]*models.ProductDetails, error)
 }
@@ -52,28 +45,6 @@ const (
 // NewCloudInfoClient creates a new product info client wrapper instance
 func NewCloudInfoClient(pic *client.Cloudinfo) *CloudInfoClient {
 	return &CloudInfoClient{Cloudinfo: pic}
-}
-
-// GetAttributeValues retrieves available attribute values on the provider in the region for the attribute
-func (ciCli *CloudInfoClient) GetAttributeValues(provider string, service string, region string, attr string) ([]float64, error) {
-	attrParams := attribute.NewGetAttrValuesParams().WithProvider(provider).WithRegion(region).WithAttribute(attr).WithService(service)
-
-	allValues, err := ciCli.Attribute.GetAttrValues(attrParams)
-	if err != nil {
-		return nil, discriminateErrCtx(err)
-	}
-	return allValues.Payload.AttributeValues, nil
-}
-
-// GetZones describes the region (eventually returns the zones in the region)
-func (ciCli *CloudInfoClient) GetZones(prv string, svc string, reg string) ([]string, error) {
-	grp := region.NewGetRegionParams().WithProvider(prv).WithService(svc).WithRegion(reg)
-
-	r, err := ciCli.Region.GetRegion(grp)
-	if err != nil {
-		return nil, discriminateErrCtx(err)
-	}
-	return r.Payload.Zones, nil
 }
 
 // GetProductDetails gets the available product details from the provider in the region
