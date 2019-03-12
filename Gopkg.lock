@@ -37,7 +37,7 @@
   version = "0.2.26"
 
 [[projects]]
-  digest = "1:d83943b4561ac9b18367c475a97f9b0bd22b39a020337834ae8d8929ed3bc1b5"
+  digest = "1:7180ffe19890acdd9b894b390450335d8a39d89b942a46c82c1a9b256c1e2f33"
   name = "github.com/banzaicloud/cloudinfo"
   packages = [
     "pkg/cloudinfo-client/client",
@@ -54,7 +54,7 @@
     "pkg/cloudinfo-client/models",
   ]
   pruneopts = "NUT"
-  revision = "d8e0c9f18796ab1cffd0e6eb464607cfd3c71187"
+  revision = "073895e77701946ed97c7d5a1fcfbdf1d7d53376"
 
 [[projects]]
   digest = "1:2893d610c2ac37c521e873e77b6c0e36f91d6f9fad81250a46a21fa3dd944b6f"
@@ -851,8 +851,10 @@
   input-imports = [
     "github.com/banzaicloud/bank-vaults/auth",
     "github.com/banzaicloud/cloudinfo/pkg/cloudinfo-client/client",
+    "github.com/banzaicloud/cloudinfo/pkg/cloudinfo-client/client/attribute",
     "github.com/banzaicloud/cloudinfo/pkg/cloudinfo-client/client/products",
     "github.com/banzaicloud/cloudinfo/pkg/cloudinfo-client/client/provider",
+    "github.com/banzaicloud/cloudinfo/pkg/cloudinfo-client/client/region",
     "github.com/banzaicloud/cloudinfo/pkg/cloudinfo-client/client/service",
     "github.com/banzaicloud/cloudinfo/pkg/cloudinfo-client/models",
     "github.com/banzaicloud/go-gin-prometheus",

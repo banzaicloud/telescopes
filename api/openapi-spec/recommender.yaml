@@ -25,24 +25,6 @@ paths:
         layout on a given provider in a specific region.
       operationId: recommendClusterScaleOut
       parameters:
-        - x-go-name: Provider
-          name: provider
-          in: path
-          required: true
-          schema:
-            type: string
-        - x-go-name: Service
-          name: service
-          in: path
-          required: true
-          schema:
-            type: string
-        - x-go-name: Region
-          name: region
-          in: path
-          required: true
-          schema:
-            type: string
         - x-go-name: DesiredCpu
           description: Total desired number of CPUs in the cluster after the scale out
           name: desiredCpu
@@ -89,6 +71,24 @@ paths:
             type: array
             items:
               type: string
+        - x-go-name: Provider
+          name: provider
+          in: path
+          required: true
+          schema:
+            type: string
+        - x-go-name: Service
+          name: service
+          in: path
+          required: true
+          schema:
+            type: string
+        - x-go-name: Region
+          name: region
+          in: path
+          required: true
+          schema:
+            type: string
       responses:
         '200':
           description: RecommendationResponse
@@ -112,24 +112,6 @@ paths:
         specific region.
       operationId: recommendClusterSetup
       parameters:
-        - x-go-name: Provider
-          name: provider
-          in: path
-          required: true
-          schema:
-            type: string
-        - x-go-name: Service
-          name: service
-          in: path
-          required: true
-          schema:
-            type: string
-        - x-go-name: Region
-          name: region
-          in: path
-          required: true
-          schema:
-            type: string
         - x-go-name: SumCpu
           description: Total number of CPUs requested for the cluster
           name: sumCpu
@@ -226,6 +208,24 @@ paths:
           in: query
           schema:
             type: boolean
+        - x-go-name: Provider
+          name: provider
+          in: path
+          required: true
+          schema:
+            type: string
+        - x-go-name: Service
+          name: service
+          in: path
+          required: true
+          schema:
+            type: string
+        - x-go-name: Region
+          name: region
+          in: path
+          required: true
+          schema:
+            type: string
       responses:
         '200':
           description: RecommendationResponse
@@ -254,23 +254,6 @@ components:
           x-go-name: AttributeValues
       x-go-package: >-
         github.com/banzaicloud/telescopes/vendor/github.com/banzaicloud/cloudinfo/pkg/cloudinfo-client/models
-    ByAvgPricePerCpu:
-      description: ByAvgPricePerCpu type for custom sorting of a slice of vms
-      type: array
-      items:
-        $ref: '#/components/schemas/VirtualMachine'
-      x-go-package: github.com/banzaicloud/telescopes/pkg/recommender
-    ByAvgPricePerMemory:
-      description: ByAvgPricePerMemory type for custom sorting of a slice of vms
-      type: array
-      items:
-        $ref: '#/components/schemas/VirtualMachine'
-      x-go-package: github.com/banzaicloud/telescopes/pkg/recommender
-    ByNonZeroNodePools:
-      type: array
-      items:
-        $ref: '#/components/schemas/NodePool'
-      x-go-package: github.com/banzaicloud/telescopes/pkg/recommender
     ClusterRecommendationAccuracy:
       description: ClusterRecommendationAccuracy encapsulates recommendation accuracy
       type: object
@@ -397,6 +380,10 @@ components:
             type: string
           x-go-name: Zones
       x-go-package: github.com/banzaicloud/telescopes/pkg/recommender
+    ClusterRecommender:
+      description: ClusterRecommender is the main entry point for cluster recommendation
+      type: object
+      x-go-package: github.com/banzaicloud/telescopes/pkg/recommender
     ClusterScaleoutRecommendationReq:
       description: >-
         ClusterScaleoutRecommendationReq encapsulates the recommendation input
@@ -445,12 +432,6 @@ components:
           items:
             type: string
           x-go-name: Zones
-      x-go-package: github.com/banzaicloud/telescopes/pkg/recommender
-    Engine:
-      description: >-
-        Engine represents the recommendation engine, it operates on a map of
-        provider -> VmRegistry
-      type: object
       x-go-package: github.com/banzaicloud/telescopes/pkg/recommender
     GetAttributeValuesPathParams:
       description: >-
@@ -629,6 +610,9 @@ components:
           type: string
           x-go-name: VmClass
       x-go-package: github.com/banzaicloud/telescopes/pkg/recommender
+    NodePoolRecommender:
+      type: object
+      x-go-package: github.com/banzaicloud/telescopes/pkg/recommender
     ProductDetails:
       description: >-
         ProductDetails ProductDetails extended view of the virtual machine
@@ -645,6 +629,10 @@ components:
           description: Burst this is derived for now
           type: boolean
           x-go-name: Burst
+        category:
+          description: category
+          type: string
+          x-go-name: Category
         cpusPerVm:
           description: cpus
           type: number
@@ -923,6 +911,9 @@ components:
           description: Instance type
           type: string
           x-go-name: Type
+      x-go-package: github.com/banzaicloud/telescopes/pkg/recommender
+    VmRecommender:
+      type: object
       x-go-package: github.com/banzaicloud/telescopes/pkg/recommender
     ZonePrice:
       description: ZonePrice ZonePrice struct for displaying price information per zone

@@ -37,27 +37,6 @@
         "operationId": "recommendClusterScaleOut",
         "parameters": [
           {
-            "type": "string",
-            "x-go-name": "Provider",
-            "name": "provider",
-            "in": "path",
-            "required": true
-          },
-          {
-            "type": "string",
-            "x-go-name": "Service",
-            "name": "service",
-            "in": "path",
-            "required": true
-          },
-          {
-            "type": "string",
-            "x-go-name": "Region",
-            "name": "region",
-            "in": "path",
-            "required": true
-          },
-          {
             "type": "number",
             "format": "double",
             "x-go-name": "DesiredCpu",
@@ -120,6 +99,27 @@
                 "$ref": "#/definitions/NodePoolDesc"
               }
             }
+          },
+          {
+            "type": "string",
+            "x-go-name": "Provider",
+            "name": "provider",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "x-go-name": "Service",
+            "name": "service",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "x-go-name": "Region",
+            "name": "region",
+            "in": "path",
+            "required": true
           }
         ],
         "responses": {
@@ -147,27 +147,6 @@
         "summary": "Provides a recommended set of node pools on a given provider in a specific region.",
         "operationId": "recommendClusterSetup",
         "parameters": [
-          {
-            "type": "string",
-            "x-go-name": "Provider",
-            "name": "provider",
-            "in": "path",
-            "required": true
-          },
-          {
-            "type": "string",
-            "x-go-name": "Service",
-            "name": "service",
-            "in": "path",
-            "required": true
-          },
-          {
-            "type": "string",
-            "x-go-name": "Region",
-            "name": "region",
-            "in": "path",
-            "required": true
-          },
           {
             "type": "number",
             "format": "double",
@@ -273,6 +252,27 @@
             "description": "AllowOlderGen allow older generations of virtual machines (applies for EC2 only)",
             "name": "allowOlderGen",
             "in": "query"
+          },
+          {
+            "type": "string",
+            "x-go-name": "Provider",
+            "name": "provider",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "x-go-name": "Service",
+            "name": "service",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "x-go-name": "Region",
+            "name": "region",
+            "in": "path",
+            "required": true
           }
         ],
         "responses": {
@@ -307,29 +307,6 @@
         }
       },
       "x-go-package": "github.com/banzaicloud/telescopes/vendor/github.com/banzaicloud/cloudinfo/pkg/cloudinfo-client/models"
-    },
-    "ByAvgPricePerCpu": {
-      "description": "ByAvgPricePerCpu type for custom sorting of a slice of vms",
-      "type": "array",
-      "items": {
-        "$ref": "#/definitions/VirtualMachine"
-      },
-      "x-go-package": "github.com/banzaicloud/telescopes/pkg/recommender"
-    },
-    "ByAvgPricePerMemory": {
-      "description": "ByAvgPricePerMemory type for custom sorting of a slice of vms",
-      "type": "array",
-      "items": {
-        "$ref": "#/definitions/VirtualMachine"
-      },
-      "x-go-package": "github.com/banzaicloud/telescopes/pkg/recommender"
-    },
-    "ByNonZeroNodePools": {
-      "type": "array",
-      "items": {
-        "$ref": "#/definitions/NodePool"
-      },
-      "x-go-package": "github.com/banzaicloud/telescopes/pkg/recommender"
     },
     "ClusterRecommendationAccuracy": {
       "description": "ClusterRecommendationAccuracy encapsulates recommendation accuracy",
@@ -481,6 +458,11 @@
       },
       "x-go-package": "github.com/banzaicloud/telescopes/pkg/recommender"
     },
+    "ClusterRecommender": {
+      "description": "ClusterRecommender is the main entry point for cluster recommendation",
+      "type": "object",
+      "x-go-package": "github.com/banzaicloud/telescopes/pkg/recommender"
+    },
     "ClusterScaleoutRecommendationReq": {
       "description": "ClusterScaleoutRecommendationReq encapsulates the recommendation input data",
       "type": "object",
@@ -534,11 +516,6 @@
           "x-go-name": "Zones"
         }
       },
-      "x-go-package": "github.com/banzaicloud/telescopes/pkg/recommender"
-    },
-    "Engine": {
-      "description": "Engine represents the recommendation engine, it operates on a map of provider -\u003e VmRegistry",
-      "type": "object",
       "x-go-package": "github.com/banzaicloud/telescopes/pkg/recommender"
     },
     "GetAttributeValuesPathParams": {
@@ -741,6 +718,10 @@
       },
       "x-go-package": "github.com/banzaicloud/telescopes/pkg/recommender"
     },
+    "NodePoolRecommender": {
+      "type": "object",
+      "x-go-package": "github.com/banzaicloud/telescopes/pkg/recommender"
+    },
     "ProductDetails": {
       "description": "ProductDetails ProductDetails extended view of the virtual machine details",
       "type": "object",
@@ -757,6 +738,11 @@
           "description": "Burst this is derived for now",
           "type": "boolean",
           "x-go-name": "Burst"
+        },
+        "category": {
+          "description": "category",
+          "type": "string",
+          "x-go-name": "Category"
         },
         "cpusPerVm": {
           "description": "cpus",
@@ -1082,6 +1068,10 @@
           "x-go-name": "Type"
         }
       },
+      "x-go-package": "github.com/banzaicloud/telescopes/pkg/recommender"
+    },
+    "VmRecommender": {
+      "type": "object",
       "x-go-package": "github.com/banzaicloud/telescopes/pkg/recommender"
     },
     "ZonePrice": {

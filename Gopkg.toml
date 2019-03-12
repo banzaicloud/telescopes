@@ -9,7 +9,7 @@
 
 [[constraint]]
   name = "github.com/banzaicloud/cloudinfo"
-  revision = "d8e0c9f18796ab1cffd0e6eb464607cfd3c71187"
+  revision = "073895e77701946ed97c7d5a1fcfbdf1d7d53376"
 
 [[constraint]]
   name = "github.com/gin-contrib/cors"

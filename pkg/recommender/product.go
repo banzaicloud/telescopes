@@ -103,12 +103,12 @@ func (ciCli *CloudInfoClient) GetProvider(prv string) (string, error) {
 func (ciCli *CloudInfoClient) GetService(prv string, svc string) (string, error) {
 	gsp := service.NewGetServiceParams().WithProvider(prv).WithService(svc)
 
-	provider, err := ciCli.Service.GetService(gsp)
+	service, err := ciCli.Service.GetService(gsp)
 	if err != nil {
 		return "", discriminateErrCtx(err)
 	}
 
-	return provider.Payload.Service.Service, nil
+	return service.Payload.Service.Service, nil
 }
 
 // GetRegion validates region
