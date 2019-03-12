@@ -25,7 +25,7 @@ type vmFilter func(vm recommender.VirtualMachine, req recommender.ClusterRecomme
 // filtersForAttr returns the slice for
 func (s *vmSelector) filtersForAttr(attr string, provider string) ([]vmFilter, error) {
 	// generic filters - not depending on providers and attributes
-	var filters = []vmFilter{s.includesFilter, s.excludesFilter}
+	var filters = []vmFilter{s.includesFilter, s.excludesFilter, s.categoryFilter}
 
 	// provider specific filters
 	switch provider {
@@ -84,6 +84,16 @@ func (s *vmSelector) ntwPerformanceFilter(vm recommender.VirtualMachine, req rec
 		return true
 	}
 	if vm.NetworkPerfCat == *req.NetworkPerf { //the network performance category matches the vm
+		return true
+	}
+	return false
+}
+
+func (s *vmSelector) categoryFilter(vm recommender.VirtualMachine, req recommender.ClusterRecommendationReq) bool {
+	if req.Category == nil || len(req.Category) == 0 {
+		return true
+	}
+	if s.contains(req.Category, vm.Category) {
 		return true
 	}
 	return false

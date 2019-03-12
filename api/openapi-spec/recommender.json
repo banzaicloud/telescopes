@@ -37,6 +37,27 @@
         "operationId": "recommendClusterScaleOut",
         "parameters": [
           {
+            "type": "string",
+            "x-go-name": "Provider",
+            "name": "provider",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "x-go-name": "Service",
+            "name": "service",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "x-go-name": "Region",
+            "name": "region",
+            "in": "path",
+            "required": true
+          },
+          {
             "type": "number",
             "format": "double",
             "x-go-name": "DesiredCpu",
@@ -99,27 +120,6 @@
                 "$ref": "#/definitions/NodePoolDesc"
               }
             }
-          },
-          {
-            "type": "string",
-            "x-go-name": "Provider",
-            "name": "provider",
-            "in": "path",
-            "required": true
-          },
-          {
-            "type": "string",
-            "x-go-name": "Service",
-            "name": "service",
-            "in": "path",
-            "required": true
-          },
-          {
-            "type": "string",
-            "x-go-name": "Region",
-            "name": "region",
-            "in": "path",
-            "required": true
           }
         ],
         "responses": {
@@ -147,6 +147,27 @@
         "summary": "Provides a recommended set of node pools on a given provider in a specific region.",
         "operationId": "recommendClusterSetup",
         "parameters": [
+          {
+            "type": "string",
+            "x-go-name": "Provider",
+            "name": "provider",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "x-go-name": "Service",
+            "name": "service",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "x-go-name": "Region",
+            "name": "region",
+            "in": "path",
+            "required": true
+          },
           {
             "type": "number",
             "format": "double",
@@ -254,25 +275,14 @@
             "in": "query"
           },
           {
-            "type": "string",
-            "x-go-name": "Provider",
-            "name": "provider",
-            "in": "path",
-            "required": true
-          },
-          {
-            "type": "string",
-            "x-go-name": "Service",
-            "name": "service",
-            "in": "path",
-            "required": true
-          },
-          {
-            "type": "string",
-            "x-go-name": "Region",
-            "name": "region",
-            "in": "path",
-            "required": true
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "x-go-name": "Category",
+            "description": "Category specifies the virtual machine category",
+            "name": "category",
+            "in": "query"
           }
         ],
         "responses": {
@@ -384,6 +394,14 @@
           "description": "AllowOlderGen allow older generations of virtual machines (applies for EC2 only)",
           "type": "boolean",
           "x-go-name": "AllowOlderGen"
+        },
+        "category": {
+          "description": "Category specifies the virtual machine category",
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "x-go-name": "Category"
         },
         "excludes": {
           "description": "Excludes is a blacklist - a slice with vm types to be excluded from the recommendation",
@@ -1012,6 +1030,10 @@
       "description": "VirtualMachine describes an instance type",
       "type": "object",
       "properties": {
+        "Category": {
+          "description": "Instance type category",
+          "type": "string"
+        },
         "avgPrice": {
           "description": "Average price of the instance (differs from on demand price in case of spot or preemptible instances)",
           "type": "number",

@@ -25,6 +25,24 @@ paths:
         layout on a given provider in a specific region.
       operationId: recommendClusterScaleOut
       parameters:
+        - x-go-name: Provider
+          name: provider
+          in: path
+          required: true
+          schema:
+            type: string
+        - x-go-name: Service
+          name: service
+          in: path
+          required: true
+          schema:
+            type: string
+        - x-go-name: Region
+          name: region
+          in: path
+          required: true
+          schema:
+            type: string
         - x-go-name: DesiredCpu
           description: Total desired number of CPUs in the cluster after the scale out
           name: desiredCpu
@@ -71,24 +89,6 @@ paths:
             type: array
             items:
               type: string
-        - x-go-name: Provider
-          name: provider
-          in: path
-          required: true
-          schema:
-            type: string
-        - x-go-name: Service
-          name: service
-          in: path
-          required: true
-          schema:
-            type: string
-        - x-go-name: Region
-          name: region
-          in: path
-          required: true
-          schema:
-            type: string
       responses:
         '200':
           description: RecommendationResponse
@@ -112,6 +112,24 @@ paths:
         specific region.
       operationId: recommendClusterSetup
       parameters:
+        - x-go-name: Provider
+          name: provider
+          in: path
+          required: true
+          schema:
+            type: string
+        - x-go-name: Service
+          name: service
+          in: path
+          required: true
+          schema:
+            type: string
+        - x-go-name: Region
+          name: region
+          in: path
+          required: true
+          schema:
+            type: string
         - x-go-name: SumCpu
           description: Total number of CPUs requested for the cluster
           name: sumCpu
@@ -208,24 +226,14 @@ paths:
           in: query
           schema:
             type: boolean
-        - x-go-name: Provider
-          name: provider
-          in: path
-          required: true
+        - x-go-name: Category
+          description: Category specifies the virtual machine category
+          name: category
+          in: query
           schema:
-            type: string
-        - x-go-name: Service
-          name: service
-          in: path
-          required: true
-          schema:
-            type: string
-        - x-go-name: Region
-          name: region
-          in: path
-          required: true
-          schema:
-            type: string
+            type: array
+            items:
+              type: string
       responses:
         '200':
           description: RecommendationResponse
@@ -319,6 +327,12 @@ components:
             for EC2 only)
           type: boolean
           x-go-name: AllowOlderGen
+        category:
+          description: Category specifies the virtual machine category
+          type: array
+          items:
+            type: string
+          x-go-name: Category
         excludes:
           description: >-
             Excludes is a blacklist - a slice with vm types to be excluded from
@@ -864,6 +878,9 @@ components:
       description: VirtualMachine describes an instance type
       type: object
       properties:
+        Category:
+          description: Instance type category
+          type: string
         avgPrice:
           description: >-
             Average price of the instance (differs from on demand price in case
