@@ -26,21 +26,15 @@ type vmFilter func(vm recommender.VirtualMachine, req recommender.ClusterRecomme
 func (s *vmSelector) filtersForAttr(attr string, provider string, req recommender.ClusterRecommendationReq) ([]vmFilter, error) {
 	var filters []vmFilter
 	// generic filters - not depending on providers and attributes
-	if req.Includes == nil || len(req.Includes) == 0 {
-		s.log.Debug("no whitelist specified - all vm types are welcome")
-	} else {
+	if len(req.Includes) != 0 {
 		filters = append(filters, s.includesFilter)
 	}
 
-	if req.Excludes == nil || len(req.Excludes) == 0 {
-		s.log.Debug("no blacklist provided - all vm types are welcome")
-	} else {
+	if len(req.Excludes) != 0 {
 		filters = append(filters, s.excludesFilter)
 	}
 
-	if req.Category == nil || len(req.Category) == 0 {
-		s.log.Debug("no category specified - all vm types are welcome")
-	} else {
+	if len(req.Category) != 0 {
 		filters = append(filters, s.categoryFilter)
 	}
 
@@ -73,6 +67,7 @@ func (s *vmSelector) filtersForAttr(attr string, provider string, req recommende
 		return nil, emperror.With(errors.New("unsupported attribute"), "attribute", attr)
 	}
 
+	s.log.Debug("filters are successfully registered", map[string]interface{}{"numberOfFilters": len(filters)})
 	return filters, nil
 }
 
