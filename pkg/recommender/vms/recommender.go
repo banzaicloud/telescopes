@@ -41,7 +41,7 @@ func (s *vmSelector) RecommendVms(provider string, vms []recommender.VirtualMach
 	s.log = log
 	s.log.Info("recommending virtual machines", map[string]interface{}{"attribute": attr})
 
-	vmFilters, err := s.filtersForAttr(attr, provider)
+	vmFilters, err := s.filtersForAttr(attr, provider, req)
 	if err != nil {
 		return nil, nil, emperror.Wrap(err, "failed to identify filters")
 	}
