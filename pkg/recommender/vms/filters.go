@@ -38,6 +38,10 @@ func (s *vmSelector) filtersForAttr(attr string, provider string, req recommende
 		filters = append(filters, s.categoryFilter)
 	}
 
+	if len(req.Zones) != 0 {
+		filters = append(filters, s.zonesFilter)
+	}
+
 	// provider specific filters
 	switch provider {
 	case "amazon":
@@ -80,6 +84,18 @@ func (s *vmSelector) filtersApply(vm recommender.VirtualMachine, filters []vmFil
 		}
 	}
 	// no filters or applies
+	return true
+}
+
+func (s *vmSelector) zonesFilter(vm recommender.VirtualMachine, req recommender.ClusterRecommendationReq) bool {
+	if len(vm.Zones) != 0 {
+		for _, zone := range req.Zones {
+			if s.contains(vm.Zones, zone) {
+				return true
+			}
+		}
+		return false
+	}
 	return true
 }
 
