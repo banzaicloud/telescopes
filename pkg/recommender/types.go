@@ -188,4 +188,6 @@ type VirtualMachine struct {
 	NetworkPerfCat string `json:"networkPerfCategory"`
 	// CurrentGen the vm is of current generation
 	CurrentGen bool `json:"currentGen"`
+	// Zones
+	Zones []string `json:"zones"`
 }

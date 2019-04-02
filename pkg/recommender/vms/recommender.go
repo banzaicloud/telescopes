@@ -142,6 +142,7 @@ func (s *vmSelector) FindVmsWithAttrValues(provider string, service string, regi
 				NetworkPerf:    p.NtwPerf,
 				NetworkPerfCat: p.NtwPerfCat,
 				CurrentGen:     p.CurrentGen,
+				Zones:          p.Zones,
 			})
 		}
 	}
