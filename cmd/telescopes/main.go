@@ -35,8 +35,6 @@ import (
 	"github.com/banzaicloud/telescopes/internal/platform/buildinfo"
 	"github.com/banzaicloud/telescopes/internal/platform/log"
 	"github.com/banzaicloud/telescopes/pkg/recommender"
-	"github.com/banzaicloud/telescopes/pkg/recommender/nodepools"
-	"github.com/banzaicloud/telescopes/pkg/recommender/vms"
 	"github.com/gin-gonic/gin"
 	httptransport "github.com/go-openapi/runtime/client"
 	"github.com/go-openapi/strfmt"
@@ -85,17 +83,12 @@ func main() {
 
 	ciCli := recommender.NewCloudInfoClient(pc)
 
-	vmSelector := vms.NewVmSelector(logger, ciCli)
-	nodePoolSelector := nodepools.NewNodePoolSelector(logger, vmSelector)
-
-	engine := recommender.NewEngine(nodePoolSelector, logger)
-
 	// configure the gin validator
 	err = api.ConfigureValidator(ciCli)
 	emperror.Panic(err)
 
 	buildInfo := buildinfo.New(Version, CommitHash, BuildDate)
-	routeHandler := api.NewRouteHandler(engine, buildInfo, ciCli, logger)
+	routeHandler := api.NewRouteHandler(buildInfo, ciCli, logger)
 
 	// new default gin engine (recovery, logger middleware)
 	router := gin.Default()

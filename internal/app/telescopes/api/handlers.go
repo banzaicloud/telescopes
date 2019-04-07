@@ -21,6 +21,8 @@ import (
 	"github.com/banzaicloud/telescopes/internal/platform/errorresponse"
 	"github.com/banzaicloud/telescopes/internal/platform/log"
 	"github.com/banzaicloud/telescopes/pkg/recommender"
+	"github.com/banzaicloud/telescopes/pkg/recommender/nodepools"
+	"github.com/banzaicloud/telescopes/pkg/recommender/vms"
 	"github.com/gin-gonic/gin"
 	"github.com/goph/emperror"
 	"github.com/mitchellh/mapstructure"
@@ -70,7 +72,12 @@ func (r *RouteHandler) recommendClusterSetup() gin.HandlerFunc {
 			return
 		}
 
-		if response, err := r.engine.RecommendCluster(pathParams.Provider, pathParams.Service, pathParams.Region, req, nil, logger); err != nil {
+		vmSelector := vms.NewVmSelector(logger)
+		nodePoolSelector := nodepools.NewNodePoolSelector(logger)
+
+		engine := recommender.NewEngine(logger, vmSelector, nodePoolSelector, r.ciCli)
+
+		if response, err := engine.RecommendCluster(pathParams.Provider, pathParams.Service, pathParams.Region, req, nil); err != nil {
 			errorresponse.NewErrorResponder(c).Respond(err)
 			return
 		} else {
@@ -122,7 +129,12 @@ func (r *RouteHandler) recommendClusterScaleOut() gin.HandlerFunc {
 			return
 		}
 
-		if response, err := r.engine.RecommendClusterScaleOut(pathParams.Provider, pathParams.Service, pathParams.Region, req, logger); err != nil {
+		vmSelector := vms.NewVmSelector(logger)
+		nodePoolSelector := nodepools.NewNodePoolSelector(logger)
+
+		engine := recommender.NewEngine(logger, vmSelector, nodePoolSelector, r.ciCli)
+
+		if response, err := engine.RecommendClusterScaleOut(pathParams.Provider, pathParams.Service, pathParams.Region, req); err != nil {
 			errorresponse.NewErrorResponder(c).Respond(err)
 			return
 		} else {

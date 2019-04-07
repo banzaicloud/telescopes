@@ -25,20 +25,17 @@ import (
 )
 
 type vmSelector struct {
-	ciSource recommender.CloudInfoSource
-	log      logur.Logger
+	log logur.Logger
 }
 
-func NewVmSelector(log logur.Logger, ciSource recommender.CloudInfoSource) *vmSelector {
+func NewVmSelector(log logur.Logger) *vmSelector {
 	return &vmSelector{
-		ciSource: ciSource,
-		log:      log,
+		log: log,
 	}
 }
 
 // RecommendVms selects a slice of VirtualMachines for the given attribute and requirements in the request
-func (s *vmSelector) RecommendVms(provider string, vms []recommender.VirtualMachine, attr string, req recommender.ClusterRecommendationReq, layout []recommender.NodePool, log logur.Logger) ([]recommender.VirtualMachine, []recommender.VirtualMachine, error) {
-	s.log = log
+func (s *vmSelector) RecommendVms(provider string, vms []recommender.VirtualMachine, attr string, req recommender.ClusterRecommendationReq, layout []recommender.NodePool) ([]recommender.VirtualMachine, []recommender.VirtualMachine, error) {
 	s.log.Info("recommending virtual machines", map[string]interface{}{"attribute": attr})
 
 	vmFilters, err := s.filtersForAttr(attr, provider, req)
@@ -88,17 +85,12 @@ func (s *vmSelector) RecommendVms(provider string, vms []recommender.VirtualMach
 	return odVms, spotVms, nil
 }
 
-func (s *vmSelector) FindVmsWithAttrValues(provider string, service string, region string, attr string, req recommender.ClusterRecommendationReq, layoutDesc []recommender.NodePoolDesc) ([]recommender.VirtualMachine, error) {
+func (s *vmSelector) FindVmsWithAttrValues(attr string, req recommender.ClusterRecommendationReq, layoutDesc []recommender.NodePoolDesc, allProducts []*models.ProductDetails) ([]recommender.VirtualMachine, error) {
 	var (
 		vms    []recommender.VirtualMachine
 		values []float64
 		err    error
 	)
-
-	allProducts, err := s.ciSource.GetProductDetails(provider, service, region)
-	if err != nil {
-		return nil, err
-	}
 
 	if layoutDesc == nil {
 		values, err = s.recommendAttrValues(allProducts, attr, req)
@@ -117,12 +109,10 @@ func (s *vmSelector) FindVmsWithAttrValues(provider string, service string, regi
 				case recommender.Cpu:
 					if p.Cpus == v {
 						included = true
-						continue
 					}
 				case recommender.Memory:
 					if p.Mem == v {
 						included = true
-						continue
 					}
 				default:
 					return nil, errors.New("unsupported attribute")

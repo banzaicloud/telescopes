@@ -154,8 +154,8 @@ func TestVmSelector_RecommendVms(t *testing.T) {
 	}
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
-			selector := NewVmSelector(logur.NewTestLogger(), nil)
-			test.check(selector.RecommendVms("google", vms, test.attribute, test.request, nil, logur.NewTestLogger()))
+			selector := NewVmSelector(logur.NewTestLogger())
+			test.check(selector.RecommendVms("google", vms, test.attribute, test.request, nil))
 		})
 	}
 }
@@ -187,7 +187,7 @@ func TestVmSelector_recommendAttrValues(t *testing.T) {
 	}
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
-			selector := NewVmSelector(logur.NewTestLogger(), nil)
+			selector := NewVmSelector(logur.NewTestLogger())
 			test.check(selector.recommendAttrValues(productDetails, test.attribute, test.request))
 		})
 	}

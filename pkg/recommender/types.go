@@ -15,7 +15,7 @@
 package recommender
 
 import (
-	"github.com/goph/logur"
+	"github.com/banzaicloud/cloudinfo/pkg/cloudinfo-client/models"
 )
 
 const (
@@ -35,20 +35,20 @@ const (
 type ClusterRecommender interface {
 
 	// RecommendCluster performs recommendation based on the provided arguments
-	RecommendCluster(provider string, service string, region string, req ClusterRecommendationReq, layoutDesc []NodePoolDesc, log logur.Logger) (*ClusterRecommendationResp, error)
+	RecommendCluster(provider string, service string, region string, req ClusterRecommendationReq, layoutDesc []NodePoolDesc) (*ClusterRecommendationResp, error)
 
 	// RecommendClusterScaleOut performs recommendation for an existing layout's scale out
-	RecommendClusterScaleOut(provider string, service string, region string, req ClusterScaleoutRecommendationReq, log logur.Logger) (*ClusterRecommendationResp, error)
+	RecommendClusterScaleOut(provider string, service string, region string, req ClusterScaleoutRecommendationReq) (*ClusterRecommendationResp, error)
 }
 
 type VmRecommender interface {
-	RecommendVms(provider string, vms []VirtualMachine, attr string, req ClusterRecommendationReq, layout []NodePool, log logur.Logger) ([]VirtualMachine, []VirtualMachine, error)
+	RecommendVms(provider string, vms []VirtualMachine, attr string, req ClusterRecommendationReq, layout []NodePool) ([]VirtualMachine, []VirtualMachine, error)
 
-	FindVmsWithAttrValues(provider string, service string, region string, attr string, req ClusterRecommendationReq, layoutDesc []NodePoolDesc) ([]VirtualMachine, error)
+	FindVmsWithAttrValues(attr string, req ClusterRecommendationReq, layoutDesc []NodePoolDesc, allProducts []*models.ProductDetails) ([]VirtualMachine, error)
 }
 
 type NodePoolRecommender interface {
-	RecommendNodePools(provider, service, region string, req ClusterRecommendationReq, log logur.Logger, layoutDesc []NodePoolDesc) (map[string][]NodePool, error)
+	RecommendNodePools(attr string, req ClusterRecommendationReq, layout []NodePool, odVms []VirtualMachine, spotVms []VirtualMachine) []NodePool
 }
 
 // ClusterRecommendationReq encapsulates the recommendation input data

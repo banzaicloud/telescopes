@@ -47,6 +47,9 @@ type VirtualMachine struct {
 
 	// Instance type
 	Type string `json:"type,omitempty"`
+
+	// Zones
+	Zones []string `json:"zones"`
 }
 
 // Validate validates this virtual machine

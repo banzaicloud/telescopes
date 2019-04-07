@@ -20,89 +20,21 @@ import (
 	"sort"
 
 	"github.com/banzaicloud/telescopes/pkg/recommender"
-	"github.com/goph/emperror"
 	"github.com/goph/logur"
-	"github.com/pkg/errors"
 )
 
 type nodePoolSelector struct {
-	vms recommender.VmRecommender
 	log logur.Logger
 }
 
-func NewNodePoolSelector(log logur.Logger, vms recommender.VmRecommender) *nodePoolSelector {
+func NewNodePoolSelector(log logur.Logger) *nodePoolSelector {
 	return &nodePoolSelector{
-		vms: vms,
 		log: log,
 	}
 }
 
 // RecommendNodePools finds the slice of NodePools that may participate in the recommendation process
-func (s *nodePoolSelector) RecommendNodePools(provider, service, region string, req recommender.ClusterRecommendationReq, log logur.Logger, layoutDesc []recommender.NodePoolDesc) (map[string][]recommender.NodePool, error) {
-	s.log = log
-
-	desiredCpu := req.SumCpu
-	desiredMem := req.SumMem
-	desiredOdPct := req.OnDemandPct
-
-	attributes := []string{recommender.Cpu, recommender.Memory}
-	nodePools := make(map[string][]recommender.NodePool, 2)
-
-	for _, attr := range attributes {
-		//todo add request validation for interdependent request fields, eg: onDemandPct is always 100 when spot
-		// instances are not available for provider
-		if provider == "oracle" {
-			s.log.Warn("onDemand percentage in the request ignored")
-			req.OnDemandPct = 100
-		}
-
-		vmsInRange, err := s.vms.FindVmsWithAttrValues(provider, service, region, attr, req, layoutDesc)
-		if err != nil {
-			return nil, emperror.With(err, recommender.RecommenderErrorTag, "vms")
-		}
-
-		layout := s.transformLayout(layoutDesc, vmsInRange)
-		if layout != nil {
-			req.SumCpu, req.SumMem, req.OnDemandPct, err = s.computeScaleoutResources(layout, attr, desiredCpu, desiredMem, desiredOdPct)
-			if err != nil {
-				s.log.Error(emperror.Wrap(err, "failed to compute scaleout resources").Error())
-				continue
-			}
-			if req.SumCpu < 0 && req.SumMem < 0 {
-				return nil, emperror.With(fmt.Errorf("there's already enough resources in the cluster. Total resources available: CPU: %v, Mem: %v", desiredCpu-req.SumCpu, desiredMem-req.SumMem))
-			}
-		}
-
-		odVms, spotVms, err := s.vms.RecommendVms(provider, vmsInRange, attr, req, layout, log)
-		if err != nil {
-			return nil, emperror.Wrap(err, "failed to recommend virtual machines")
-		}
-
-		if (len(odVms) == 0 && req.OnDemandPct > 0) || (len(spotVms) == 0 && req.OnDemandPct < 100) {
-			s.log.Debug("no vms with the requested resources found", map[string]interface{}{"attribute": attr})
-			// skip the nodepool creation, go to the next attr
-			continue
-		}
-		s.log.Debug("recommended on-demand vms", map[string]interface{}{"attribute": attr, "count": len(odVms), "values": odVms})
-		s.log.Debug("recommended spot vms", map[string]interface{}{"attribute": attr, "count": len(odVms), "values": odVms})
-
-		nps := s.recommendNodePoolForAttr(attr, req, layout, odVms, spotVms)
-
-		s.log.Debug(fmt.Sprintf("recommended node pools for [%s]: count:[%d] , values: [%#v]", attr, len(nps), nps))
-
-		nodePools[attr] = nps
-
-	}
-
-	if len(nodePools) == 0 {
-		s.log.Debug(fmt.Sprintf("could not recommend node pools for request: %v", req))
-		return nil, emperror.With(errors.New("could not recommend cluster with the requested resources"), recommender.RecommenderErrorTag)
-	}
-
-	return nodePools, nil
-}
-
-func (s *nodePoolSelector) recommendNodePoolForAttr(attr string, req recommender.ClusterRecommendationReq, layout []recommender.NodePool, odVms []recommender.VirtualMachine, spotVms []recommender.VirtualMachine) []recommender.NodePool {
+func (s *nodePoolSelector) RecommendNodePools(attr string, req recommender.ClusterRecommendationReq, layout []recommender.NodePool, odVms []recommender.VirtualMachine, spotVms []recommender.VirtualMachine) []recommender.NodePool {
 	s.log.Debug(fmt.Sprintf("requested sum for attribute [%s]: [%f]", attr, sum(req, attr)))
 	var sumOnDemandValue = sum(req, attr) * float64(req.OnDemandPct) / 100
 	s.log.Debug(fmt.Sprintf("on demand sum value for attr [%s]: [%f]", attr, sumOnDemandValue))
@@ -352,87 +284,4 @@ func avgSpotNodeCount(minNodes, maxNodes, odNodes int) int {
 // getNextSum gets the total value if the pool was increased by one
 func getNextSum(n recommender.NodePool, attr string) float64 {
 	return recommender.GetSum(n, attr) + recommender.GetAttrValue(n.VmType, attr)
-}
-
-func (s *nodePoolSelector) transformLayout(layoutDesc []recommender.NodePoolDesc, vms []recommender.VirtualMachine) []recommender.NodePool {
-	if layoutDesc == nil {
-		return nil
-	}
-	nps := make([]recommender.NodePool, len(layoutDesc))
-	for i, npd := range layoutDesc {
-		for _, vm := range vms {
-			if vm.Type == npd.InstanceType {
-				nps[i] = recommender.NodePool{
-					VmType:   vm,
-					VmClass:  getVmClass(npd),
-					SumNodes: npd.SumNodes,
-				}
-				break
-			}
-		}
-	}
-	return nps
-}
-
-func getVmClass(n recommender.NodePoolDesc) string {
-	switch n.VmClass {
-	case recommender.Regular, recommender.Spot:
-		return n.VmClass
-	case recommender.Ondemand:
-		return recommender.Regular
-	default:
-		return recommender.Spot
-	}
-}
-
-func (s *nodePoolSelector) computeScaleoutResources(layout []recommender.NodePool, attr string, desiredCpu, desiredMem float64, desiredOdPct int) (float64, float64, int, error) {
-	var currentCpuTotal, currentMemTotal, sumCurrentOdCpu, sumCurrentOdMem float64
-	var scaleoutOdPct int
-	for _, np := range layout {
-		if np.VmClass == recommender.Regular {
-			sumCurrentOdCpu += float64(np.SumNodes) * np.VmType.Cpus
-			sumCurrentOdMem += float64(np.SumNodes) * np.VmType.Mem
-		}
-		currentCpuTotal += float64(np.SumNodes) * np.VmType.Cpus
-		currentMemTotal += float64(np.SumNodes) * np.VmType.Mem
-	}
-
-	scaleoutCpu := desiredCpu - currentCpuTotal
-	scaleoutMem := desiredMem - currentMemTotal
-
-	if scaleoutCpu < 0 && scaleoutMem < 0 {
-		return scaleoutCpu, scaleoutMem, 0, nil
-	}
-
-	s.log.Debug(fmt.Sprintf("desiredCpu: %v, desiredMem: %v, currentCpuTotal/currentCpuOnDemand: %v/%v, currentMemTotal/currentMemOnDemand: %v/%v", desiredCpu, desiredMem, currentCpuTotal, sumCurrentOdCpu, currentMemTotal, sumCurrentOdMem))
-	s.log.Debug(fmt.Sprintf("total scaleout cpu/mem needed: %v/%v", scaleoutCpu, scaleoutMem))
-	s.log.Debug(fmt.Sprintf("desired on-demand percentage: %v", desiredOdPct))
-
-	switch attr {
-	case recommender.Cpu:
-		if scaleoutCpu < 0 {
-			return 0, 0, 0, errors.New("there's already enough CPU resources in the cluster")
-		}
-		desiredOdCpu := desiredCpu * float64(desiredOdPct) / 100
-		scaleoutOdCpu := desiredOdCpu - sumCurrentOdCpu
-		scaleoutOdPct = int(scaleoutOdCpu / scaleoutCpu * 100)
-		s.log.Debug(fmt.Sprintf("desired on-demand cpu: %v, cpu to add with the scaleout: %v", desiredOdCpu, scaleoutOdCpu))
-	case recommender.Memory:
-		if scaleoutMem < 0 {
-			return 0, 0, 0, emperror.With(errors.New("there's already enough memory resources in the cluster"))
-		}
-		desiredOdMem := desiredMem * float64(desiredOdPct) / 100
-		scaleoutOdMem := desiredOdMem - sumCurrentOdMem
-		s.log.Debug(fmt.Sprintf("desired on-demand memory: %v, memory to add with the scaleout: %v", desiredOdMem, scaleoutOdMem))
-		scaleoutOdPct = int(scaleoutOdMem / scaleoutMem * 100)
-	}
-	if scaleoutOdPct > 100 {
-		// even if we add only on-demand instances, we still we can't reach the minimum ratio
-		return 0, 0, 0, emperror.With(errors.New("couldn't scale out cluster with the provided parameters"), "onDemandPct", desiredOdPct)
-	} else if scaleoutOdPct < 0 {
-		// means that we already have enough resources in the cluster to keep the minimum ratio
-		scaleoutOdPct = 0
-	}
-	s.log.Debug(fmt.Sprintf("percentage of on-demand resources in the scaleout: %v", scaleoutOdPct))
-	return scaleoutCpu, scaleoutMem, scaleoutOdPct, nil
 }

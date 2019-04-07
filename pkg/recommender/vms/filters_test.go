@@ -87,7 +87,7 @@ func TestVmSelector_filtersApply(t *testing.T) {
 	}
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
-			selector := NewVmSelector(logur.NewTestLogger(), nil)
+			selector := NewVmSelector(logur.NewTestLogger())
 			vmFilter, _ := selector.filtersForAttr(test.attr, test.provider, test.req)
 			test.check(selector.filtersApply(test.vm, vmFilter, test.req))
 		})
@@ -127,7 +127,7 @@ func TestVmSelector_minCpuRatioFilter(t *testing.T) {
 	}
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
-			selector := NewVmSelector(logur.NewTestLogger(), nil)
+			selector := NewVmSelector(logur.NewTestLogger())
 			test.check(selector.minCpuRatioFilter(test.vm, test.req))
 		})
 	}
@@ -166,7 +166,7 @@ func TestVmSelector_minMemRatioFilter(t *testing.T) {
 	}
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
-			selector := NewVmSelector(logur.NewTestLogger(), nil)
+			selector := NewVmSelector(logur.NewTestLogger())
 			test.check(selector.minMemRatioFilter(test.vm, test.req))
 		})
 	}
@@ -189,7 +189,7 @@ func TestVmSelector_burstFilter(t *testing.T) {
 	}
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
-			selector := NewVmSelector(logur.NewTestLogger(), nil)
+			selector := NewVmSelector(logur.NewTestLogger())
 			test.check(selector.burstFilter(test.vm, recommender.ClusterRecommendationReq{}))
 		})
 	}
@@ -251,7 +251,7 @@ func TestVmSelector_excludesFilter(t *testing.T) {
 	}
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
-			selector := NewVmSelector(logur.NewTestLogger(), nil)
+			selector := NewVmSelector(logur.NewTestLogger())
 			test.check(selector.excludesFilter(test.vm, test.req))
 		})
 	}
@@ -291,7 +291,7 @@ func TestVmSelector_includesFilter(t *testing.T) {
 	}
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
-			selector := NewVmSelector(logur.NewTestLogger(), nil)
+			selector := NewVmSelector(logur.NewTestLogger())
 			test.check(selector.includesFilter(test.vm, test.req))
 		})
 	}
@@ -324,7 +324,7 @@ func TestVmSelector_filterSpots(t *testing.T) {
 	}
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
-			selector := NewVmSelector(logur.NewTestLogger(), nil)
+			selector := NewVmSelector(logur.NewTestLogger())
 			test.check(selector.filterSpots(test.vms))
 		})
 	}
@@ -371,7 +371,7 @@ func TestVmSelector_ntwPerformanceFilter(t *testing.T) {
 	}
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
-			selector := NewVmSelector(logur.NewTestLogger(), nil)
+			selector := NewVmSelector(logur.NewTestLogger())
 			test.check(selector.ntwPerformanceFilter(test.vm, test.req))
 		})
 	}
@@ -406,7 +406,7 @@ func TestVmSelector_currentGenFilter(t *testing.T) {
 	}
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
-			selector := NewVmSelector(logur.NewTestLogger(), nil)
+			selector := NewVmSelector(logur.NewTestLogger())
 			test.check(selector.currentGenFilter(test.vm, recommender.ClusterRecommendationReq{}))
 		})
 	}

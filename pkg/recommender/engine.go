@@ -18,32 +18,100 @@ import (
 	"fmt"
 	"math"
 
+	"github.com/goph/emperror"
 	"github.com/goph/logur"
+	"github.com/pkg/errors"
 )
 
 // Engine represents the recommendation engine, it operates on a map of provider -> VmRegistry
 type Engine struct {
-	np  NodePoolRecommender
-	log logur.Logger
+	log      logur.Logger
+	vms      VmRecommender
+	np       NodePoolRecommender
+	ciSource CloudInfoSource
 }
 
 // NewEngine creates a new Engine instance
-func NewEngine(nodePools NodePoolRecommender, log logur.Logger) *Engine {
+func NewEngine(log logur.Logger, vms VmRecommender, nodePools NodePoolRecommender, ciSource CloudInfoSource) *Engine {
 	return &Engine{
-		np:  nodePools,
-		log: log,
+		log:      log,
+		vms:      vms,
+		np:       nodePools,
+		ciSource: ciSource,
 	}
 }
 
 // RecommendCluster performs recommendation based on the provided arguments
-func (e *Engine) RecommendCluster(provider string, service string, region string, req ClusterRecommendationReq, layoutDesc []NodePoolDesc, log logur.Logger) (*ClusterRecommendationResp, error) {
-	e.log = log
-
+func (e *Engine) RecommendCluster(provider string, service string, region string, req ClusterRecommendationReq, layoutDesc []NodePoolDesc) (*ClusterRecommendationResp, error) {
 	e.log.Info(fmt.Sprintf("recommending cluster configuration. request: [%#v]", req))
 
-	nodePools, err := e.np.RecommendNodePools(provider, service, region, req, log, layoutDesc)
+	desiredCpu := req.SumCpu
+	desiredMem := req.SumMem
+	desiredOdPct := req.OnDemandPct
+
+	attributes := []string{Cpu, Memory}
+	nodePools := make(map[string][]NodePool, 2)
+
+	allProducts, err := e.ciSource.GetProductDetails(provider, service, region)
 	if err != nil {
 		return nil, err
+	}
+
+	if req.OnDemandPct != 100 {
+		availableSpotPrice := false
+		for _, vm := range allProducts {
+			if vm.SpotPrice != nil {
+				availableSpotPrice = true
+				break
+			}
+		}
+		if !availableSpotPrice {
+			e.log.Warn("onDemand percentage in the request ignored")
+			req.OnDemandPct = 100
+		}
+	}
+
+	for _, attr := range attributes {
+		vmsInRange, err := e.vms.FindVmsWithAttrValues(attr, req, layoutDesc, allProducts)
+		if err != nil {
+			return nil, emperror.With(err, RecommenderErrorTag, "vms")
+		}
+
+		layout := e.transformLayout(layoutDesc, vmsInRange)
+		if layout != nil {
+			req.SumCpu, req.SumMem, req.OnDemandPct, err = e.computeScaleoutResources(layout, attr, desiredCpu, desiredMem, desiredOdPct)
+			if err != nil {
+				e.log.Error(emperror.Wrap(err, "failed to compute scaleout resources").Error())
+				continue
+			}
+			if req.SumCpu < 0 && req.SumMem < 0 {
+				return nil, emperror.With(fmt.Errorf("there's already enough resources in the cluster. Total resources available: CPU: %v, Mem: %v", desiredCpu-req.SumCpu, desiredMem-req.SumMem))
+			}
+		}
+
+		odVms, spotVms, err := e.vms.RecommendVms(provider, vmsInRange, attr, req, layout)
+		if err != nil {
+			return nil, emperror.Wrap(err, "failed to recommend virtual machines")
+		}
+
+		if (len(odVms) == 0 && req.OnDemandPct > 0) || (len(spotVms) == 0 && req.OnDemandPct < 100) {
+			e.log.Debug("no vms with the requested resources found", map[string]interface{}{"attribute": attr})
+			// skip the nodepool creation, go to the next attr
+			continue
+		}
+		e.log.Debug("recommended on-demand vms", map[string]interface{}{"attribute": attr, "count": len(odVms), "values": odVms})
+		e.log.Debug("recommended spot vms", map[string]interface{}{"attribute": attr, "count": len(odVms), "values": odVms})
+
+		nps := e.np.RecommendNodePools(attr, req, layout, odVms, spotVms)
+
+		e.log.Debug(fmt.Sprintf("recommended node pools for [%s]: count:[%d] , values: [%#v]", attr, len(nps), nps))
+
+		nodePools[attr] = nps
+	}
+
+	if len(nodePools) == 0 {
+		e.log.Debug(fmt.Sprintf("could not recommend node pools for request: %v", req))
+		return nil, emperror.With(errors.New("could not recommend cluster with the requested resources"), RecommenderErrorTag)
 	}
 
 	cheapestNodePoolSet := e.findCheapestNodePoolSet(nodePools)
@@ -61,8 +129,8 @@ func (e *Engine) RecommendCluster(provider string, service string, region string
 }
 
 // RecommendClusterScaleOut performs recommendation for an existing layout's scale out
-func (e *Engine) RecommendClusterScaleOut(provider string, service string, region string, req ClusterScaleoutRecommendationReq, log logur.Logger) (*ClusterRecommendationResp, error) {
-	log.Info(fmt.Sprintf("recommending cluster configuration. request: [%#v]", req))
+func (e *Engine) RecommendClusterScaleOut(provider string, service string, region string, req ClusterScaleoutRecommendationReq) (*ClusterRecommendationResp, error) {
+	e.log.Info(fmt.Sprintf("recommending cluster configuration. request: [%#v]", req))
 
 	includes := make([]string, len(req.ActualLayout))
 	for i, npd := range req.ActualLayout {
@@ -85,7 +153,7 @@ func (e *Engine) RecommendClusterScaleOut(provider string, service string, regio
 		SumGpu:        req.DesiredGpu,
 	}
 
-	return e.RecommendCluster(provider, service, region, clReq, req.ActualLayout, log)
+	return e.RecommendCluster(provider, service, region, clReq, req.ActualLayout)
 }
 
 func boolPointer(b bool) *bool {
@@ -182,4 +250,87 @@ func (n *NodePool) poolPrice() float64 {
 		sum = float64(n.SumNodes) * n.VmType.AvgPrice
 	}
 	return sum
+}
+
+func (e *Engine) transformLayout(layoutDesc []NodePoolDesc, vms []VirtualMachine) []NodePool {
+	if layoutDesc == nil {
+		return nil
+	}
+	nps := make([]NodePool, len(layoutDesc))
+	for i, npd := range layoutDesc {
+		for _, vm := range vms {
+			if vm.Type == npd.InstanceType {
+				nps[i] = NodePool{
+					VmType:   vm,
+					VmClass:  getVmClass(npd.VmClass),
+					SumNodes: npd.SumNodes,
+				}
+				break
+			}
+		}
+	}
+	return nps
+}
+
+func getVmClass(vmClass string) string {
+	switch vmClass {
+	case Regular, Spot:
+		return vmClass
+	case Ondemand:
+		return Regular
+	default:
+		return Spot
+	}
+}
+
+func (e *Engine) computeScaleoutResources(layout []NodePool, attr string, desiredCpu, desiredMem float64, desiredOdPct int) (float64, float64, int, error) {
+	var currentCpuTotal, currentMemTotal, sumCurrentOdCpu, sumCurrentOdMem float64
+	var scaleoutOdPct int
+	for _, np := range layout {
+		if np.VmClass == Regular {
+			sumCurrentOdCpu += float64(np.SumNodes) * np.VmType.Cpus
+			sumCurrentOdMem += float64(np.SumNodes) * np.VmType.Mem
+		}
+		currentCpuTotal += float64(np.SumNodes) * np.VmType.Cpus
+		currentMemTotal += float64(np.SumNodes) * np.VmType.Mem
+	}
+
+	scaleoutCpu := desiredCpu - currentCpuTotal
+	scaleoutMem := desiredMem - currentMemTotal
+
+	if scaleoutCpu < 0 && scaleoutMem < 0 {
+		return scaleoutCpu, scaleoutMem, 0, nil
+	}
+
+	e.log.Debug(fmt.Sprintf("desiredCpu: %v, desiredMem: %v, currentCpuTotal/currentCpuOnDemand: %v/%v, currentMemTotal/currentMemOnDemand: %v/%v", desiredCpu, desiredMem, currentCpuTotal, sumCurrentOdCpu, currentMemTotal, sumCurrentOdMem))
+	e.log.Debug(fmt.Sprintf("total scaleout cpu/mem needed: %v/%v", scaleoutCpu, scaleoutMem))
+	e.log.Debug(fmt.Sprintf("desired on-demand percentage: %v", desiredOdPct))
+
+	switch attr {
+	case Cpu:
+		if scaleoutCpu < 0 {
+			return 0, 0, 0, errors.New("there's already enough CPU resources in the cluster")
+		}
+		desiredOdCpu := desiredCpu * float64(desiredOdPct) / 100
+		scaleoutOdCpu := desiredOdCpu - sumCurrentOdCpu
+		scaleoutOdPct = int(scaleoutOdCpu / scaleoutCpu * 100)
+		e.log.Debug(fmt.Sprintf("desired on-demand cpu: %v, cpu to add with the scaleout: %v", desiredOdCpu, scaleoutOdCpu))
+	case Memory:
+		if scaleoutMem < 0 {
+			return 0, 0, 0, emperror.With(errors.New("there's already enough memory resources in the cluster"))
+		}
+		desiredOdMem := desiredMem * float64(desiredOdPct) / 100
+		scaleoutOdMem := desiredOdMem - sumCurrentOdMem
+		e.log.Debug(fmt.Sprintf("desired on-demand memory: %v, memory to add with the scaleout: %v", desiredOdMem, scaleoutOdMem))
+		scaleoutOdPct = int(scaleoutOdMem / scaleoutMem * 100)
+	}
+	if scaleoutOdPct > 100 {
+		// even if we add only on-demand instances, we still we can't reach the minimum ratio
+		return 0, 0, 0, emperror.With(errors.New("couldn't scale out cluster with the provided parameters"), "onDemandPct", desiredOdPct)
+	} else if scaleoutOdPct < 0 {
+		// means that we already have enough resources in the cluster to keep the minimum ratio
+		scaleoutOdPct = 0
+	}
+	e.log.Debug(fmt.Sprintf("percentage of on-demand resources in the scaleout: %v", scaleoutOdPct))
+	return scaleoutCpu, scaleoutMem, scaleoutOdPct, nil
 }
