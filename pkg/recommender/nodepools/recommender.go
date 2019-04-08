@@ -54,11 +54,11 @@ func (s *nodePoolSelector) RecommendNodePools(attr string, req recommender.Clust
 		// find cheapest onDemand instance from the list - based on price per attribute
 		selectedOnDemand := odVms[0]
 		for _, vm := range odVms {
-			if vm.OnDemandPrice/recommender.GetAttrValue(vm, attr) < selectedOnDemand.OnDemandPrice/recommender.GetAttrValue(selectedOnDemand, attr) {
+			if vm.OnDemandPrice/vm.GetAttrValue(attr) < selectedOnDemand.OnDemandPrice/selectedOnDemand.GetAttrValue(attr) {
 				selectedOnDemand = vm
 			}
 		}
-		odNodesToAdd = int(math.Ceil(sumOnDemandValue / recommender.GetAttrValue(selectedOnDemand, attr)))
+		odNodesToAdd = int(math.Ceil(sumOnDemandValue / selectedOnDemand.GetAttrValue(attr)))
 		if layout == nil {
 			odNps = append(odNps, recommender.NodePool{
 				SumNodes: odNodesToAdd,
@@ -72,7 +72,7 @@ func (s *nodePoolSelector) RecommendNodePools(attr string, req recommender.Clust
 				}
 			}
 		}
-		actualOnDemandResources = recommender.GetAttrValue(selectedOnDemand, attr) * float64(odNodesToAdd)
+		actualOnDemandResources = selectedOnDemand.GetAttrValue(attr) * float64(odNodesToAdd)
 	}
 
 	// recalculate required spot resources by taking actual on-demand resources into account
@@ -210,7 +210,7 @@ func (s *nodePoolSelector) fillSpotNodePools(sumSpotValue float64, N int, nps []
 		idx, minIndex             int
 	)
 	for i := 0; i < N; i++ {
-		v := float64(nps[i].SumNodes) * recommender.GetAttrValue(nps[i].VmType, attr)
+		v := float64(nps[i].SumNodes) * nps[i].VmType.GetAttrValue(attr)
 		sumValueInPools += v
 		if i == 0 {
 			minValue = v
@@ -227,17 +227,17 @@ func (s *nodePoolSelector) fillSpotNodePools(sumSpotValue float64, N int, nps []
 		if nodePoolIdx == minIndex {
 			// always add a new instance to the option with the lowest attribute value to balance attributes and move on
 			nps[nodePoolIdx].SumNodes += 1
-			sumValueInPools += recommender.GetAttrValue(nps[nodePoolIdx].VmType, attr)
+			sumValueInPools += nps[nodePoolIdx].VmType.GetAttrValue(attr)
 			s.log.Debug(fmt.Sprintf("adding vm to the [%d]th (min sized) node pool, sum value in pools: [%f]", nodePoolIdx, sumValueInPools))
 			idx++
-		} else if getNextSum(nps[nodePoolIdx], attr) > recommender.GetSum(nps[minIndex], attr) {
+		} else if getNextSum(nps[nodePoolIdx], attr) > nps[minIndex].GetSum(attr) {
 			// for other pools, if adding another vm would exceed the current sum of the cheapest option, move on to the next one
 			s.log.Debug(fmt.Sprintf("skip adding vm to the [%d]th node pool", nodePoolIdx))
 			idx++
 		} else {
 			// otherwise add a new one, but do not move on to the next one
 			nps[nodePoolIdx].SumNodes += 1
-			sumValueInPools += recommender.GetAttrValue(nps[nodePoolIdx].VmType, attr)
+			sumValueInPools += nps[nodePoolIdx].VmType.GetAttrValue(attr)
 			s.log.Debug(fmt.Sprintf("adding vm to the [%d]th node pool, sum value in pools: [%f]", nodePoolIdx, sumValueInPools))
 		}
 	}
@@ -283,5 +283,5 @@ func avgSpotNodeCount(minNodes, maxNodes, odNodes int) int {
 
 // getNextSum gets the total value if the pool was increased by one
 func getNextSum(n recommender.NodePool, attr string) float64 {
-	return recommender.GetSum(n, attr) + recommender.GetAttrValue(n.VmType, attr)
+	return n.GetSum(attr) + n.VmType.GetAttrValue(attr)
 }

@@ -17,7 +17,6 @@ package vms
 import (
 	"fmt"
 
-	"github.com/banzaicloud/cloudinfo/pkg/cloudinfo-client/models"
 	"github.com/banzaicloud/telescopes/pkg/recommender"
 	"github.com/goph/emperror"
 	"github.com/goph/logur"
@@ -85,7 +84,7 @@ func (s *vmSelector) RecommendVms(provider string, vms []recommender.VirtualMach
 	return odVms, spotVms, nil
 }
 
-func (s *vmSelector) FindVmsWithAttrValues(attr string, req recommender.ClusterRecommendationReq, layoutDesc []recommender.NodePoolDesc, allProducts []*models.ProductDetails) ([]recommender.VirtualMachine, error) {
+func (s *vmSelector) FindVmsWithAttrValues(attr string, req recommender.ClusterRecommendationReq, layoutDesc []recommender.NodePoolDesc, allProducts []recommender.VirtualMachine) ([]recommender.VirtualMachine, error) {
 	var (
 		vms    []recommender.VirtualMachine
 		values []float64
@@ -120,20 +119,7 @@ func (s *vmSelector) FindVmsWithAttrValues(attr string, req recommender.ClusterR
 			}
 		}
 		if included {
-			vms = append(vms, recommender.VirtualMachine{
-				Category:       p.Category,
-				Type:           p.Type,
-				OnDemandPrice:  p.OnDemandPrice,
-				AvgPrice:       avg(p.SpotPrice),
-				Cpus:           p.Cpus,
-				Mem:            p.Mem,
-				Gpus:           p.Gpus,
-				Burst:          p.Burst,
-				NetworkPerf:    p.NtwPerf,
-				NetworkPerfCat: p.NtwPerfCat,
-				CurrentGen:     p.CurrentGen,
-				Zones:          p.Zones,
-			})
+			vms = append(vms, p)
 		}
 	}
 
@@ -142,7 +128,7 @@ func (s *vmSelector) FindVmsWithAttrValues(attr string, req recommender.ClusterR
 }
 
 // recommendAttrValues selects the attribute values allowed to participate in the recommendation process
-func (s *vmSelector) recommendAttrValues(allProducts []*models.ProductDetails, attr string, req recommender.ClusterRecommendationReq) ([]float64, error) {
+func (s *vmSelector) recommendAttrValues(allProducts []recommender.VirtualMachine, attr string, req recommender.ClusterRecommendationReq) ([]float64, error) {
 
 	allValues := make([]float64, 0)
 	valueSet := make(map[float64]interface{})
@@ -190,15 +176,4 @@ func minValuePerVm(req recommender.ClusterRecommendationReq, attr string) float6
 	default:
 		return 0
 	}
-}
-
-func avg(prices []*models.ZonePrice) float64 {
-	if len(prices) == 0 {
-		return 0.0
-	}
-	avgPrice := 0.0
-	for _, price := range prices {
-		avgPrice += price.Price
-	}
-	return avgPrice / float64(len(prices))
 }

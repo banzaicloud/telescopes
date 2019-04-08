@@ -28,7 +28,7 @@ import (
 // CloudInfoSource declares operations for retrieving information required for the recommender engine
 type CloudInfoSource interface {
 	// GetProductDetails retrieves the product details for the provider and region
-	GetProductDetails(provider string, service string, region string) ([]*models.ProductDetails, error)
+	GetProductDetails(provider string, service string, region string) ([]VirtualMachine, error)
 }
 
 // CloudInfoClient application struct to retrieve data for the recommender; wraps the generated product info client
@@ -48,14 +48,45 @@ func NewCloudInfoClient(pic *client.Cloudinfo) *CloudInfoClient {
 }
 
 // GetProductDetails gets the available product details from the provider in the region
-func (ciCli *CloudInfoClient) GetProductDetails(provider string, service string, region string) ([]*models.ProductDetails, error) {
+func (ciCli *CloudInfoClient) GetProductDetails(provider string, service string, region string) ([]VirtualMachine, error) {
 	gpdp := products.NewGetProductsParams().WithRegion(region).WithProvider(provider).WithService(service)
 
 	allProducts, err := ciCli.Products.GetProducts(gpdp)
 	if err != nil {
 		return nil, discriminateErrCtx(err)
 	}
-	return allProducts.Payload.Products, nil
+
+	var vms []VirtualMachine
+
+	for _, p := range allProducts.Payload.Products {
+		vms = append(vms, VirtualMachine{
+			Category:       p.Category,
+			Type:           p.Type,
+			OnDemandPrice:  p.OnDemandPrice,
+			AvgPrice:       avg(p.SpotPrice),
+			Cpus:           p.Cpus,
+			Mem:            p.Mem,
+			Gpus:           p.Gpus,
+			Burst:          p.Burst,
+			NetworkPerf:    p.NtwPerf,
+			NetworkPerfCat: p.NtwPerfCat,
+			CurrentGen:     p.CurrentGen,
+			Zones:          p.Zones,
+		})
+	}
+
+	return vms, nil
+}
+
+func avg(prices []*models.ZonePrice) float64 {
+	if len(prices) == 0 {
+		return 0.0
+	}
+	avgPrice := 0.0
+	for _, price := range prices {
+		avgPrice += price.Price
+	}
+	return avgPrice / float64(len(prices))
 }
 
 // GetProvider validates provider

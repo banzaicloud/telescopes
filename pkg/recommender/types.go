@@ -14,10 +14,6 @@
 
 package recommender
 
-import (
-	"github.com/banzaicloud/cloudinfo/pkg/cloudinfo-client/models"
-)
-
 const (
 	// vm types - regular and ondemand means the same, they are both accepted on the API
 	Regular  = "regular"
@@ -44,7 +40,7 @@ type ClusterRecommender interface {
 type VmRecommender interface {
 	RecommendVms(provider string, vms []VirtualMachine, attr string, req ClusterRecommendationReq, layout []NodePool) ([]VirtualMachine, []VirtualMachine, error)
 
-	FindVmsWithAttrValues(attr string, req ClusterRecommendationReq, layoutDesc []NodePoolDesc, allProducts []*models.ProductDetails) ([]VirtualMachine, error)
+	FindVmsWithAttrValues(attr string, req ClusterRecommendationReq, layoutDesc []NodePoolDesc, allProducts []VirtualMachine) ([]VirtualMachine, error)
 }
 
 type NodePoolRecommender interface {
@@ -115,6 +111,17 @@ type NodePoolDesc struct {
 	// Zones []string `json:"zones,omitempty" binding:"dive,zone"`
 }
 
+func (n *NodePoolDesc) GetVmClass() string {
+	switch n.VmClass {
+	case Regular, Spot:
+		return n.VmClass
+	case Ondemand:
+		return Regular
+	default:
+		return Spot
+	}
+}
+
 // ClusterRecommendationResp encapsulates recommendation result data
 // swagger:model RecommendationResponse
 type ClusterRecommendationResp struct {
@@ -140,6 +147,23 @@ type NodePool struct {
 	SumNodes int `json:"sumNodes"`
 	// Specifies if the recommended node pool consists of regular or spot/preemptible instance types
 	VmClass string `json:"vmClass"`
+}
+
+// PoolPrice calculates the price of the pool
+func (n *NodePool) PoolPrice() float64 {
+	var sum = float64(0)
+	switch n.VmClass {
+	case Regular:
+		sum = float64(n.SumNodes) * n.VmType.OnDemandPrice
+	case Spot:
+		sum = float64(n.SumNodes) * n.VmType.AvgPrice
+	}
+	return sum
+}
+
+// GetSum gets the total value for the given attribute per pool
+func (n NodePool) GetSum(attr string) float64 {
+	return float64(n.SumNodes) * n.VmType.GetAttrValue(attr)
 }
 
 // ClusterRecommendationAccuracy encapsulates recommendation accuracy
@@ -190,4 +214,15 @@ type VirtualMachine struct {
 	CurrentGen bool `json:"currentGen"`
 	// Zones
 	Zones []string `json:"zones"`
+}
+
+func (v *VirtualMachine) GetAttrValue(attr string) float64 {
+	switch attr {
+	case Cpu:
+		return v.Cpus
+	case Memory:
+		return v.Mem
+	default:
+		return 0
+	}
 }
