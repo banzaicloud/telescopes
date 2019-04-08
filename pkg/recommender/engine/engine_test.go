@@ -38,109 +38,9 @@ func (p *dummyProducts) GetProductDetails(provider string, service string, regio
 	}, nil
 }
 
-type dummyVms struct {
-	// test case id to drive the behaviour
-	TcId string
-}
-
-func (v *dummyVms) RecommendVms(provider string, vms []recommender.VirtualMachine, attr string, req recommender.ClusterRecommendationReq, layout []recommender.NodePool) ([]recommender.VirtualMachine, []recommender.VirtualMachine, error) {
-	return nil, []recommender.VirtualMachine{
-		{
-			Cpus:          16,
-			Mem:           42,
-			AvgPrice:      2,
-			OnDemandPrice: 3,
-		},
-		{
-			Cpus:          16,
-			Mem:           42,
-			AvgPrice:      2,
-			OnDemandPrice: 3,
-		},
-		{
-			Cpus:          16,
-			Mem:           42,
-			AvgPrice:      2,
-			OnDemandPrice: 4,
-		},
-		{
-			Cpus:          16,
-			Mem:           42,
-			AvgPrice:      2,
-			OnDemandPrice: 4,
-		},
-	}, nil
-}
-
-func (v *dummyVms) FindVmsWithAttrValues(attr string, req recommender.ClusterRecommendationReq, layoutDesc []recommender.NodePoolDesc, allProducts []recommender.VirtualMachine) ([]recommender.VirtualMachine, error) {
-	return nil, nil
-}
-
-type dummyNodePools struct {
-	// test case id to drive the behaviour
-	TcId string
-}
-
-func (nps *dummyNodePools) RecommendNodePools(attr string, req recommender.ClusterRecommendationReq, layout []recommender.NodePool, odVms []recommender.VirtualMachine, spotVms []recommender.VirtualMachine) []recommender.NodePool {
-	return []recommender.NodePool{
-		{ // price = 2*3 +2*2 = 10
-			VmType: recommender.VirtualMachine{
-				Cpus:          16,
-				Mem:           42,
-				AvgPrice:      2,
-				OnDemandPrice: 3,
-			},
-			SumNodes: 0,
-			VmClass:  recommender.Regular,
-		},
-		{
-			VmType: recommender.VirtualMachine{
-				Cpus:          16,
-				Mem:           42,
-				AvgPrice:      2,
-				OnDemandPrice: 3,
-			},
-			SumNodes: 0,
-			VmClass:  recommender.Spot,
-		},
-		{
-			VmType: recommender.VirtualMachine{
-				Cpus:          8,
-				Mem:           21,
-				AvgPrice:      1,
-				OnDemandPrice: 2,
-			},
-			SumNodes: 0,
-			VmClass:  recommender.Regular,
-		},
-		{
-			VmType: recommender.VirtualMachine{
-				Cpus:          16,
-				Mem:           42,
-				AvgPrice:      2,
-				OnDemandPrice: 4,
-			},
-			SumNodes: 1,
-			VmClass:  recommender.Spot,
-		},
-		{
-			VmType: recommender.VirtualMachine{
-				Cpus:          16,
-				Mem:           42,
-				AvgPrice:      2,
-				OnDemandPrice: 4,
-			},
-			SumNodes: 0,
-			VmClass:  recommender.Spot,
-		},
-	}
-}
-
 func TestEngine_RecommendCluster(t *testing.T) {
 	tests := []struct {
 		name     string
-		vms      recommender.VmRecommender
-		nps      recommender.NodePoolRecommender
 		ciSource recommender.CloudInfoSource
 		request  recommender.ClusterRecommendationReq
 		check    func(resp *recommender.ClusterRecommendationResp, err error)
@@ -153,8 +53,6 @@ func TestEngine_RecommendCluster(t *testing.T) {
 				SumMem:   32,
 				SumCpu:   16,
 			},
-			vms:      &dummyVms{},
-			nps:      &dummyNodePools{},
 			ciSource: &dummyProducts{},
 			check: func(resp *recommender.ClusterRecommendationResp, err error) {
 				assert.Nil(t, err, "the error should be nil")
@@ -175,10 +73,8 @@ func TestEngine_RecommendCluster(t *testing.T) {
 func TestEngine_findCheapestNodePoolSet(t *testing.T) {
 	tests := []struct {
 		name      string
-		vms       recommender.VmRecommender
-		nps       recommender.NodePoolRecommender
 		nodePools map[string][]recommender.NodePool
-		check     func(npo []recommender.NodePool)
+		check     func(nps []recommender.NodePool)
 	}{
 		{
 			name: "find cheapest node pool set",
@@ -225,8 +121,8 @@ func TestEngine_findCheapestNodePoolSet(t *testing.T) {
 					},
 				},
 			},
-			check: func(npo []recommender.NodePool) {
-				assert.Equal(t, 3, len(npo), "wrong selection")
+			check: func(nps []recommender.NodePool) {
+				assert.Equal(t, 3, len(nps), "wrong selection")
 			},
 		},
 	}
