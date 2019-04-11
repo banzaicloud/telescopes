@@ -68,6 +68,9 @@ func (e *Engine) RecommendCluster(provider string, service string, region string
 
 	if (service == "pke" || service == "ack") && layoutDesc == nil {
 		cheapestMaster, err = e.recommendMaster(provider, service, req, allProducts)
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	cheapestNodePoolSet, err := e.getCheapestNodePoolSet(provider, req, layoutDesc, allProducts)
