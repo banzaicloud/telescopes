@@ -51,10 +51,10 @@ func (r *RouteHandler) recommendClusterSetup() gin.HandlerFunc {
 			return
 		}
 
-		r.engine.Log = log.WithFieldsForHandlers(c, r.log,
+		logger := log.WithFieldsForHandlers(c, r.log,
 			map[string]interface{}{"provider": pathParams.Provider, "service": pathParams.Service, "region": pathParams.Region})
 
-		r.engine.Log.Info("recommend cluster setup")
+		logger.Info("recommend cluster setup")
 
 		if err := NewCloudInfoValidator(r.ciCli).Validate(pathParams); err != nil {
 			errorresponse.NewErrorResponder(c).Respond(err)
@@ -104,10 +104,10 @@ func (r *RouteHandler) recommendClusterScaleOut() gin.HandlerFunc {
 			return
 		}
 
-		r.engine.Log = log.WithFieldsForHandlers(c, r.log,
+		logger := log.WithFieldsForHandlers(c, r.log,
 			map[string]interface{}{"provider": pathParams.Provider, "service": pathParams.Service, "region": pathParams.Region})
 
-		r.engine.Log.Info("recommend cluster scale out")
+		logger.Info("recommend cluster scale out")
 
 		if e := NewCloudInfoValidator(r.ciCli).Validate(pathParams); e != nil {
 			errorresponse.NewErrorResponder(c).Respond(e)

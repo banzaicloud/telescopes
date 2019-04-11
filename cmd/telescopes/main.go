@@ -35,7 +35,8 @@ import (
 	"github.com/banzaicloud/telescopes/internal/platform/buildinfo"
 	"github.com/banzaicloud/telescopes/internal/platform/log"
 	"github.com/banzaicloud/telescopes/pkg/recommender"
-	"github.com/banzaicloud/telescopes/pkg/recommender/engine"
+	"github.com/banzaicloud/telescopes/pkg/recommender/nodepools"
+	"github.com/banzaicloud/telescopes/pkg/recommender/vms"
 	"github.com/gin-gonic/gin"
 	httptransport "github.com/go-openapi/runtime/client"
 	"github.com/go-openapi/strfmt"
@@ -88,10 +89,12 @@ func main() {
 	err = api.ConfigureValidator(ciCli)
 	emperror.Panic(err)
 
-	eng := engine.NewEngine(logger, ciCli)
+	vmSelector := vms.NewVmSelector(logger)
+	nodePoolSelector := nodepools.NewNodePoolSelector(logger)
+	engine := recommender.NewEngine(logger, ciCli, vmSelector, nodePoolSelector)
 
 	buildInfo := buildinfo.New(Version, CommitHash, BuildDate)
-	routeHandler := api.NewRouteHandler(eng, buildInfo, ciCli, logger)
+	routeHandler := api.NewRouteHandler(engine, buildInfo, ciCli, logger)
 
 	// new default gin engine (recovery, logger middleware)
 	router := gin.Default()

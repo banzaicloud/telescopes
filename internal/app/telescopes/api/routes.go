@@ -23,7 +23,6 @@ import (
 	"github.com/banzaicloud/telescopes/internal/platform/buildinfo"
 	"github.com/banzaicloud/telescopes/internal/platform/log"
 	"github.com/banzaicloud/telescopes/pkg/recommender"
-	"github.com/banzaicloud/telescopes/pkg/recommender/engine"
 	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
 	"github.com/goph/logur"
@@ -36,14 +35,14 @@ const (
 
 // RouteHandler struct that wraps the recommender engine
 type RouteHandler struct {
-	engine    *engine.Engine
+	engine    *recommender.Engine
 	buildInfo buildinfo.BuildInfo
 	ciCli     *recommender.CloudInfoClient
 	log       logur.Logger
 }
 
 // NewRouteHandler creates a new RouteHandler and returns a reference to it
-func NewRouteHandler(engine *engine.Engine, info buildinfo.BuildInfo, ciCli *recommender.CloudInfoClient, log logur.Logger) *RouteHandler {
+func NewRouteHandler(engine *recommender.Engine, info buildinfo.BuildInfo, ciCli *recommender.CloudInfoClient, log logur.Logger) *RouteHandler {
 	return &RouteHandler{
 		engine:    engine,
 		buildInfo: info,
