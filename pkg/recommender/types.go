@@ -14,10 +14,6 @@
 
 package recommender
 
-import (
-	"github.com/goph/logur"
-)
-
 const (
 	// vm types - regular and ondemand means the same, they are both accepted on the API
 	Regular  = "regular"
@@ -35,20 +31,20 @@ const (
 type ClusterRecommender interface {
 
 	// RecommendCluster performs recommendation based on the provided arguments
-	RecommendCluster(provider string, service string, region string, req ClusterRecommendationReq, layoutDesc []NodePoolDesc, log logur.Logger) (*ClusterRecommendationResp, error)
+	RecommendCluster(provider string, service string, region string, req ClusterRecommendationReq, layoutDesc []NodePoolDesc) (*ClusterRecommendationResp, error)
 
 	// RecommendClusterScaleOut performs recommendation for an existing layout's scale out
-	RecommendClusterScaleOut(provider string, service string, region string, req ClusterScaleoutRecommendationReq, log logur.Logger) (*ClusterRecommendationResp, error)
+	RecommendClusterScaleOut(provider string, service string, region string, req ClusterScaleoutRecommendationReq) (*ClusterRecommendationResp, error)
 }
 
 type VmRecommender interface {
-	RecommendVms(provider string, vms []VirtualMachine, attr string, req ClusterRecommendationReq, layout []NodePool, log logur.Logger) ([]VirtualMachine, []VirtualMachine, error)
+	RecommendVms(provider string, vms []VirtualMachine, attr string, req ClusterRecommendationReq, layout []NodePool) ([]VirtualMachine, []VirtualMachine, error)
 
-	FindVmsWithAttrValues(provider string, service string, region string, attr string, req ClusterRecommendationReq, layoutDesc []NodePoolDesc) ([]VirtualMachine, error)
+	FindVmsWithAttrValues(attr string, req ClusterRecommendationReq, layoutDesc []NodePoolDesc, allProducts []VirtualMachine) ([]VirtualMachine, error)
 }
 
 type NodePoolRecommender interface {
-	RecommendNodePools(provider, service, region string, req ClusterRecommendationReq, log logur.Logger, layoutDesc []NodePoolDesc) (map[string][]NodePool, error)
+	RecommendNodePools(attr string, req ClusterRecommendationReq, layout []NodePool, odVms []VirtualMachine, spotVms []VirtualMachine) []NodePool
 }
 
 // ClusterRecommendationReq encapsulates the recommendation input data
@@ -115,6 +111,17 @@ type NodePoolDesc struct {
 	// Zones []string `json:"zones,omitempty" binding:"dive,zone"`
 }
 
+func (n *NodePoolDesc) GetVmClass() string {
+	switch n.VmClass {
+	case Regular, Spot:
+		return n.VmClass
+	case Ondemand:
+		return Regular
+	default:
+		return Spot
+	}
+}
+
 // ClusterRecommendationResp encapsulates recommendation result data
 // swagger:model RecommendationResponse
 type ClusterRecommendationResp struct {
@@ -140,6 +147,23 @@ type NodePool struct {
 	SumNodes int `json:"sumNodes"`
 	// Specifies if the recommended node pool consists of regular or spot/preemptible instance types
 	VmClass string `json:"vmClass"`
+}
+
+// PoolPrice calculates the price of the pool
+func (n *NodePool) PoolPrice() float64 {
+	var sum = float64(0)
+	switch n.VmClass {
+	case Regular:
+		sum = float64(n.SumNodes) * n.VmType.OnDemandPrice
+	case Spot:
+		sum = float64(n.SumNodes) * n.VmType.AvgPrice
+	}
+	return sum
+}
+
+// GetSum gets the total value for the given attribute per pool
+func (n NodePool) GetSum(attr string) float64 {
+	return float64(n.SumNodes) * n.VmType.GetAttrValue(attr)
 }
 
 // ClusterRecommendationAccuracy encapsulates recommendation accuracy
@@ -190,4 +214,15 @@ type VirtualMachine struct {
 	CurrentGen bool `json:"currentGen"`
 	// Zones
 	Zones []string `json:"zones"`
+}
+
+func (v *VirtualMachine) GetAttrValue(attr string) float64 {
+	switch attr {
+	case Cpu:
+		return v.Cpus
+	case Memory:
+		return v.Mem
+	default:
+		return 0
+	}
 }

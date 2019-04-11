@@ -962,9 +962,10 @@
       "type": "object",
       "title": "Service Service represents a service supported by a given provider.",
       "properties": {
-        "IsStatic": {
+        "isStatic": {
           "description": "is static",
-          "type": "boolean"
+          "type": "boolean",
+          "x-go-name": "IsStatic"
         },
         "service": {
           "description": "service",
@@ -1088,6 +1089,14 @@
           "description": "Instance type",
           "type": "string",
           "x-go-name": "Type"
+        },
+        "zones": {
+          "description": "Zones",
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "x-go-name": "Zones"
         }
       },
       "x-go-package": "github.com/banzaicloud/telescopes/pkg/recommender"

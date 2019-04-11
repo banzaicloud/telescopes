@@ -37,11 +37,10 @@
   version = "0.2.26"
 
 [[projects]]
-  digest = "1:7180ffe19890acdd9b894b390450335d8a39d89b942a46c82c1a9b256c1e2f33"
+  digest = "1:ef595cf7ce1d78e426fc5c449174f2498ce8c6dcc94641f86d40e1c73f22e81d"
   name = "github.com/banzaicloud/cloudinfo"
   packages = [
     "pkg/cloudinfo-client/client",
-    "pkg/cloudinfo-client/client/attribute",
     "pkg/cloudinfo-client/client/images",
     "pkg/cloudinfo-client/client/products",
     "pkg/cloudinfo-client/client/provider",
@@ -54,7 +53,7 @@
     "pkg/cloudinfo-client/models",
   ]
   pruneopts = "NUT"
-  revision = "073895e77701946ed97c7d5a1fcfbdf1d7d53376"
+  revision = "509d0da46e02e4f58d968ebf0a7a9fdec8295215"
 
 [[projects]]
   digest = "1:2893d610c2ac37c521e873e77b6c0e36f91d6f9fad81250a46a21fa3dd944b6f"

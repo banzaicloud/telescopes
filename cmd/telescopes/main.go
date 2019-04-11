@@ -85,14 +85,13 @@ func main() {
 
 	ciCli := recommender.NewCloudInfoClient(pc)
 
-	vmSelector := vms.NewVmSelector(logger, ciCli)
-	nodePoolSelector := nodepools.NewNodePoolSelector(logger, vmSelector)
-
-	engine := recommender.NewEngine(nodePoolSelector, logger)
-
 	// configure the gin validator
 	err = api.ConfigureValidator(ciCli)
 	emperror.Panic(err)
+
+	vmSelector := vms.NewVmSelector(logger)
+	nodePoolSelector := nodepools.NewNodePoolSelector(logger)
+	engine := recommender.NewEngine(logger, ciCli, vmSelector, nodePoolSelector)
 
 	buildInfo := buildinfo.New(Version, CommitHash, BuildDate)
 	routeHandler := api.NewRouteHandler(engine, buildInfo, ciCli, logger)

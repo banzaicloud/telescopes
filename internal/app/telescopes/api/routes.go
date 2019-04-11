@@ -35,16 +35,16 @@ const (
 
 // RouteHandler struct that wraps the recommender engine
 type RouteHandler struct {
-	engine    recommender.ClusterRecommender
+	engine    *recommender.Engine
 	buildInfo buildinfo.BuildInfo
 	ciCli     *recommender.CloudInfoClient
 	log       logur.Logger
 }
 
 // NewRouteHandler creates a new RouteHandler and returns a reference to it
-func NewRouteHandler(e *recommender.Engine, info buildinfo.BuildInfo, ciCli *recommender.CloudInfoClient, log logur.Logger) *RouteHandler {
+func NewRouteHandler(engine *recommender.Engine, info buildinfo.BuildInfo, ciCli *recommender.CloudInfoClient, log logur.Logger) *RouteHandler {
 	return &RouteHandler{
-		engine:    e,
+		engine:    engine,
 		buildInfo: info,
 		ciCli:     ciCli,
 		log:       log,
