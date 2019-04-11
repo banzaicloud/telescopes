@@ -17,7 +17,6 @@ package recommender
 import (
 	"fmt"
 	"math"
-	"sync"
 
 	"github.com/goph/emperror"
 	"github.com/goph/logur"
@@ -66,66 +65,15 @@ func (e *Engine) RecommendCluster(provider string, service string, region string
 	}
 
 	var cheapestMaster []NodePool
-	var wg sync.WaitGroup
-	errorChan := make(chan error, 1)
-	defer close(errorChan)
-	nodePoolChan := make(chan []NodePool, 1)
-	defer close(nodePoolChan)
 
 	if (service == "pke" || service == "ack") && layoutDesc == nil {
-		wg.Add(1)
-		go func(prv, service string, req ClusterRecommendationReq, allProducts []VirtualMachine, wg *sync.WaitGroup) {
-			defer wg.Done()
-
-			request := ClusterRecommendationReq{
-				SumCpu:      2,
-				SumMem:      4,
-				MinNodes:    1,
-				MaxNodes:    1,
-				OnDemandPct: 100,
-				Zones:       req.Zones,
-			}
-
-			cheapestMaster, err := e.getCheapestNodePoolSet(prv, request, nil, allProducts)
-			if err != nil {
-				nodePoolChan <- nil
-				errorChan <- err
-				return
-			}
-			var masterNodePool []NodePool
-
-			for _, master := range cheapestMaster {
-				nodepool := NodePool{
-					VmType:   master.VmType,
-					SumNodes: master.SumNodes,
-					VmClass:  master.VmClass,
-					Role:     Master,
-				}
-				if service == "ack" {
-					nodepool.SumNodes = 3
-				}
-				masterNodePool = append(masterNodePool, nodepool)
-			}
-
-			nodePoolChan <- masterNodePool
-			errorChan <- nil
-
-		}(provider, service, req, allProducts, &wg)
-		cheapestMaster = <-nodePoolChan
-		createErr := <-errorChan
-		if createErr != nil {
-			caughtErrors := emperror.NewMultiErrorBuilder()
-			caughtErrors.Add(createErr)
-			return nil, caughtErrors.ErrOrNil()
-		}
+		cheapestMaster, err = e.recommendMaster(provider, service, req, allProducts)
 	}
 
 	cheapestNodePoolSet, err := e.getCheapestNodePoolSet(provider, req, layoutDesc, allProducts)
 	if err != nil {
 		return nil, err
 	}
-
-	wg.Wait()
 
 	cheapestNodePoolSet = append(cheapestNodePoolSet, cheapestMaster...)
 
@@ -139,6 +87,39 @@ func (e *Engine) RecommendCluster(provider string, service string, region string
 		NodePools: cheapestNodePoolSet,
 		Accuracy:  accuracy,
 	}, nil
+}
+
+func (e *Engine) recommendMaster(provider, service string, req ClusterRecommendationReq, allProducts []VirtualMachine) ([]NodePool, error) {
+
+	request := ClusterRecommendationReq{
+		SumCpu:      2,
+		SumMem:      4,
+		MinNodes:    1,
+		MaxNodes:    1,
+		OnDemandPct: 100,
+		Zones:       req.Zones,
+	}
+
+	cheapestMaster, err := e.getCheapestNodePoolSet(provider, request, nil, allProducts)
+	if err != nil {
+		return nil, err
+	}
+	var masterNodePool []NodePool
+
+	for _, master := range cheapestMaster {
+		nodepool := NodePool{
+			VmType:   master.VmType,
+			SumNodes: master.SumNodes,
+			VmClass:  master.VmClass,
+			Role:     Master,
+		}
+		if service == "ack" {
+			nodepool.SumNodes = 3
+		}
+		masterNodePool = append(masterNodePool, nodepool)
+	}
+
+	return masterNodePool, nil
 }
 
 func (e *Engine) getCheapestNodePoolSet(provider string, req ClusterRecommendationReq, layoutDesc []NodePoolDesc, allProducts []VirtualMachine) ([]NodePool, error) {
