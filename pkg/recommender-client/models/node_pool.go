@@ -16,6 +16,9 @@ import (
 // swagger:model NodePool
 type NodePool struct {
 
+	// Role in the cluster, eg. master or worker
+	Role string `json:"role,omitempty"`
+
 	// Recommended number of nodes in the node pool
 	SumNodes int64 `json:"sumNodes,omitempty"`
 

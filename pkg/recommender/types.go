@@ -24,6 +24,10 @@ const (
 	// Cpu represents the cpu attribute for the recommender
 	Cpu = "cpu"
 
+	// nodepool roles
+	Master = "master"
+	Worker = "worker"
+
 	RecommenderErrorTag = "recommender"
 )
 
@@ -147,6 +151,8 @@ type NodePool struct {
 	SumNodes int `json:"sumNodes"`
 	// Specifies if the recommended node pool consists of regular or spot/preemptible instance types
 	VmClass string `json:"vmClass"`
+	// Role in the cluster, eg. master or worker
+	Role string `json:"role"`
 }
 
 // PoolPrice calculates the price of the pool

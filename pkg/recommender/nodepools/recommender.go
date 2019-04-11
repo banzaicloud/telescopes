@@ -50,7 +50,7 @@ func (s *nodePoolSelector) RecommendNodePools(attr string, req recommender.Clust
 	}
 	var actualOnDemandResources float64
 	var odNodesToAdd int
-	if len(odVms) > 0 {
+	if len(odVms) > 0 && req.OnDemandPct != 0 {
 		// find cheapest onDemand instance from the list - based on price per attribute
 		selectedOnDemand := odVms[0]
 		for _, vm := range odVms {
@@ -64,6 +64,7 @@ func (s *nodePoolSelector) RecommendNodePools(attr string, req recommender.Clust
 				SumNodes: odNodesToAdd,
 				VmClass:  recommender.Regular,
 				VmType:   selectedOnDemand,
+				Role:     recommender.Worker,
 			})
 		} else {
 			for i, np := range odNps {
@@ -75,64 +76,69 @@ func (s *nodePoolSelector) RecommendNodePools(attr string, req recommender.Clust
 		actualOnDemandResources = selectedOnDemand.GetAttrValue(attr) * float64(odNodesToAdd)
 	}
 
-	// recalculate required spot resources by taking actual on-demand resources into account
-	var sumSpotValue = sum(req, attr) - actualOnDemandResources
-	s.log.Debug(fmt.Sprintf("spot sum value for attr [%s]: [%f]", attr, sumSpotValue))
-
-	// recommend spot pools
 	spotNps := make([]recommender.NodePool, 0)
-	excludedSpotNps := make([]recommender.NodePool, 0)
 
-	s.sortByAttrValue(attr, spotVms)
+	if req.OnDemandPct != 100 {
+		// recalculate required spot resources by taking actual on-demand resources into account
+		var sumSpotValue = sum(req, attr) - actualOnDemandResources
+		s.log.Debug(fmt.Sprintf("spot sum value for attr [%s]: [%f]", attr, sumSpotValue))
 
-	var N int
-	if layout == nil {
-		// the "magic" number of machines for diversifying the types
-		N = int(math.Min(float64(findN(avgSpotNodeCount(req.MinNodes, req.MaxNodes, odNodesToAdd))), float64(len(spotVms))))
-		// the second "magic" number for diversifying the layout
-		M := findM(N, spotVms)
-		s.log.Debug(fmt.Sprintf("Magic 'Marton' numbers: N=%d, M=%d", N, M))
+		// recommend spot pools
+		excludedSpotNps := make([]recommender.NodePool, 0)
 
-		// the first M vm-s
-		recommendedVms := spotVms[:M]
+		s.sortByAttrValue(attr, spotVms)
 
-		// create spot nodepools - one for the first M vm-s
-		for _, vm := range recommendedVms {
-			spotNps = append(spotNps, recommender.NodePool{
-				SumNodes: 0,
-				VmClass:  recommender.Spot,
-				VmType:   vm,
-			})
-		}
-	} else {
-		sort.Sort(ByNonZeroNodePools(layout))
-		var nonZeroNPs int
-		for _, np := range layout {
-			if np.VmClass == recommender.Spot {
-				if np.SumNodes > 0 {
-					nonZeroNPs += 1
-				}
-				included := false
-				for _, vm := range spotVms {
-					if np.VmType.Type == vm.Type {
-						spotNps = append(spotNps, np)
-						included = true
-						break
+		var N int
+		if layout == nil {
+			// the "magic" number of machines for diversifying the types
+			N = int(math.Min(float64(findN(avgSpotNodeCount(req.MinNodes, req.MaxNodes, odNodesToAdd))), float64(len(spotVms))))
+			// the second "magic" number for diversifying the layout
+			M := findM(N, spotVms)
+			s.log.Debug(fmt.Sprintf("Magic 'Marton' numbers: N=%d, M=%d", N, M))
+
+			// the first M vm-s
+			recommendedVms := spotVms[:M]
+
+			// create spot nodepools - one for the first M vm-s
+			for _, vm := range recommendedVms {
+				spotNps = append(spotNps, recommender.NodePool{
+					SumNodes: 0,
+					VmClass:  recommender.Spot,
+					VmType:   vm,
+					Role:     recommender.Worker,
+				})
+			}
+		} else {
+			sort.Sort(ByNonZeroNodePools(layout))
+			var nonZeroNPs int
+			for _, np := range layout {
+				if np.VmClass == recommender.Spot {
+					if np.SumNodes > 0 {
+						nonZeroNPs += 1
+					}
+					included := false
+					for _, vm := range spotVms {
+						if np.VmType.Type == vm.Type {
+							spotNps = append(spotNps, np)
+							included = true
+							break
+						}
+					}
+					if !included {
+						excludedSpotNps = append(excludedSpotNps, np)
 					}
 				}
-				if !included {
-					excludedSpotNps = append(excludedSpotNps, np)
-				}
 			}
+			N = findNWithLayout(nonZeroNPs, len(spotVms))
+			s.log.Debug(fmt.Sprintf("Magic 'Marton' number: N=%d", N))
 		}
-		N = findNWithLayout(nonZeroNPs, len(spotVms))
-		s.log.Debug(fmt.Sprintf("Magic 'Marton' number: N=%d", N))
+		spotNps = s.fillSpotNodePools(sumSpotValue, N, spotNps, attr)
+		if len(excludedSpotNps) > 0 {
+			spotNps = append(spotNps, excludedSpotNps...)
+		}
 	}
+
 	s.log.Debug(fmt.Sprintf("created [%d] regular and [%d] spot price node pools", len(odNps), len(spotNps)))
-	spotNps = s.fillSpotNodePools(sumSpotValue, N, spotNps, attr)
-	if len(excludedSpotNps) > 0 {
-		spotNps = append(spotNps, excludedSpotNps...)
-	}
 
 	return append(odNps, spotNps...)
 }

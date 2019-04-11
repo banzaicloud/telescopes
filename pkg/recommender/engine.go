@@ -1,4 +1,4 @@
-// Copyright © 2019 Banzai Cloud
+// Copyright © 2018 Banzai Cloud
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -17,6 +17,7 @@ package recommender
 import (
 	"fmt"
 	"math"
+	"sync"
 
 	"github.com/goph/emperror"
 	"github.com/goph/logur"
@@ -45,13 +46,6 @@ func NewEngine(log logur.Logger, ciSource CloudInfoSource, vmSelector VmRecommen
 func (e *Engine) RecommendCluster(provider string, service string, region string, req ClusterRecommendationReq, layoutDesc []NodePoolDesc) (*ClusterRecommendationResp, error) {
 	e.log.Info(fmt.Sprintf("recommending cluster configuration. request: [%#v]", req))
 
-	desiredCpu := req.SumCpu
-	desiredMem := req.SumMem
-	desiredOdPct := req.OnDemandPct
-
-	attributes := []string{Cpu, Memory}
-	nodePools := make(map[string][]NodePool, 2)
-
 	allProducts, err := e.ciSource.GetProductDetails(provider, service, region)
 	if err != nil {
 		return nil, err
@@ -70,6 +64,90 @@ func (e *Engine) RecommendCluster(provider string, service string, region string
 			req.OnDemandPct = 100
 		}
 	}
+
+	var cheapestMaster []NodePool
+	var wg sync.WaitGroup
+	errorChan := make(chan error, 1)
+	defer close(errorChan)
+	nodePoolChan := make(chan []NodePool, 1)
+	defer close(nodePoolChan)
+
+	if (service == "pke" || service == "ack") && layoutDesc == nil {
+		wg.Add(1)
+		go func(prv, service string, req ClusterRecommendationReq, allProducts []VirtualMachine, wg *sync.WaitGroup) {
+			defer wg.Done()
+
+			request := ClusterRecommendationReq{
+				SumCpu:      2,
+				SumMem:      4,
+				MinNodes:    1,
+				MaxNodes:    1,
+				OnDemandPct: 100,
+				Zones:       req.Zones,
+			}
+
+			cheapestMaster, err := e.getCheapestNodePoolSet(prv, request, nil, allProducts)
+			if err != nil {
+				nodePoolChan <- nil
+				errorChan <- err
+				return
+			}
+			var masterNodePool []NodePool
+
+			for _, master := range cheapestMaster {
+				nodepool := NodePool{
+					VmType:   master.VmType,
+					SumNodes: master.SumNodes,
+					VmClass:  master.VmClass,
+					Role:     Master,
+				}
+				if service == "ack" {
+					nodepool.SumNodes = 3
+				}
+				masterNodePool = append(masterNodePool, nodepool)
+			}
+
+			nodePoolChan <- masterNodePool
+			errorChan <- nil
+
+		}(provider, service, req, allProducts, &wg)
+		cheapestMaster = <-nodePoolChan
+		createErr := <-errorChan
+		if createErr != nil {
+			caughtErrors := emperror.NewMultiErrorBuilder()
+			caughtErrors.Add(createErr)
+			return nil, caughtErrors.ErrOrNil()
+		}
+	}
+
+	cheapestNodePoolSet, err := e.getCheapestNodePoolSet(provider, req, layoutDesc, allProducts)
+	if err != nil {
+		return nil, err
+	}
+
+	wg.Wait()
+
+	cheapestNodePoolSet = append(cheapestNodePoolSet, cheapestMaster...)
+
+	accuracy := findResponseSum(req.Zones, cheapestNodePoolSet)
+
+	return &ClusterRecommendationResp{
+		Provider:  provider,
+		Service:   service,
+		Region:    region,
+		Zones:     req.Zones,
+		NodePools: cheapestNodePoolSet,
+		Accuracy:  accuracy,
+	}, nil
+}
+
+func (e *Engine) getCheapestNodePoolSet(provider string, req ClusterRecommendationReq, layoutDesc []NodePoolDesc, allProducts []VirtualMachine) ([]NodePool, error) {
+	desiredCpu := req.SumCpu
+	desiredMem := req.SumMem
+	desiredOdPct := req.OnDemandPct
+
+	attributes := []string{Cpu, Memory}
+	nodePools := make(map[string][]NodePool, 2)
 
 	for _, attr := range attributes {
 		vmsInRange, err := e.vmSelector.FindVmsWithAttrValues(attr, req, layoutDesc, allProducts)
@@ -114,18 +192,7 @@ func (e *Engine) RecommendCluster(provider string, service string, region string
 		return nil, emperror.With(errors.New("could not recommend cluster with the requested resources"), RecommenderErrorTag)
 	}
 
-	cheapestNodePoolSet := e.findCheapestNodePoolSet(nodePools)
-
-	accuracy := findResponseSum(req.Zones, cheapestNodePoolSet)
-
-	return &ClusterRecommendationResp{
-		Provider:  provider,
-		Service:   service,
-		Region:    region,
-		Zones:     req.Zones,
-		NodePools: cheapestNodePoolSet,
-		Accuracy:  accuracy,
-	}, nil
+	return e.findCheapestNodePoolSet(nodePools), nil
 }
 
 // RecommendClusterScaleOut performs recommendation for an existing layout's scale out
@@ -163,7 +230,7 @@ func boolPointer(b bool) *bool {
 func findResponseSum(zones []string, nodePoolSet []NodePool) ClusterRecommendationAccuracy {
 	var sumCpus float64
 	var sumMem float64
-	var sumNodes int
+	var sumWorkerNodes int
 	var sumRegularPrice float64
 	var sumRegularNodes int
 	var sumSpotPrice float64
@@ -172,7 +239,9 @@ func findResponseSum(zones []string, nodePoolSet []NodePool) ClusterRecommendati
 	for _, nodePool := range nodePoolSet {
 		sumCpus += nodePool.GetSum(Cpu)
 		sumMem += nodePool.GetSum(Memory)
-		sumNodes += nodePool.SumNodes
+		if nodePool.Role == "worker" {
+			sumWorkerNodes += nodePool.SumNodes
+		}
 		if nodePool.VmClass == Regular {
 			sumRegularPrice += nodePool.PoolPrice()
 			sumRegularNodes += nodePool.SumNodes
@@ -186,7 +255,7 @@ func findResponseSum(zones []string, nodePoolSet []NodePool) ClusterRecommendati
 	return ClusterRecommendationAccuracy{
 		RecCpu:          sumCpus,
 		RecMem:          sumMem,
-		RecNodes:        sumNodes,
+		RecNodes:        sumWorkerNodes,
 		RecZone:         zones,
 		RecRegularPrice: sumRegularPrice,
 		RecRegularNodes: sumRegularNodes,
@@ -236,6 +305,7 @@ func (e *Engine) transformLayout(layoutDesc []NodePoolDesc, vms []VirtualMachine
 					VmType:   vm,
 					VmClass:  npd.GetVmClass(),
 					SumNodes: npd.SumNodes,
+					Role:     Worker,
 				}
 				break
 			}
