@@ -80,6 +80,34 @@ func (a *Client) RecommendClusterSetup(params *RecommendClusterSetupParams) (*Re
 
 }
 
+/*
+RecommendClustersSetup provides a recommended set of node pools on a given provider in a specific region
+*/
+func (a *Client) RecommendClustersSetup(params *RecommendClustersSetupParams) (*RecommendClustersSetupOK, error) {
+	// TODO: Validate the params before sending
+	if params == nil {
+		params = NewRecommendClustersSetupParams()
+	}
+
+	result, err := a.transport.Submit(&runtime.ClientOperation{
+		ID:                 "recommendClustersSetup",
+		Method:             "POST",
+		PathPattern:        "/recommender/",
+		ProducesMediaTypes: []string{"application/json"},
+		ConsumesMediaTypes: []string{"application/json"},
+		Schemes:            []string{"http", "https"},
+		Params:             params,
+		Reader:             &RecommendClustersSetupReader{formats: a.formats},
+		Context:            params.Context,
+		Client:             params.HTTPClient,
+	})
+	if err != nil {
+		return nil, err
+	}
+	return result.(*RecommendClustersSetupOK), nil
+
+}
+
 // SetTransport changes the transport on the client
 func (a *Client) SetTransport(transport runtime.ClientTransport) {
 	a.transport = transport

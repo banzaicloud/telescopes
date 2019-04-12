@@ -39,6 +39,9 @@ type ClusterRecommender interface {
 
 	// RecommendClusterScaleOut performs recommendation for an existing layout's scale out
 	RecommendClusterScaleOut(provider string, service string, region string, req ClusterScaleoutRecommendationReq) (*ClusterRecommendationResp, error)
+
+	// RecommendClusters performs recommendations
+	RecommendClusters(req Request) (map[string][]*ClusterRecommendationResp, error)
 }
 
 type VmRecommender interface {
@@ -82,6 +85,24 @@ type ClusterRecommendationReq struct {
 	AllowOlderGen *bool `json:"allowOlderGen,omitempty"`
 	// Category specifies the virtual machine category
 	Category []string `json:"category,omitempty"`
+	// Maximum number of response per service
+	RespPerService int `json:"respPerService,omitempty"`
+}
+
+// ClustersRecommendationReq encapsulates the recommendation input data
+// swagger:parameters recommendClustersSetup
+type ClustersRecommendationReq struct {
+	// in:body
+	Request Request `json:"request"`
+}
+type Request struct {
+	Providers  []Provider               `json:"providers"`
+	Continents []string                 `json:"continents"`
+	Request    ClusterRecommendationReq `json:"request"`
+}
+type Provider struct {
+	Provider string   `json:"provider"`
+	Services []string `json:"services"`
 }
 
 // ClusterScaleoutRecommendationReq encapsulates the recommendation input data

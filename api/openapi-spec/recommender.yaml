@@ -16,6 +16,26 @@ info:
     url: 'http://www.apache.org/licenses/LICENSE-2.0.html'
   version: 0.0.1
 paths:
+  /recommender/:
+    post:
+      tags:
+        - recommend
+      summary: >-
+        Provides a recommended set of node pools on a given provider in a
+        specific region.
+      operationId: recommendClustersSetup
+      responses:
+        '200':
+          description: RecommendationResponse
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RecommendationResponse'
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Request'
   '/recommender/{provider}/{service}/{region}/cluster':
     put:
       tags:
@@ -25,24 +45,6 @@ paths:
         layout on a given provider in a specific region.
       operationId: recommendClusterScaleOut
       parameters:
-        - x-go-name: Provider
-          name: provider
-          in: path
-          required: true
-          schema:
-            type: string
-        - x-go-name: Service
-          name: service
-          in: path
-          required: true
-          schema:
-            type: string
-        - x-go-name: Region
-          name: region
-          in: path
-          required: true
-          schema:
-            type: string
         - x-go-name: DesiredCpu
           description: Total desired number of CPUs in the cluster after the scale out
           name: desiredCpu
@@ -89,6 +91,24 @@ paths:
             type: array
             items:
               type: string
+        - x-go-name: Provider
+          name: provider
+          in: path
+          required: true
+          schema:
+            type: string
+        - x-go-name: Service
+          name: service
+          in: path
+          required: true
+          schema:
+            type: string
+        - x-go-name: Region
+          name: region
+          in: path
+          required: true
+          schema:
+            type: string
       responses:
         '200':
           description: RecommendationResponse
@@ -112,24 +132,6 @@ paths:
         specific region.
       operationId: recommendClusterSetup
       parameters:
-        - x-go-name: Provider
-          name: provider
-          in: path
-          required: true
-          schema:
-            type: string
-        - x-go-name: Service
-          name: service
-          in: path
-          required: true
-          schema:
-            type: string
-        - x-go-name: Region
-          name: region
-          in: path
-          required: true
-          schema:
-            type: string
         - x-go-name: SumCpu
           description: Total number of CPUs requested for the cluster
           name: sumCpu
@@ -234,6 +236,31 @@ paths:
             type: array
             items:
               type: string
+        - x-go-name: RespPerService
+          description: Maximum number of response per service
+          name: respPerService
+          in: query
+          schema:
+            type: integer
+            format: int64
+        - x-go-name: Provider
+          name: provider
+          in: path
+          required: true
+          schema:
+            type: string
+        - x-go-name: Service
+          name: service
+          in: path
+          required: true
+          schema:
+            type: string
+        - x-go-name: Region
+          name: region
+          in: path
+          required: true
+          schema:
+            type: string
       responses:
         '200':
           description: RecommendationResponse
@@ -368,6 +395,11 @@ components:
           type: integer
           format: int64
           x-go-name: OnDemandPct
+        respPerService:
+          description: Maximum number of response per service
+          type: integer
+          format: int64
+          x-go-name: RespPerService
         sameSize:
           description: 'If true, recommended instance types will have a similar size'
           type: boolean
@@ -447,6 +479,29 @@ components:
             type: string
           x-go-name: Zones
       x-go-package: github.com/banzaicloud/telescopes/pkg/recommender
+    ClustersRecommendationReq:
+      description: ClustersRecommendationReq encapsulates the recommendation input data
+      type: object
+      properties:
+        request:
+          $ref: '#/components/schemas/Request'
+      x-go-package: github.com/banzaicloud/telescopes/pkg/recommender
+    Continent:
+      description: Continent Continent holds continent and regions of a cloud provider
+      type: object
+      properties:
+        name:
+          description: name
+          type: string
+          x-go-name: Name
+        regions:
+          description: regions
+          type: array
+          items:
+            $ref: '#/components/schemas/Region'
+          x-go-name: Regions
+      x-go-package: >-
+        github.com/banzaicloud/telescopes/vendor/github.com/banzaicloud/cloudinfo/pkg/cloudinfo-client/models
     GetAttributeValuesPathParams:
       description: >-
         GetAttributeValuesPathParams GetAttributeValuesPathParams is a
@@ -585,6 +640,28 @@ components:
           items:
             $ref: '#/components/schemas/Image'
           x-go-name: Images
+      x-go-package: >-
+        github.com/banzaicloud/telescopes/vendor/github.com/banzaicloud/cloudinfo/pkg/cloudinfo-client/models
+    LocationVersion:
+      description: >-
+        LocationVersion LocationVersion struct for displaying version
+        information per location
+      type: object
+      properties:
+        default:
+          description: default
+          type: string
+          x-go-name: Default
+        location:
+          description: location
+          type: string
+          x-go-name: Location
+        versions:
+          description: versions
+          type: array
+          items:
+            type: string
+          x-go-name: Versions
       x-go-package: >-
         github.com/banzaicloud/telescopes/vendor/github.com/banzaicloud/cloudinfo/pkg/cloudinfo-client/models
     NodePool:
@@ -737,6 +814,7 @@ components:
           description: services
           type: array
           items:
+            type: string
             $ref: '#/components/schemas/Service'
           x-go-name: Services
       x-go-package: >-
@@ -819,9 +897,25 @@ components:
         cloud provider
       type: array
       items:
-        $ref: '#/components/schemas/Region'
+        $ref: '#/components/schemas/Continent'
       x-go-package: >-
         github.com/banzaicloud/telescopes/vendor/github.com/banzaicloud/cloudinfo/pkg/cloudinfo-client/models
+    Request:
+      type: object
+      properties:
+        continents:
+          type: array
+          items:
+            type: string
+          x-go-name: Continents
+        providers:
+          type: array
+          items:
+            $ref: '#/components/schemas/Provider'
+          x-go-name: Providers
+        request:
+          $ref: '#/components/schemas/ClusterRecommendationReq'
+      x-go-package: github.com/banzaicloud/telescopes/pkg/recommender
     Service:
       description: it's intended to implement the ServiceDescriber interface
       type: object
@@ -858,10 +952,14 @@ components:
       x-go-package: >-
         github.com/banzaicloud/telescopes/vendor/github.com/banzaicloud/cloudinfo/pkg/cloudinfo-client/models
     Version:
-      description: Version Version represents a version
+      description: Version version
       type: object
       properties:
-        versions:
+        default:
+          description: default
+          type: boolean
+          x-go-name: Default
+        version:
           description: version
           type: string
           x-go-name: Version
@@ -875,7 +973,7 @@ components:
           description: versions
           type: array
           items:
-            $ref: '#/components/schemas/Version'
+            $ref: '#/components/schemas/LocationVersion'
           x-go-name: Versions
       x-go-package: >-
         github.com/banzaicloud/telescopes/vendor/github.com/banzaicloud/cloudinfo/pkg/cloudinfo-client/models

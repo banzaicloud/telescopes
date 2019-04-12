@@ -37,7 +37,7 @@
   version = "0.2.26"
 
 [[projects]]
-  digest = "1:ef595cf7ce1d78e426fc5c449174f2498ce8c6dcc94641f86d40e1c73f22e81d"
+  digest = "1:b9d5f149de07e39efdb052af56070556b498c046c5903a6b18bfc3ad2f97426d"
   name = "github.com/banzaicloud/cloudinfo"
   packages = [
     "pkg/cloudinfo-client/client",
@@ -53,7 +53,7 @@
     "pkg/cloudinfo-client/models",
   ]
   pruneopts = "NUT"
-  revision = "509d0da46e02e4f58d968ebf0a7a9fdec8295215"
+  revision = "905e64dec9cd944eea07ea370026f858b3624021"
 
 [[projects]]
   digest = "1:2893d610c2ac37c521e873e77b6c0e36f91d6f9fad81250a46a21fa3dd944b6f"
@@ -853,6 +853,7 @@
     "github.com/banzaicloud/cloudinfo/pkg/cloudinfo-client/client/products",
     "github.com/banzaicloud/cloudinfo/pkg/cloudinfo-client/client/provider",
     "github.com/banzaicloud/cloudinfo/pkg/cloudinfo-client/client/region",
+    "github.com/banzaicloud/cloudinfo/pkg/cloudinfo-client/client/regions",
     "github.com/banzaicloud/cloudinfo/pkg/cloudinfo-client/client/service",
     "github.com/banzaicloud/cloudinfo/pkg/cloudinfo-client/models",
     "github.com/banzaicloud/go-gin-prometheus",

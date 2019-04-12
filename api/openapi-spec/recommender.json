@@ -19,6 +19,42 @@
   },
   "basePath": "/api/v1",
   "paths": {
+    "/recommender/": {
+      "post": {
+        "consumes": [
+          "application/json"
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "schemes": [
+          "http"
+        ],
+        "tags": [
+          "recommend"
+        ],
+        "summary": "Provides a recommended set of node pools on a given provider in a specific region.",
+        "operationId": "recommendClustersSetup",
+        "parameters": [
+          {
+            "x-go-name": "Request",
+            "name": "request",
+            "in": "body",
+            "schema": {
+              "$ref": "#/definitions/Request"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "RecommendationResponse",
+            "schema": {
+              "$ref": "#/definitions/RecommendationResponse"
+            }
+          }
+        }
+      }
+    },
     "/recommender/{provider}/{service}/{region}/cluster": {
       "put": {
         "consumes": [
@@ -36,27 +72,6 @@
         "summary": "Provides a recommendation for a scale-out, based on a current cluster layout on a given provider in a specific region.",
         "operationId": "recommendClusterScaleOut",
         "parameters": [
-          {
-            "type": "string",
-            "x-go-name": "Provider",
-            "name": "provider",
-            "in": "path",
-            "required": true
-          },
-          {
-            "type": "string",
-            "x-go-name": "Service",
-            "name": "service",
-            "in": "path",
-            "required": true
-          },
-          {
-            "type": "string",
-            "x-go-name": "Region",
-            "name": "region",
-            "in": "path",
-            "required": true
-          },
           {
             "type": "number",
             "format": "double",
@@ -120,6 +135,27 @@
                 "$ref": "#/definitions/NodePoolDesc"
               }
             }
+          },
+          {
+            "type": "string",
+            "x-go-name": "Provider",
+            "name": "provider",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "x-go-name": "Service",
+            "name": "service",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "x-go-name": "Region",
+            "name": "region",
+            "in": "path",
+            "required": true
           }
         ],
         "responses": {
@@ -147,27 +183,6 @@
         "summary": "Provides a recommended set of node pools on a given provider in a specific region.",
         "operationId": "recommendClusterSetup",
         "parameters": [
-          {
-            "type": "string",
-            "x-go-name": "Provider",
-            "name": "provider",
-            "in": "path",
-            "required": true
-          },
-          {
-            "type": "string",
-            "x-go-name": "Service",
-            "name": "service",
-            "in": "path",
-            "required": true
-          },
-          {
-            "type": "string",
-            "x-go-name": "Region",
-            "name": "region",
-            "in": "path",
-            "required": true
-          },
           {
             "type": "number",
             "format": "double",
@@ -283,6 +298,35 @@
             "description": "Category specifies the virtual machine category",
             "name": "category",
             "in": "query"
+          },
+          {
+            "type": "integer",
+            "format": "int64",
+            "x-go-name": "RespPerService",
+            "description": "Maximum number of response per service",
+            "name": "respPerService",
+            "in": "query"
+          },
+          {
+            "type": "string",
+            "x-go-name": "Provider",
+            "name": "provider",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "x-go-name": "Service",
+            "name": "service",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "x-go-name": "Region",
+            "name": "region",
+            "in": "path",
+            "required": true
           }
         ],
         "responses": {
@@ -442,6 +486,12 @@
           "format": "int64",
           "x-go-name": "OnDemandPct"
         },
+        "respPerService": {
+          "description": "Maximum number of response per service",
+          "type": "integer",
+          "format": "int64",
+          "x-go-name": "RespPerService"
+        },
         "sameSize": {
           "description": "If true, recommended instance types will have a similar size",
           "type": "boolean",
@@ -535,6 +585,36 @@
         }
       },
       "x-go-package": "github.com/banzaicloud/telescopes/pkg/recommender"
+    },
+    "ClustersRecommendationReq": {
+      "description": "ClustersRecommendationReq encapsulates the recommendation input data",
+      "type": "object",
+      "properties": {
+        "request": {
+          "$ref": "#/definitions/Request"
+        }
+      },
+      "x-go-package": "github.com/banzaicloud/telescopes/pkg/recommender"
+    },
+    "Continent": {
+      "description": "Continent Continent holds continent and regions of a cloud provider",
+      "type": "object",
+      "properties": {
+        "name": {
+          "description": "name",
+          "type": "string",
+          "x-go-name": "Name"
+        },
+        "regions": {
+          "description": "regions",
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/Region"
+          },
+          "x-go-name": "Regions"
+        }
+      },
+      "x-go-package": "github.com/banzaicloud/telescopes/vendor/github.com/banzaicloud/cloudinfo/pkg/cloudinfo-client/models"
     },
     "GetAttributeValuesPathParams": {
       "description": "GetAttributeValuesPathParams GetAttributeValuesPathParams is a placeholder for the get attribute values route's path parameters",
@@ -689,6 +769,31 @@
             "$ref": "#/definitions/Image"
           },
           "x-go-name": "Images"
+        }
+      },
+      "x-go-package": "github.com/banzaicloud/telescopes/vendor/github.com/banzaicloud/cloudinfo/pkg/cloudinfo-client/models"
+    },
+    "LocationVersion": {
+      "description": "LocationVersion LocationVersion struct for displaying version information per location",
+      "type": "object",
+      "properties": {
+        "default": {
+          "description": "default",
+          "type": "string",
+          "x-go-name": "Default"
+        },
+        "location": {
+          "description": "location",
+          "type": "string",
+          "x-go-name": "Location"
+        },
+        "versions": {
+          "description": "versions",
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "x-go-name": "Versions"
         }
       },
       "x-go-package": "github.com/banzaicloud/telescopes/vendor/github.com/banzaicloud/cloudinfo/pkg/cloudinfo-client/models"
@@ -863,6 +968,7 @@
           "description": "services",
           "type": "array",
           "items": {
+            "type": "string",
             "$ref": "#/definitions/Service"
           },
           "x-go-name": "Services"
@@ -958,9 +1064,32 @@
       "description": "RegionsResponse RegionsResponse holds the list of available regions of a cloud provider",
       "type": "array",
       "items": {
-        "$ref": "#/definitions/Region"
+        "$ref": "#/definitions/Continent"
       },
       "x-go-package": "github.com/banzaicloud/telescopes/vendor/github.com/banzaicloud/cloudinfo/pkg/cloudinfo-client/models"
+    },
+    "Request": {
+      "type": "object",
+      "properties": {
+        "continents": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "x-go-name": "Continents"
+        },
+        "providers": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/Provider"
+          },
+          "x-go-name": "Providers"
+        },
+        "request": {
+          "$ref": "#/definitions/ClusterRecommendationReq"
+        }
+      },
+      "x-go-package": "github.com/banzaicloud/telescopes/pkg/recommender"
     },
     "Service": {
       "description": "it's intended to implement the ServiceDescriber interface",
@@ -1006,10 +1135,15 @@
       "x-go-package": "github.com/banzaicloud/telescopes/vendor/github.com/banzaicloud/cloudinfo/pkg/cloudinfo-client/models"
     },
     "Version": {
-      "description": "Version Version represents a version",
+      "description": "Version version",
       "type": "object",
       "properties": {
-        "versions": {
+        "default": {
+          "description": "default",
+          "type": "boolean",
+          "x-go-name": "Default"
+        },
+        "version": {
           "description": "version",
           "type": "string",
           "x-go-name": "Version"
@@ -1025,7 +1159,7 @@
           "description": "versions",
           "type": "array",
           "items": {
-            "$ref": "#/definitions/Version"
+            "$ref": "#/definitions/LocationVersion"
           },
           "x-go-name": "Versions"
         }

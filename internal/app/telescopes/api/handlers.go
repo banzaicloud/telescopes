@@ -131,6 +131,49 @@ func (r *RouteHandler) recommendClusterScaleOut() gin.HandlerFunc {
 	}
 }
 
+// swagger:route POST /recommender/ recommend recommendClustersSetup
+//
+// Provides a recommended set of node pools on a given provider in a specific region.
+//
+//     Consumes:
+//     - application/json
+//
+//     Produces:
+//     - application/json
+//
+//     Schemes: http
+//
+//     Security:
+//
+//     Responses:
+//       200: RecommendationResponse
+func (r *RouteHandler) recommendClustersSetup() gin.HandlerFunc {
+	return func(c *gin.Context) {
+
+		logger := log.WithFieldsForHandlers(c, r.log, map[string]interface{}{})
+
+		logger.Info("recommend cluster setup")
+
+		req := recommender.Request{}
+		if err := c.BindJSON(&req); err != nil {
+			logger.Error(emperror.Wrap(err, "failed to bind request body").Error())
+			c.JSON(http.StatusBadRequest, gin.H{
+				"code":    "bad_params",
+				"message": "validation failed",
+				"cause":   err.Error(),
+			})
+			return
+		}
+
+		if response, err := r.engine.RecommendClusters(req); err != nil {
+			errorresponse.NewErrorResponder(c).Respond(err)
+			return
+		} else {
+			c.JSON(http.StatusOK, response)
+		}
+	}
+}
+
 func (r *RouteHandler) versionHandler(c *gin.Context) {
 	c.JSON(http.StatusOK, r.buildInfo)
 }

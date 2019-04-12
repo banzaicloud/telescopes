@@ -42,6 +42,9 @@ type ClusterRecommendationReq struct {
 	// Percentage of regular (on-demand) nodes in the recommended cluster
 	OnDemandPct int64 `json:"onDemandPct,omitempty"`
 
+	// Maximum number of response per service
+	RespPerService int64 `json:"respPerService,omitempty"`
+
 	// If true, recommended instance types will have a similar size
 	SameSize bool `json:"sameSize,omitempty"`
 

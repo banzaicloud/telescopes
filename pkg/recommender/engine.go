@@ -17,6 +17,7 @@ package recommender
 import (
 	"fmt"
 	"math"
+	"sort"
 
 	"github.com/goph/emperror"
 	"github.com/goph/logur"
@@ -204,6 +205,62 @@ func (e *Engine) RecommendClusterScaleOut(provider string, service string, regio
 	}
 
 	return e.RecommendCluster(provider, service, region, clReq, req.ActualLayout)
+}
+
+// RecommendClusters performs recommendation
+func (e *Engine) RecommendClusters(req Request) (map[string][]*ClusterRecommendationResp, error) {
+	respPerService := make(map[string][]*ClusterRecommendationResp)
+	for _, provider := range req.Providers {
+		for _, service := range provider.Services {
+			continents, err := e.ciSource.GetRegions(provider.Provider, service)
+			if err != nil {
+				return nil, err
+			}
+
+			for _, validContinent := range req.Continents {
+				for _, continent := range continents {
+					if validContinent == continent.Name {
+						for _, region := range continent.Regions {
+							if response, err := e.RecommendCluster(provider.Provider, service, region.ID, req.Request, nil); err != nil {
+								e.log.Warn("could not recommend cluster")
+							} else {
+								respPerService[response.Service] = append(respPerService[response.Service], response)
+							}
+						}
+					}
+				}
+			}
+
+			sort.Sort(ByPricePerService(respPerService[service]))
+			if len(respPerService[service]) > req.Request.RespPerService {
+				var limit = 0
+				for i := range respPerService[service] {
+					if respPerService[service][req.Request.RespPerService-1].Accuracy.RecTotalPrice < respPerService[service][i].Accuracy.RecTotalPrice {
+						limit = i
+						break
+					}
+				}
+				if limit != 0 {
+					respPerService[service] = respPerService[service][:limit]
+				}
+			}
+		}
+	}
+	if len(respPerService) == 0 {
+		return nil, errors.New("failed to recommend clusters")
+	}
+	return respPerService, nil
+}
+
+// ByPricePerService type for custom sorting of a slice of response
+type ByPricePerService []*ClusterRecommendationResp
+
+func (a ByPricePerService) Len() int      { return len(a) }
+func (a ByPricePerService) Swap(i, j int) { a[i], a[j] = a[j], a[i] }
+func (a ByPricePerService) Less(i, j int) bool {
+	totalPrice1 := a[i].Accuracy.RecTotalPrice
+	totalPrice2 := a[j].Accuracy.RecTotalPrice
+	return totalPrice1 < totalPrice2
 }
 
 func boolPointer(b bool) *bool {
