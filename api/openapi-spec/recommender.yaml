@@ -591,6 +591,10 @@ components:
       description: NodePool represents a set of instances with a specific vm type
       type: object
       properties:
+        role:
+          description: 'Role in the cluster, eg. master or worker'
+          type: string
+          x-go-name: Role
         sumNodes:
           description: Recommended number of nodes in the node pool
           type: integer
