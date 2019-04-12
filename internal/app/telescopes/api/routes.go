@@ -35,7 +35,7 @@ const (
 
 // RouteHandler struct that wraps the recommender engine
 type RouteHandler struct {
-	engine    *recommender.Engine
+	engine    recommender.ClusterRecommender
 	buildInfo buildinfo.BuildInfo
 	ciCli     *recommender.CloudInfoClient
 	log       logur.Logger

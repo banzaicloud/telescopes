@@ -30,6 +30,12 @@ const (
 	ntwMedium = "medium"
 	ntwHigh   = "high"
 	ntwExtra  = "extra"
+
+	categoryGeneral = "General purpose"
+	categoryCompute = "Compute optimized"
+	categoryMemory  = "Memory optimized"
+	categoryGpu     = "GPU instance"
+	categoryStorage = "Storage optimized"
 )
 
 // ConfigureValidator configures the Gin validator with custom validator functions
@@ -38,6 +44,9 @@ func ConfigureValidator(ciCli *recommender.CloudInfoClient) error {
 
 	if err := v.RegisterValidation("networkPerf", networkPerfValidator()); err != nil {
 		return emperror.Wrap(err, "could not register networkPerf validator")
+	}
+	if err := v.RegisterValidation("category", categoryValidator()); err != nil {
+		return emperror.Wrap(err, "could not register category validator")
 	}
 	if err := v.RegisterValidation("continents", continentValidator(ciCli)); err != nil {
 		return emperror.Wrap(err, "could not register continent validator")
@@ -52,6 +61,19 @@ func networkPerfValidator() validator.Func {
 
 		for _, n := range []string{ntwLow, ntwMedium, ntwHigh, ntwExtra} {
 			if field.String() == n {
+				return true
+			}
+		}
+		return false
+	}
+}
+
+// categoryValidator validates the category in the recommendation request.
+func categoryValidator() validator.Func {
+	return func(v *validator.Validate, topStruct reflect.Value, currentStruct reflect.Value, field reflect.Value,
+		fieldtype reflect.Type, fieldKind reflect.Kind, param string) bool {
+		for _, c := range []string{categoryCompute, categoryGeneral, categoryGpu, categoryMemory, categoryStorage} {
+			if field.String() == c {
 				return true
 			}
 		}
