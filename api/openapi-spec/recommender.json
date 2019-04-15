@@ -73,6 +73,27 @@
         "operationId": "recommendClusterScaleOut",
         "parameters": [
           {
+            "type": "string",
+            "x-go-name": "Provider",
+            "name": "provider",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "x-go-name": "Service",
+            "name": "service",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "x-go-name": "Region",
+            "name": "region",
+            "in": "path",
+            "required": true
+          },
+          {
             "type": "number",
             "format": "double",
             "x-go-name": "DesiredCpu",
@@ -135,27 +156,6 @@
                 "$ref": "#/definitions/NodePoolDesc"
               }
             }
-          },
-          {
-            "type": "string",
-            "x-go-name": "Provider",
-            "name": "provider",
-            "in": "path",
-            "required": true
-          },
-          {
-            "type": "string",
-            "x-go-name": "Service",
-            "name": "service",
-            "in": "path",
-            "required": true
-          },
-          {
-            "type": "string",
-            "x-go-name": "Region",
-            "name": "region",
-            "in": "path",
-            "required": true
           }
         ],
         "responses": {
@@ -183,6 +183,27 @@
         "summary": "Provides a recommended set of node pools on a given provider in a specific region.",
         "operationId": "recommendClusterSetup",
         "parameters": [
+          {
+            "type": "string",
+            "x-go-name": "Provider",
+            "name": "provider",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "x-go-name": "Service",
+            "name": "service",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "x-go-name": "Region",
+            "name": "region",
+            "in": "path",
+            "required": true
+          },
           {
             "type": "number",
             "format": "double",
@@ -298,35 +319,6 @@
             "description": "Category specifies the virtual machine category",
             "name": "category",
             "in": "query"
-          },
-          {
-            "type": "integer",
-            "format": "int64",
-            "x-go-name": "RespPerService",
-            "description": "Maximum number of response per service",
-            "name": "respPerService",
-            "in": "query"
-          },
-          {
-            "type": "string",
-            "x-go-name": "Provider",
-            "name": "provider",
-            "in": "path",
-            "required": true
-          },
-          {
-            "type": "string",
-            "x-go-name": "Service",
-            "name": "service",
-            "in": "path",
-            "required": true
-          },
-          {
-            "type": "string",
-            "x-go-name": "Region",
-            "name": "region",
-            "in": "path",
-            "required": true
           }
         ],
         "responses": {
@@ -485,12 +477,6 @@
           "type": "integer",
           "format": "int64",
           "x-go-name": "OnDemandPct"
-        },
-        "respPerService": {
-          "description": "Maximum number of response per service",
-          "type": "integer",
-          "format": "int64",
-          "x-go-name": "RespPerService"
         },
         "sameSize": {
           "description": "If true, recommended instance types will have a similar size",
@@ -974,7 +960,7 @@
           "x-go-name": "Services"
         }
       },
-      "x-go-package": "github.com/banzaicloud/telescopes/vendor/github.com/banzaicloud/cloudinfo/pkg/cloudinfo-client/models"
+      "x-go-package": "github.com/banzaicloud/telescopes/pkg/recommender"
     },
     "ProviderResponse": {
       "description": "ProviderResponse ProviderResponse is the response used for the requested provider",
@@ -1087,6 +1073,12 @@
         },
         "request": {
           "$ref": "#/definitions/ClusterRecommendationReq"
+        },
+        "respPerService": {
+          "description": "Maximum number of response per service",
+          "type": "integer",
+          "format": "int64",
+          "x-go-name": "RespPerService"
         }
       },
       "x-go-package": "github.com/banzaicloud/telescopes/pkg/recommender"

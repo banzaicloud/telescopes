@@ -112,11 +112,6 @@ type RecommendClusterSetupParams struct {
 	Provider string
 	/*Region*/
 	Region string
-	/*RespPerService
-	  Maximum number of response per service
-
-	*/
-	RespPerService *int64
 	/*SameSize
 	  If true, recommended instance types will have a similar size
 
@@ -302,17 +297,6 @@ func (o *RecommendClusterSetupParams) WithRegion(region string) *RecommendCluste
 // SetRegion adds the region to the recommend cluster setup params
 func (o *RecommendClusterSetupParams) SetRegion(region string) {
 	o.Region = region
-}
-
-// WithRespPerService adds the respPerService to the recommend cluster setup params
-func (o *RecommendClusterSetupParams) WithRespPerService(respPerService *int64) *RecommendClusterSetupParams {
-	o.SetRespPerService(respPerService)
-	return o
-}
-
-// SetRespPerService adds the respPerService to the recommend cluster setup params
-func (o *RecommendClusterSetupParams) SetRespPerService(respPerService *int64) {
-	o.RespPerService = respPerService
 }
 
 // WithSameSize adds the sameSize to the recommend cluster setup params
@@ -517,22 +501,6 @@ func (o *RecommendClusterSetupParams) WriteToRequest(r runtime.ClientRequest, re
 	// path param region
 	if err := r.SetPathParam("region", o.Region); err != nil {
 		return err
-	}
-
-	if o.RespPerService != nil {
-
-		// query param respPerService
-		var qrRespPerService int64
-		if o.RespPerService != nil {
-			qrRespPerService = *o.RespPerService
-		}
-		qRespPerService := swag.FormatInt64(qrRespPerService)
-		if qRespPerService != "" {
-			if err := r.SetQueryParam("respPerService", qRespPerService); err != nil {
-				return err
-			}
-		}
-
 	}
 
 	if o.SameSize != nil {

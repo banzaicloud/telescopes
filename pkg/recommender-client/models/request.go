@@ -24,6 +24,9 @@ type Request struct {
 	// providers
 	Providers []*Provider `json:"providers"`
 
+	// Maximum number of response per service
+	RespPerService int64 `json:"respPerService,omitempty"`
+
 	// request
 	Request *ClusterRecommendationReq `json:"request,omitempty"`
 }

@@ -85,8 +85,6 @@ type ClusterRecommendationReq struct {
 	AllowOlderGen *bool `json:"allowOlderGen,omitempty"`
 	// Category specifies the virtual machine category
 	Category []string `json:"category,omitempty"`
-	// Maximum number of response per service
-	RespPerService int `json:"respPerService,omitempty"`
 }
 
 // ClustersRecommendationReq encapsulates the recommendation input data
@@ -96,9 +94,11 @@ type ClustersRecommendationReq struct {
 	Request Request `json:"request"`
 }
 type Request struct {
-	Providers  []Provider               `json:"providers"`
-	Continents []string                 `json:"continents"`
-	Request    ClusterRecommendationReq `json:"request"`
+	Providers  []Provider               `json:"providers" binding:"required"`
+	Continents []string                 `json:"continents" binding:"required"`
+	Request    ClusterRecommendationReq `json:"request" binding:"required"`
+	// Maximum number of response per service
+	RespPerService int `json:"respPerService" binding:"required"`
 }
 type Provider struct {
 	Provider string   `json:"provider"`

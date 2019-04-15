@@ -232,10 +232,10 @@ func (e *Engine) RecommendClusters(req Request) (map[string][]*ClusterRecommenda
 			}
 
 			sort.Sort(ByPricePerService(respPerService[service]))
-			if len(respPerService[service]) > req.Request.RespPerService {
+			if len(respPerService[service]) > req.RespPerService {
 				var limit = 0
 				for i := range respPerService[service] {
-					if respPerService[service][req.Request.RespPerService-1].Accuracy.RecTotalPrice < respPerService[service][i].Accuracy.RecTotalPrice {
+					if respPerService[service][req.RespPerService-1].Accuracy.RecTotalPrice < respPerService[service][i].Accuracy.RecTotalPrice {
 						limit = i
 						break
 					}
