@@ -14,9 +14,9 @@ import (
 	"github.com/go-openapi/swag"
 )
 
-// Request request
-// swagger:model Request
-type Request struct {
+// MultiClusterRecommendationReq MultiClusterRecommendationReq encapsulates the recommendation input data
+// swagger:model MultiClusterRecommendationReq
+type MultiClusterRecommendationReq struct {
 
 	// continents
 	Continents []string `json:"continents"`
@@ -27,19 +27,19 @@ type Request struct {
 	// Maximum number of response per service
 	RespPerService int64 `json:"respPerService,omitempty"`
 
-	// request
-	Request *ClusterRecommendationReq `json:"request,omitempty"`
+	// cluster recommendation req
+	ClusterRecommendationReq *ClusterRecommendationReq `json:"clusterRecommendationReq,omitempty"`
 }
 
-// Validate validates this request
-func (m *Request) Validate(formats strfmt.Registry) error {
+// Validate validates this multi cluster recommendation req
+func (m *MultiClusterRecommendationReq) Validate(formats strfmt.Registry) error {
 	var res []error
 
 	if err := m.validateProviders(formats); err != nil {
 		res = append(res, err)
 	}
 
-	if err := m.validateRequest(formats); err != nil {
+	if err := m.validateClusterRecommendationReq(formats); err != nil {
 		res = append(res, err)
 	}
 
@@ -49,7 +49,7 @@ func (m *Request) Validate(formats strfmt.Registry) error {
 	return nil
 }
 
-func (m *Request) validateProviders(formats strfmt.Registry) error {
+func (m *MultiClusterRecommendationReq) validateProviders(formats strfmt.Registry) error {
 
 	if swag.IsZero(m.Providers) { // not required
 		return nil
@@ -74,16 +74,16 @@ func (m *Request) validateProviders(formats strfmt.Registry) error {
 	return nil
 }
 
-func (m *Request) validateRequest(formats strfmt.Registry) error {
+func (m *MultiClusterRecommendationReq) validateClusterRecommendationReq(formats strfmt.Registry) error {
 
-	if swag.IsZero(m.Request) { // not required
+	if swag.IsZero(m.ClusterRecommendationReq) { // not required
 		return nil
 	}
 
-	if m.Request != nil {
-		if err := m.Request.Validate(formats); err != nil {
+	if m.ClusterRecommendationReq != nil {
+		if err := m.ClusterRecommendationReq.Validate(formats); err != nil {
 			if ve, ok := err.(*errors.Validation); ok {
-				return ve.ValidateName("request")
+				return ve.ValidateName("clusterRecommendationReq")
 			}
 			return err
 		}
@@ -93,7 +93,7 @@ func (m *Request) validateRequest(formats strfmt.Registry) error {
 }
 
 // MarshalBinary interface implementation
-func (m *Request) MarshalBinary() ([]byte, error) {
+func (m *MultiClusterRecommendationReq) MarshalBinary() ([]byte, error) {
 	if m == nil {
 		return nil, nil
 	}
@@ -101,8 +101,8 @@ func (m *Request) MarshalBinary() ([]byte, error) {
 }
 
 // UnmarshalBinary interface implementation
-func (m *Request) UnmarshalBinary(b []byte) error {
-	var res Request
+func (m *MultiClusterRecommendationReq) UnmarshalBinary(b []byte) error {
+	var res MultiClusterRecommendationReq
 	if err := swag.ReadJSON(b, &res); err != nil {
 		return err
 	}

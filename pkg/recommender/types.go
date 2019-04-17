@@ -40,8 +40,8 @@ type ClusterRecommender interface {
 	// RecommendClusterScaleOut performs recommendation for an existing layout's scale out
 	RecommendClusterScaleOut(provider string, service string, region string, req ClusterScaleoutRecommendationReq) (*ClusterRecommendationResp, error)
 
-	// RecommendClusters performs recommendations
-	RecommendClusters(req Request) (map[string][]*ClusterRecommendationResp, error)
+	// RecommendMultiCluster performs recommendations
+	RecommendMultiCluster(req MultiClusterRecommendationReq) (map[string][]*ClusterRecommendationResp, error)
 }
 
 type VmRecommender interface {
@@ -55,7 +55,7 @@ type NodePoolRecommender interface {
 }
 
 // ClusterRecommendationReq encapsulates the recommendation input data
-// swagger:parameters recommendClusterSetup
+// swagger:parameters recommendCluster
 type ClusterRecommendationReq struct {
 	// Total number of CPUs requested for the cluster
 	SumCpu float64 `json:"sumCpu" binding:"min=1"`
@@ -87,19 +87,18 @@ type ClusterRecommendationReq struct {
 	Category []string `json:"category,omitempty"`
 }
 
-// ClustersRecommendationReq encapsulates the recommendation input data
-// swagger:parameters recommendClustersSetup
-type ClustersRecommendationReq struct {
-	// in:body
-	Request Request `json:"request"`
-}
-type Request struct {
-	Providers  []Provider               `json:"providers" binding:"required"`
-	Continents []string                 `json:"continents" binding:"required"`
-	Request    ClusterRecommendationReq `json:"request" binding:"required"`
+// MultiClusterRecommendationReq encapsulates the recommendation input data
+// swagger:model recommendMultiCluster
+type MultiClusterRecommendationReq struct {
+	Providers  []Provider `json:"providers" binding:"required"`
+	Continents []string   `json:"continents" binding:"required"`
+	// cluster recommendation request
+	ClusterRecommendationReq ClusterRecommendationReq `json:"clusterRecommendationReq" binding:"required"`
 	// Maximum number of response per service
 	RespPerService int `json:"respPerService" binding:"required"`
 }
+
+// swagger:parameters recommendMultiCluster
 type Provider struct {
 	Provider string   `json:"provider"`
 	Services []string `json:"services"`

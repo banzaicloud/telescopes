@@ -26,7 +26,7 @@ import (
 	"github.com/mitchellh/mapstructure"
 )
 
-// swagger:route POST /recommender/{provider}/{service}/{region}/cluster recommend recommendClusterSetup
+// swagger:route POST /recommender/provider/{provider}/service/{service}/region/{region}/cluster recommend recommendCluster
 //
 // Provides a recommended set of node pools on a given provider in a specific region.
 //
@@ -42,7 +42,7 @@ import (
 //
 //     Responses:
 //       200: RecommendationResponse
-func (r *RouteHandler) recommendClusterSetup() gin.HandlerFunc {
+func (r *RouteHandler) recommendCluster() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		pathParams := GetRecommendationParams{}
 
@@ -79,7 +79,7 @@ func (r *RouteHandler) recommendClusterSetup() gin.HandlerFunc {
 	}
 }
 
-// swagger:route PUT /recommender/{provider}/{service}/{region}/cluster recommend recommendClusterScaleOut
+// swagger:route PUT /recommender/provider/{provider}/service/{service}/region/{region}/cluster recommend recommendClusterScaleOut
 //
 // Provides a recommendation for a scale-out, based on a current cluster layout on a given provider in a specific region.
 //
@@ -131,7 +131,7 @@ func (r *RouteHandler) recommendClusterScaleOut() gin.HandlerFunc {
 	}
 }
 
-// swagger:route POST /recommender/ recommend recommendClustersSetup
+// swagger:route POST /recommender/multicloud recommend recommendMultiCluster
 //
 // Provides a recommended set of node pools on a given provider in a specific region.
 //
@@ -147,14 +147,14 @@ func (r *RouteHandler) recommendClusterScaleOut() gin.HandlerFunc {
 //
 //     Responses:
 //       200: RecommendationResponse
-func (r *RouteHandler) recommendClustersSetup() gin.HandlerFunc {
+func (r *RouteHandler) recommendMultiCluster() gin.HandlerFunc {
 	return func(c *gin.Context) {
 
 		logger := log.WithFieldsForHandlers(c, r.log, map[string]interface{}{})
 
 		logger.Info("recommend cluster setup")
 
-		req := recommender.Request{}
+		req := recommender.MultiClusterRecommendationReq{}
 		if err := c.BindJSON(&req); err != nil {
 			logger.Error(emperror.Wrap(err, "failed to bind request body").Error())
 			c.JSON(http.StatusBadRequest, gin.H{
@@ -165,7 +165,7 @@ func (r *RouteHandler) recommendClustersSetup() gin.HandlerFunc {
 			return
 		}
 
-		if response, err := r.engine.RecommendClusters(req); err != nil {
+		if response, err := r.engine.RecommendMultiCluster(req); err != nil {
 			errorresponse.NewErrorResponder(c).Respond(err)
 			return
 		} else {

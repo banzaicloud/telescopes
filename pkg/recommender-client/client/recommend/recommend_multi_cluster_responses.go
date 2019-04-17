@@ -16,17 +16,17 @@ import (
 	models "github.com/banzaicloud/telescopes/pkg/recommender-client/models"
 )
 
-// RecommendClustersSetupReader is a Reader for the RecommendClustersSetup structure.
-type RecommendClustersSetupReader struct {
+// RecommendMultiClusterReader is a Reader for the RecommendMultiCluster structure.
+type RecommendMultiClusterReader struct {
 	formats strfmt.Registry
 }
 
 // ReadResponse reads a server response into the received o.
-func (o *RecommendClustersSetupReader) ReadResponse(response runtime.ClientResponse, consumer runtime.Consumer) (interface{}, error) {
+func (o *RecommendMultiClusterReader) ReadResponse(response runtime.ClientResponse, consumer runtime.Consumer) (interface{}, error) {
 	switch response.Code() {
 
 	case 200:
-		result := NewRecommendClustersSetupOK()
+		result := NewRecommendMultiClusterOK()
 		if err := result.readResponse(response, consumer, o.formats); err != nil {
 			return nil, err
 		}
@@ -37,24 +37,24 @@ func (o *RecommendClustersSetupReader) ReadResponse(response runtime.ClientRespo
 	}
 }
 
-// NewRecommendClustersSetupOK creates a RecommendClustersSetupOK with default headers values
-func NewRecommendClustersSetupOK() *RecommendClustersSetupOK {
-	return &RecommendClustersSetupOK{}
+// NewRecommendMultiClusterOK creates a RecommendMultiClusterOK with default headers values
+func NewRecommendMultiClusterOK() *RecommendMultiClusterOK {
+	return &RecommendMultiClusterOK{}
 }
 
-/*RecommendClustersSetupOK handles this case with default header values.
+/*RecommendMultiClusterOK handles this case with default header values.
 
 RecommendationResponse
 */
-type RecommendClustersSetupOK struct {
+type RecommendMultiClusterOK struct {
 	Payload *models.ClusterRecommendationResp
 }
 
-func (o *RecommendClustersSetupOK) Error() string {
-	return fmt.Sprintf("[POST /recommender/][%d] recommendClustersSetupOK  %+v", 200, o.Payload)
+func (o *RecommendMultiClusterOK) Error() string {
+	return fmt.Sprintf("[POST /recommender/multicloud][%d] recommendMultiClusterOK  %+v", 200, o.Payload)
 }
 
-func (o *RecommendClustersSetupOK) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
+func (o *RecommendMultiClusterOK) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
 
 	o.Payload = new(models.ClusterRecommendationResp)
 

@@ -19,49 +19,49 @@ import (
 	strfmt "github.com/go-openapi/strfmt"
 )
 
-// NewRecommendClusterSetupParams creates a new RecommendClusterSetupParams object
+// NewRecommendClusterParams creates a new RecommendClusterParams object
 // with the default values initialized.
-func NewRecommendClusterSetupParams() *RecommendClusterSetupParams {
+func NewRecommendClusterParams() *RecommendClusterParams {
 	var ()
-	return &RecommendClusterSetupParams{
+	return &RecommendClusterParams{
 
 		timeout: cr.DefaultTimeout,
 	}
 }
 
-// NewRecommendClusterSetupParamsWithTimeout creates a new RecommendClusterSetupParams object
+// NewRecommendClusterParamsWithTimeout creates a new RecommendClusterParams object
 // with the default values initialized, and the ability to set a timeout on a request
-func NewRecommendClusterSetupParamsWithTimeout(timeout time.Duration) *RecommendClusterSetupParams {
+func NewRecommendClusterParamsWithTimeout(timeout time.Duration) *RecommendClusterParams {
 	var ()
-	return &RecommendClusterSetupParams{
+	return &RecommendClusterParams{
 
 		timeout: timeout,
 	}
 }
 
-// NewRecommendClusterSetupParamsWithContext creates a new RecommendClusterSetupParams object
+// NewRecommendClusterParamsWithContext creates a new RecommendClusterParams object
 // with the default values initialized, and the ability to set a context for a request
-func NewRecommendClusterSetupParamsWithContext(ctx context.Context) *RecommendClusterSetupParams {
+func NewRecommendClusterParamsWithContext(ctx context.Context) *RecommendClusterParams {
 	var ()
-	return &RecommendClusterSetupParams{
+	return &RecommendClusterParams{
 
 		Context: ctx,
 	}
 }
 
-// NewRecommendClusterSetupParamsWithHTTPClient creates a new RecommendClusterSetupParams object
+// NewRecommendClusterParamsWithHTTPClient creates a new RecommendClusterParams object
 // with the default values initialized, and the ability to set a custom HTTPClient for a request
-func NewRecommendClusterSetupParamsWithHTTPClient(client *http.Client) *RecommendClusterSetupParams {
+func NewRecommendClusterParamsWithHTTPClient(client *http.Client) *RecommendClusterParams {
 	var ()
-	return &RecommendClusterSetupParams{
+	return &RecommendClusterParams{
 		HTTPClient: client,
 	}
 }
 
-/*RecommendClusterSetupParams contains all the parameters to send to the API endpoint
-for the recommend cluster setup operation typically these are written to a http.Request
+/*RecommendClusterParams contains all the parameters to send to the API endpoint
+for the recommend cluster operation typically these are written to a http.Request
 */
-type RecommendClusterSetupParams struct {
+type RecommendClusterParams struct {
 
 	/*AllowBurst
 	  Are burst instances allowed in recommendation
@@ -145,228 +145,228 @@ type RecommendClusterSetupParams struct {
 	HTTPClient *http.Client
 }
 
-// WithTimeout adds the timeout to the recommend cluster setup params
-func (o *RecommendClusterSetupParams) WithTimeout(timeout time.Duration) *RecommendClusterSetupParams {
+// WithTimeout adds the timeout to the recommend cluster params
+func (o *RecommendClusterParams) WithTimeout(timeout time.Duration) *RecommendClusterParams {
 	o.SetTimeout(timeout)
 	return o
 }
 
-// SetTimeout adds the timeout to the recommend cluster setup params
-func (o *RecommendClusterSetupParams) SetTimeout(timeout time.Duration) {
+// SetTimeout adds the timeout to the recommend cluster params
+func (o *RecommendClusterParams) SetTimeout(timeout time.Duration) {
 	o.timeout = timeout
 }
 
-// WithContext adds the context to the recommend cluster setup params
-func (o *RecommendClusterSetupParams) WithContext(ctx context.Context) *RecommendClusterSetupParams {
+// WithContext adds the context to the recommend cluster params
+func (o *RecommendClusterParams) WithContext(ctx context.Context) *RecommendClusterParams {
 	o.SetContext(ctx)
 	return o
 }
 
-// SetContext adds the context to the recommend cluster setup params
-func (o *RecommendClusterSetupParams) SetContext(ctx context.Context) {
+// SetContext adds the context to the recommend cluster params
+func (o *RecommendClusterParams) SetContext(ctx context.Context) {
 	o.Context = ctx
 }
 
-// WithHTTPClient adds the HTTPClient to the recommend cluster setup params
-func (o *RecommendClusterSetupParams) WithHTTPClient(client *http.Client) *RecommendClusterSetupParams {
+// WithHTTPClient adds the HTTPClient to the recommend cluster params
+func (o *RecommendClusterParams) WithHTTPClient(client *http.Client) *RecommendClusterParams {
 	o.SetHTTPClient(client)
 	return o
 }
 
-// SetHTTPClient adds the HTTPClient to the recommend cluster setup params
-func (o *RecommendClusterSetupParams) SetHTTPClient(client *http.Client) {
+// SetHTTPClient adds the HTTPClient to the recommend cluster params
+func (o *RecommendClusterParams) SetHTTPClient(client *http.Client) {
 	o.HTTPClient = client
 }
 
-// WithAllowBurst adds the allowBurst to the recommend cluster setup params
-func (o *RecommendClusterSetupParams) WithAllowBurst(allowBurst *bool) *RecommendClusterSetupParams {
+// WithAllowBurst adds the allowBurst to the recommend cluster params
+func (o *RecommendClusterParams) WithAllowBurst(allowBurst *bool) *RecommendClusterParams {
 	o.SetAllowBurst(allowBurst)
 	return o
 }
 
-// SetAllowBurst adds the allowBurst to the recommend cluster setup params
-func (o *RecommendClusterSetupParams) SetAllowBurst(allowBurst *bool) {
+// SetAllowBurst adds the allowBurst to the recommend cluster params
+func (o *RecommendClusterParams) SetAllowBurst(allowBurst *bool) {
 	o.AllowBurst = allowBurst
 }
 
-// WithAllowOlderGen adds the allowOlderGen to the recommend cluster setup params
-func (o *RecommendClusterSetupParams) WithAllowOlderGen(allowOlderGen *bool) *RecommendClusterSetupParams {
+// WithAllowOlderGen adds the allowOlderGen to the recommend cluster params
+func (o *RecommendClusterParams) WithAllowOlderGen(allowOlderGen *bool) *RecommendClusterParams {
 	o.SetAllowOlderGen(allowOlderGen)
 	return o
 }
 
-// SetAllowOlderGen adds the allowOlderGen to the recommend cluster setup params
-func (o *RecommendClusterSetupParams) SetAllowOlderGen(allowOlderGen *bool) {
+// SetAllowOlderGen adds the allowOlderGen to the recommend cluster params
+func (o *RecommendClusterParams) SetAllowOlderGen(allowOlderGen *bool) {
 	o.AllowOlderGen = allowOlderGen
 }
 
-// WithCategory adds the category to the recommend cluster setup params
-func (o *RecommendClusterSetupParams) WithCategory(category []string) *RecommendClusterSetupParams {
+// WithCategory adds the category to the recommend cluster params
+func (o *RecommendClusterParams) WithCategory(category []string) *RecommendClusterParams {
 	o.SetCategory(category)
 	return o
 }
 
-// SetCategory adds the category to the recommend cluster setup params
-func (o *RecommendClusterSetupParams) SetCategory(category []string) {
+// SetCategory adds the category to the recommend cluster params
+func (o *RecommendClusterParams) SetCategory(category []string) {
 	o.Category = category
 }
 
-// WithExcludes adds the excludes to the recommend cluster setup params
-func (o *RecommendClusterSetupParams) WithExcludes(excludes []string) *RecommendClusterSetupParams {
+// WithExcludes adds the excludes to the recommend cluster params
+func (o *RecommendClusterParams) WithExcludes(excludes []string) *RecommendClusterParams {
 	o.SetExcludes(excludes)
 	return o
 }
 
-// SetExcludes adds the excludes to the recommend cluster setup params
-func (o *RecommendClusterSetupParams) SetExcludes(excludes []string) {
+// SetExcludes adds the excludes to the recommend cluster params
+func (o *RecommendClusterParams) SetExcludes(excludes []string) {
 	o.Excludes = excludes
 }
 
-// WithIncludes adds the includes to the recommend cluster setup params
-func (o *RecommendClusterSetupParams) WithIncludes(includes []string) *RecommendClusterSetupParams {
+// WithIncludes adds the includes to the recommend cluster params
+func (o *RecommendClusterParams) WithIncludes(includes []string) *RecommendClusterParams {
 	o.SetIncludes(includes)
 	return o
 }
 
-// SetIncludes adds the includes to the recommend cluster setup params
-func (o *RecommendClusterSetupParams) SetIncludes(includes []string) {
+// SetIncludes adds the includes to the recommend cluster params
+func (o *RecommendClusterParams) SetIncludes(includes []string) {
 	o.Includes = includes
 }
 
-// WithMaxNodes adds the maxNodes to the recommend cluster setup params
-func (o *RecommendClusterSetupParams) WithMaxNodes(maxNodes *int64) *RecommendClusterSetupParams {
+// WithMaxNodes adds the maxNodes to the recommend cluster params
+func (o *RecommendClusterParams) WithMaxNodes(maxNodes *int64) *RecommendClusterParams {
 	o.SetMaxNodes(maxNodes)
 	return o
 }
 
-// SetMaxNodes adds the maxNodes to the recommend cluster setup params
-func (o *RecommendClusterSetupParams) SetMaxNodes(maxNodes *int64) {
+// SetMaxNodes adds the maxNodes to the recommend cluster params
+func (o *RecommendClusterParams) SetMaxNodes(maxNodes *int64) {
 	o.MaxNodes = maxNodes
 }
 
-// WithMinNodes adds the minNodes to the recommend cluster setup params
-func (o *RecommendClusterSetupParams) WithMinNodes(minNodes *int64) *RecommendClusterSetupParams {
+// WithMinNodes adds the minNodes to the recommend cluster params
+func (o *RecommendClusterParams) WithMinNodes(minNodes *int64) *RecommendClusterParams {
 	o.SetMinNodes(minNodes)
 	return o
 }
 
-// SetMinNodes adds the minNodes to the recommend cluster setup params
-func (o *RecommendClusterSetupParams) SetMinNodes(minNodes *int64) {
+// SetMinNodes adds the minNodes to the recommend cluster params
+func (o *RecommendClusterParams) SetMinNodes(minNodes *int64) {
 	o.MinNodes = minNodes
 }
 
-// WithNetworkPerf adds the networkPerf to the recommend cluster setup params
-func (o *RecommendClusterSetupParams) WithNetworkPerf(networkPerf *string) *RecommendClusterSetupParams {
+// WithNetworkPerf adds the networkPerf to the recommend cluster params
+func (o *RecommendClusterParams) WithNetworkPerf(networkPerf *string) *RecommendClusterParams {
 	o.SetNetworkPerf(networkPerf)
 	return o
 }
 
-// SetNetworkPerf adds the networkPerf to the recommend cluster setup params
-func (o *RecommendClusterSetupParams) SetNetworkPerf(networkPerf *string) {
+// SetNetworkPerf adds the networkPerf to the recommend cluster params
+func (o *RecommendClusterParams) SetNetworkPerf(networkPerf *string) {
 	o.NetworkPerf = networkPerf
 }
 
-// WithOnDemandPct adds the onDemandPct to the recommend cluster setup params
-func (o *RecommendClusterSetupParams) WithOnDemandPct(onDemandPct *int64) *RecommendClusterSetupParams {
+// WithOnDemandPct adds the onDemandPct to the recommend cluster params
+func (o *RecommendClusterParams) WithOnDemandPct(onDemandPct *int64) *RecommendClusterParams {
 	o.SetOnDemandPct(onDemandPct)
 	return o
 }
 
-// SetOnDemandPct adds the onDemandPct to the recommend cluster setup params
-func (o *RecommendClusterSetupParams) SetOnDemandPct(onDemandPct *int64) {
+// SetOnDemandPct adds the onDemandPct to the recommend cluster params
+func (o *RecommendClusterParams) SetOnDemandPct(onDemandPct *int64) {
 	o.OnDemandPct = onDemandPct
 }
 
-// WithProvider adds the provider to the recommend cluster setup params
-func (o *RecommendClusterSetupParams) WithProvider(provider string) *RecommendClusterSetupParams {
+// WithProvider adds the provider to the recommend cluster params
+func (o *RecommendClusterParams) WithProvider(provider string) *RecommendClusterParams {
 	o.SetProvider(provider)
 	return o
 }
 
-// SetProvider adds the provider to the recommend cluster setup params
-func (o *RecommendClusterSetupParams) SetProvider(provider string) {
+// SetProvider adds the provider to the recommend cluster params
+func (o *RecommendClusterParams) SetProvider(provider string) {
 	o.Provider = provider
 }
 
-// WithRegion adds the region to the recommend cluster setup params
-func (o *RecommendClusterSetupParams) WithRegion(region string) *RecommendClusterSetupParams {
+// WithRegion adds the region to the recommend cluster params
+func (o *RecommendClusterParams) WithRegion(region string) *RecommendClusterParams {
 	o.SetRegion(region)
 	return o
 }
 
-// SetRegion adds the region to the recommend cluster setup params
-func (o *RecommendClusterSetupParams) SetRegion(region string) {
+// SetRegion adds the region to the recommend cluster params
+func (o *RecommendClusterParams) SetRegion(region string) {
 	o.Region = region
 }
 
-// WithSameSize adds the sameSize to the recommend cluster setup params
-func (o *RecommendClusterSetupParams) WithSameSize(sameSize *bool) *RecommendClusterSetupParams {
+// WithSameSize adds the sameSize to the recommend cluster params
+func (o *RecommendClusterParams) WithSameSize(sameSize *bool) *RecommendClusterParams {
 	o.SetSameSize(sameSize)
 	return o
 }
 
-// SetSameSize adds the sameSize to the recommend cluster setup params
-func (o *RecommendClusterSetupParams) SetSameSize(sameSize *bool) {
+// SetSameSize adds the sameSize to the recommend cluster params
+func (o *RecommendClusterParams) SetSameSize(sameSize *bool) {
 	o.SameSize = sameSize
 }
 
-// WithService adds the service to the recommend cluster setup params
-func (o *RecommendClusterSetupParams) WithService(service string) *RecommendClusterSetupParams {
+// WithService adds the service to the recommend cluster params
+func (o *RecommendClusterParams) WithService(service string) *RecommendClusterParams {
 	o.SetService(service)
 	return o
 }
 
-// SetService adds the service to the recommend cluster setup params
-func (o *RecommendClusterSetupParams) SetService(service string) {
+// SetService adds the service to the recommend cluster params
+func (o *RecommendClusterParams) SetService(service string) {
 	o.Service = service
 }
 
-// WithSumCPU adds the sumCPU to the recommend cluster setup params
-func (o *RecommendClusterSetupParams) WithSumCPU(sumCPU *float64) *RecommendClusterSetupParams {
+// WithSumCPU adds the sumCPU to the recommend cluster params
+func (o *RecommendClusterParams) WithSumCPU(sumCPU *float64) *RecommendClusterParams {
 	o.SetSumCPU(sumCPU)
 	return o
 }
 
-// SetSumCPU adds the sumCpu to the recommend cluster setup params
-func (o *RecommendClusterSetupParams) SetSumCPU(sumCPU *float64) {
+// SetSumCPU adds the sumCpu to the recommend cluster params
+func (o *RecommendClusterParams) SetSumCPU(sumCPU *float64) {
 	o.SumCPU = sumCPU
 }
 
-// WithSumGpu adds the sumGpu to the recommend cluster setup params
-func (o *RecommendClusterSetupParams) WithSumGpu(sumGpu *int64) *RecommendClusterSetupParams {
+// WithSumGpu adds the sumGpu to the recommend cluster params
+func (o *RecommendClusterParams) WithSumGpu(sumGpu *int64) *RecommendClusterParams {
 	o.SetSumGpu(sumGpu)
 	return o
 }
 
-// SetSumGpu adds the sumGpu to the recommend cluster setup params
-func (o *RecommendClusterSetupParams) SetSumGpu(sumGpu *int64) {
+// SetSumGpu adds the sumGpu to the recommend cluster params
+func (o *RecommendClusterParams) SetSumGpu(sumGpu *int64) {
 	o.SumGpu = sumGpu
 }
 
-// WithSumMem adds the sumMem to the recommend cluster setup params
-func (o *RecommendClusterSetupParams) WithSumMem(sumMem *float64) *RecommendClusterSetupParams {
+// WithSumMem adds the sumMem to the recommend cluster params
+func (o *RecommendClusterParams) WithSumMem(sumMem *float64) *RecommendClusterParams {
 	o.SetSumMem(sumMem)
 	return o
 }
 
-// SetSumMem adds the sumMem to the recommend cluster setup params
-func (o *RecommendClusterSetupParams) SetSumMem(sumMem *float64) {
+// SetSumMem adds the sumMem to the recommend cluster params
+func (o *RecommendClusterParams) SetSumMem(sumMem *float64) {
 	o.SumMem = sumMem
 }
 
-// WithZones adds the zones to the recommend cluster setup params
-func (o *RecommendClusterSetupParams) WithZones(zones []string) *RecommendClusterSetupParams {
+// WithZones adds the zones to the recommend cluster params
+func (o *RecommendClusterParams) WithZones(zones []string) *RecommendClusterParams {
 	o.SetZones(zones)
 	return o
 }
 
-// SetZones adds the zones to the recommend cluster setup params
-func (o *RecommendClusterSetupParams) SetZones(zones []string) {
+// SetZones adds the zones to the recommend cluster params
+func (o *RecommendClusterParams) SetZones(zones []string) {
 	o.Zones = zones
 }
 
 // WriteToRequest writes these params to a swagger request
-func (o *RecommendClusterSetupParams) WriteToRequest(r runtime.ClientRequest, reg strfmt.Registry) error {
+func (o *RecommendClusterParams) WriteToRequest(r runtime.ClientRequest, reg strfmt.Registry) error {
 
 	if err := r.SetTimeout(o.timeout); err != nil {
 		return err

@@ -19,7 +19,7 @@
   },
   "basePath": "/api/v1",
   "paths": {
-    "/recommender/": {
+    "/recommender/multicloud": {
       "post": {
         "consumes": [
           "application/json"
@@ -34,15 +34,22 @@
           "recommend"
         ],
         "summary": "Provides a recommended set of node pools on a given provider in a specific region.",
-        "operationId": "recommendClustersSetup",
+        "operationId": "recommendMultiCluster",
         "parameters": [
           {
-            "x-go-name": "Request",
-            "name": "request",
-            "in": "body",
-            "schema": {
-              "$ref": "#/definitions/Request"
-            }
+            "type": "string",
+            "x-go-name": "Provider",
+            "name": "provider",
+            "in": "query"
+          },
+          {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "x-go-name": "Services",
+            "name": "services",
+            "in": "query"
           }
         ],
         "responses": {
@@ -55,7 +62,7 @@
         }
       }
     },
-    "/recommender/{provider}/{service}/{region}/cluster": {
+    "/recommender/provider/{provider}/service/{service}/region/{region}/cluster": {
       "put": {
         "consumes": [
           "application/json"
@@ -181,7 +188,7 @@
           "recommend"
         ],
         "summary": "Provides a recommended set of node pools on a given provider in a specific region.",
-        "operationId": "recommendClusterSetup",
+        "operationId": "recommendCluster",
         "parameters": [
           {
             "type": "string",
@@ -572,16 +579,6 @@
       },
       "x-go-package": "github.com/banzaicloud/telescopes/pkg/recommender"
     },
-    "ClustersRecommendationReq": {
-      "description": "ClustersRecommendationReq encapsulates the recommendation input data",
-      "type": "object",
-      "properties": {
-        "request": {
-          "$ref": "#/definitions/Request"
-        }
-      },
-      "x-go-package": "github.com/banzaicloud/telescopes/pkg/recommender"
-    },
     "Continent": {
       "description": "Continent Continent holds continent and regions of a cloud provider",
       "type": "object",
@@ -960,7 +957,7 @@
           "x-go-name": "Services"
         }
       },
-      "x-go-package": "github.com/banzaicloud/telescopes/pkg/recommender"
+      "x-go-package": "github.com/banzaicloud/telescopes/vendor/github.com/banzaicloud/cloudinfo/pkg/cloudinfo-client/models"
     },
     "ProviderResponse": {
       "description": "ProviderResponse ProviderResponse is the response used for the requested provider",
@@ -1053,35 +1050,6 @@
         "$ref": "#/definitions/Continent"
       },
       "x-go-package": "github.com/banzaicloud/telescopes/vendor/github.com/banzaicloud/cloudinfo/pkg/cloudinfo-client/models"
-    },
-    "Request": {
-      "type": "object",
-      "properties": {
-        "continents": {
-          "type": "array",
-          "items": {
-            "type": "string"
-          },
-          "x-go-name": "Continents"
-        },
-        "providers": {
-          "type": "array",
-          "items": {
-            "$ref": "#/definitions/Provider"
-          },
-          "x-go-name": "Providers"
-        },
-        "request": {
-          "$ref": "#/definitions/ClusterRecommendationReq"
-        },
-        "respPerService": {
-          "description": "Maximum number of response per service",
-          "type": "integer",
-          "format": "int64",
-          "x-go-name": "RespPerService"
-        }
-      },
-      "x-go-package": "github.com/banzaicloud/telescopes/pkg/recommender"
     },
     "Service": {
       "description": "it's intended to implement the ServiceDescriber interface",
@@ -1253,6 +1221,37 @@
         }
       },
       "x-go-package": "github.com/banzaicloud/telescopes/vendor/github.com/banzaicloud/cloudinfo/pkg/cloudinfo-client/models"
+    },
+    "recommendMultiCluster": {
+      "description": "MultiClusterRecommendationReq encapsulates the recommendation input data",
+      "type": "object",
+      "properties": {
+        "clusterRecommendationReq": {
+          "$ref": "#/definitions/ClusterRecommendationReq"
+        },
+        "continents": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "x-go-name": "Continents"
+        },
+        "providers": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/Provider"
+          },
+          "x-go-name": "Providers"
+        },
+        "respPerService": {
+          "description": "Maximum number of response per service",
+          "type": "integer",
+          "format": "int64",
+          "x-go-name": "RespPerService"
+        }
+      },
+      "x-go-name": "MultiClusterRecommendationReq",
+      "x-go-package": "github.com/banzaicloud/telescopes/pkg/recommender"
     }
   }
 }

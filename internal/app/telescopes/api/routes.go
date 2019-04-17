@@ -89,9 +89,9 @@ func (r *RouteHandler) ConfigureRoutes(router *gin.Engine) {
 
 	recGroup := v1.Group("/recommender")
 	{
-		recGroup.POST("/", r.recommendClustersSetup())
-		recGroup.POST("/:provider/:service/:region/cluster", r.recommendClusterSetup())
-		recGroup.PUT("/:provider/:service/:region/cluster", r.recommendClusterScaleOut())
+		recGroup.POST("/multicloud", r.recommendMultiCluster())
+		recGroup.POST("/provider/:provider/service/:service/region/:region/cluster", r.recommendCluster())
+		recGroup.PUT("/provider/:provider/service/:service/region/:region/cluster", r.recommendClusterScaleOut())
 	}
 }
 

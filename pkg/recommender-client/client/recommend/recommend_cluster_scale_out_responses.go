@@ -51,7 +51,7 @@ type RecommendClusterScaleOutOK struct {
 }
 
 func (o *RecommendClusterScaleOutOK) Error() string {
-	return fmt.Sprintf("[PUT /recommender/{provider}/{service}/{region}/cluster][%d] recommendClusterScaleOutOK  %+v", 200, o.Payload)
+	return fmt.Sprintf("[PUT /recommender/provider/{provider}/service/{service}/region/{region}/cluster][%d] recommendClusterScaleOutOK  %+v", 200, o.Payload)
 }
 
 func (o *RecommendClusterScaleOutOK) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
