@@ -59,7 +59,7 @@ For more information on how to set up `Banzai Cloud Pipeline` instance for using
 *For a complete OpenAPI 3.0 documentation, check out this [URL](https://editor.swagger.io/?url=https://raw.githubusercontent.com/banzaicloud/telescopes/master/api/openapi-spec/recommender.yaml).*
 
 
-#### `POST: api/v1/recommender/:provider/:service/:region/cluster`
+#### `POST: api/v1/recommender/provider/:provider/service/:service/region/:region/cluster`
 
 This endpoint returns a recommended cluster layout on a specific provider in a specific region, that contains on-demand and spot priced node pools.
 
@@ -94,7 +94,7 @@ This endpoint returns a recommended cluster layout on a specific provider in a s
 **`cURL` example**
 
 ```
-curl -H 'Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ8.eyJhdWQiOiJodHRwczovL3BpcGVsaW5lLmJhbnphaWNsb3VkLmNvbSIsImp0aSI6IjUxMWE1ODQyLWYxMmUtNDk1NC04YTg2LTVjNmUyOWRmZTg5YiIsImlhdCI6MTUyODE5MTM0MSwiaXNzIjoiaHR0cHM6Ly9iYW56YWljbG91ZC5jb20vIiwic3ViIjoiMSIsInNjb3BlIjoiYXBpOmludm9rZSIsInR5cGUiOiJ1c2VyIiwidGV4dCI6ImxwdXNrYXMifQ.azhx0MbuLp7vQ1XmwPYrOqFG5vWZVh-hkzmHig8nnvs' \POST -d '{"sumCpu": 100, "sumMem":200, "sumGpu":0, "minNodes":10, "maxNodes":30, "sameSize":true, "onDemandPct":30, "zones":[]}' "localhost:9090/api/v1/recommender/amazon/compute/eu-central-1/cluster" | jq .
+curl -H 'Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ8.eyJhdWQiOiJodHRwczovL3BpcGVsaW5lLmJhbnphaWNsb3VkLmNvbSIsImp0aSI6IjUxMWE1ODQyLWYxMmUtNDk1NC04YTg2LTVjNmUyOWRmZTg5YiIsImlhdCI6MTUyODE5MTM0MSwiaXNzIjoiaHR0cHM6Ly9iYW56YWljbG91ZC5jb20vIiwic3ViIjoiMSIsInNjb3BlIjoiYXBpOmludm9rZSIsInR5cGUiOiJ1c2VyIiwidGV4dCI6ImxwdXNrYXMifQ.azhx0MbuLp7vQ1XmwPYrOqFG5vWZVh-hkzmHig8nnvs' \POST -d '{"sumCpu": 100, "sumMem":200, "sumGpu":0, "minNodes":10, "maxNodes":30, "sameSize":true, "onDemandPct":30, "zones":[]}' "localhost:9090/api/v1/recommender/provider/amazon/service/compute/region/eu-central-1/cluster" | jq .
 ```
 **Sample response:**
 ```
