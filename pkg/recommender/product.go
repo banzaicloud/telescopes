@@ -19,6 +19,7 @@ import (
 	"github.com/banzaicloud/cloudinfo/pkg/cloudinfo-client/client/products"
 	"github.com/banzaicloud/cloudinfo/pkg/cloudinfo-client/client/provider"
 	"github.com/banzaicloud/cloudinfo/pkg/cloudinfo-client/client/region"
+	"github.com/banzaicloud/cloudinfo/pkg/cloudinfo-client/client/regions"
 	"github.com/banzaicloud/cloudinfo/pkg/cloudinfo-client/client/service"
 	"github.com/banzaicloud/cloudinfo/pkg/cloudinfo-client/models"
 	"github.com/go-openapi/runtime"
@@ -29,6 +30,9 @@ import (
 type CloudInfoSource interface {
 	// GetProductDetails retrieves the product details for the provider and region
 	GetProductDetails(provider string, service string, region string) ([]VirtualMachine, error)
+
+	// GetRegions retrieves the regions
+	GetRegions(provider, service string) ([]*models.Continent, error)
 }
 
 // CloudInfoClient application struct to retrieve data for the recommender; wraps the generated product info client
@@ -123,6 +127,16 @@ func (ciCli *CloudInfoClient) GetRegion(prv, svc, reg string) (string, error) {
 	}
 
 	return r.Payload.Name, nil
+}
+
+// GetRegions gets regions
+func (ciCli *CloudInfoClient) GetRegions(provider, service string) ([]*models.Continent, error) {
+	grp := regions.NewGetRegionsParams().WithProvider(provider).WithService(service)
+	r, err := ciCli.Regions.GetRegions(grp)
+	if err != nil {
+		return nil, discriminateErrCtx(err)
+	}
+	return r.Payload, nil
 }
 
 func discriminateErrCtx(err error) error {

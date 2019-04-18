@@ -16,17 +16,17 @@ import (
 	models "github.com/banzaicloud/telescopes/pkg/recommender-client/models"
 )
 
-// RecommendClusterSetupReader is a Reader for the RecommendClusterSetup structure.
-type RecommendClusterSetupReader struct {
+// RecommendClusterReader is a Reader for the RecommendCluster structure.
+type RecommendClusterReader struct {
 	formats strfmt.Registry
 }
 
 // ReadResponse reads a server response into the received o.
-func (o *RecommendClusterSetupReader) ReadResponse(response runtime.ClientResponse, consumer runtime.Consumer) (interface{}, error) {
+func (o *RecommendClusterReader) ReadResponse(response runtime.ClientResponse, consumer runtime.Consumer) (interface{}, error) {
 	switch response.Code() {
 
 	case 200:
-		result := NewRecommendClusterSetupOK()
+		result := NewRecommendClusterOK()
 		if err := result.readResponse(response, consumer, o.formats); err != nil {
 			return nil, err
 		}
@@ -37,24 +37,24 @@ func (o *RecommendClusterSetupReader) ReadResponse(response runtime.ClientRespon
 	}
 }
 
-// NewRecommendClusterSetupOK creates a RecommendClusterSetupOK with default headers values
-func NewRecommendClusterSetupOK() *RecommendClusterSetupOK {
-	return &RecommendClusterSetupOK{}
+// NewRecommendClusterOK creates a RecommendClusterOK with default headers values
+func NewRecommendClusterOK() *RecommendClusterOK {
+	return &RecommendClusterOK{}
 }
 
-/*RecommendClusterSetupOK handles this case with default header values.
+/*RecommendClusterOK handles this case with default header values.
 
 RecommendationResponse
 */
-type RecommendClusterSetupOK struct {
+type RecommendClusterOK struct {
 	Payload *models.ClusterRecommendationResp
 }
 
-func (o *RecommendClusterSetupOK) Error() string {
-	return fmt.Sprintf("[POST /recommender/{provider}/{service}/{region}/cluster][%d] recommendClusterSetupOK  %+v", 200, o.Payload)
+func (o *RecommendClusterOK) Error() string {
+	return fmt.Sprintf("[POST /recommender/provider/{provider}/service/{service}/region/{region}/cluster][%d] recommendClusterOK  %+v", 200, o.Payload)
 }
 
-func (o *RecommendClusterSetupOK) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
+func (o *RecommendClusterOK) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
 
 	o.Payload = new(models.ClusterRecommendationResp)
 

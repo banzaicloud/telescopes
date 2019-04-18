@@ -25,6 +25,34 @@ type Client struct {
 }
 
 /*
+RecommendCluster provides a recommended set of node pools on a given provider in a specific region
+*/
+func (a *Client) RecommendCluster(params *RecommendClusterParams) (*RecommendClusterOK, error) {
+	// TODO: Validate the params before sending
+	if params == nil {
+		params = NewRecommendClusterParams()
+	}
+
+	result, err := a.transport.Submit(&runtime.ClientOperation{
+		ID:                 "recommendCluster",
+		Method:             "POST",
+		PathPattern:        "/recommender/provider/{provider}/service/{service}/region/{region}/cluster",
+		ProducesMediaTypes: []string{"application/json"},
+		ConsumesMediaTypes: []string{"application/json"},
+		Schemes:            []string{"http", "https"},
+		Params:             params,
+		Reader:             &RecommendClusterReader{formats: a.formats},
+		Context:            params.Context,
+		Client:             params.HTTPClient,
+	})
+	if err != nil {
+		return nil, err
+	}
+	return result.(*RecommendClusterOK), nil
+
+}
+
+/*
 RecommendClusterScaleOut provides a recommendation for a scale out based on a current cluster layout on a given provider in a specific region
 */
 func (a *Client) RecommendClusterScaleOut(params *RecommendClusterScaleOutParams) (*RecommendClusterScaleOutOK, error) {
@@ -36,7 +64,7 @@ func (a *Client) RecommendClusterScaleOut(params *RecommendClusterScaleOutParams
 	result, err := a.transport.Submit(&runtime.ClientOperation{
 		ID:                 "recommendClusterScaleOut",
 		Method:             "PUT",
-		PathPattern:        "/recommender/{provider}/{service}/{region}/cluster",
+		PathPattern:        "/recommender/provider/{provider}/service/{service}/region/{region}/cluster",
 		ProducesMediaTypes: []string{"application/json"},
 		ConsumesMediaTypes: []string{"application/json"},
 		Schemes:            []string{"http", "https"},
@@ -53,30 +81,30 @@ func (a *Client) RecommendClusterScaleOut(params *RecommendClusterScaleOutParams
 }
 
 /*
-RecommendClusterSetup provides a recommended set of node pools on a given provider in a specific region
+RecommendMultiCluster provides a recommended set of node pools on a given provider in a specific region
 */
-func (a *Client) RecommendClusterSetup(params *RecommendClusterSetupParams) (*RecommendClusterSetupOK, error) {
+func (a *Client) RecommendMultiCluster(params *RecommendMultiClusterParams) (*RecommendMultiClusterOK, error) {
 	// TODO: Validate the params before sending
 	if params == nil {
-		params = NewRecommendClusterSetupParams()
+		params = NewRecommendMultiClusterParams()
 	}
 
 	result, err := a.transport.Submit(&runtime.ClientOperation{
-		ID:                 "recommendClusterSetup",
+		ID:                 "recommendMultiCluster",
 		Method:             "POST",
-		PathPattern:        "/recommender/{provider}/{service}/{region}/cluster",
+		PathPattern:        "/recommender/multicloud",
 		ProducesMediaTypes: []string{"application/json"},
 		ConsumesMediaTypes: []string{"application/json"},
 		Schemes:            []string{"http", "https"},
 		Params:             params,
-		Reader:             &RecommendClusterSetupReader{formats: a.formats},
+		Reader:             &RecommendMultiClusterReader{formats: a.formats},
 		Context:            params.Context,
 		Client:             params.HTTPClient,
 	})
 	if err != nil {
 		return nil, err
 	}
-	return result.(*RecommendClusterSetupOK), nil
+	return result.(*RecommendMultiClusterOK), nil
 
 }
 

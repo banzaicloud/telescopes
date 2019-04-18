@@ -17,7 +17,7 @@ package api
 import "github.com/banzaicloud/telescopes/pkg/recommender"
 
 // GetRecommendationParams is a placeholder for the recommendation route's path parameters
-// swagger:parameters recommendClusterSetup recommendClusterScaleOut
+// swagger:parameters recommendCluster recommendClusterScaleOut
 type GetRecommendationParams struct {
 	// in:path
 	Provider string `binding:"required,provider" json:"provider"`

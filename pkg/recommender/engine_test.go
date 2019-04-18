@@ -17,6 +17,7 @@ package recommender
 import (
 	"testing"
 
+	"github.com/banzaicloud/cloudinfo/pkg/cloudinfo-client/models"
 	"github.com/goph/logur"
 	"github.com/stretchr/testify/assert"
 )
@@ -35,6 +36,10 @@ func (p *dummyProducts) GetProductDetails(provider string, service string, regio
 			AvgPrice:      0.8,
 		},
 	}, nil
+}
+
+func (p *dummyProducts) GetRegions(provider, service string) ([]*models.Continent, error) {
+	return nil, nil
 }
 
 type dummyVms struct {

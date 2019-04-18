@@ -39,6 +39,9 @@ type ClusterRecommender interface {
 
 	// RecommendClusterScaleOut performs recommendation for an existing layout's scale out
 	RecommendClusterScaleOut(provider string, service string, region string, req ClusterScaleoutRecommendationReq) (*ClusterRecommendationResp, error)
+
+	// RecommendMultiCluster performs recommendations
+	RecommendMultiCluster(req MultiClusterRecommendationReq) (map[string][]*ClusterRecommendationResp, error)
 }
 
 type VmRecommender interface {
@@ -52,7 +55,7 @@ type NodePoolRecommender interface {
 }
 
 // ClusterRecommendationReq encapsulates the recommendation input data
-// swagger:parameters recommendClusterSetup
+// swagger:parameters recommendCluster
 type ClusterRecommendationReq struct {
 	// Total number of CPUs requested for the cluster
 	SumCpu float64 `json:"sumCpu" binding:"min=1"`
@@ -82,6 +85,23 @@ type ClusterRecommendationReq struct {
 	AllowOlderGen *bool `json:"allowOlderGen,omitempty"`
 	// Category specifies the virtual machine category
 	Category []string `json:"category,omitempty"`
+}
+
+// MultiClusterRecommendationReq encapsulates the recommendation input data
+// swagger:model recommendMultiCluster
+type MultiClusterRecommendationReq struct {
+	Providers  []Provider `json:"providers" binding:"required"`
+	Continents []string   `json:"continents" binding:"required"`
+	// cluster recommendation request
+	ClusterRecommendationReq ClusterRecommendationReq `json:"clusterRecommendationReq" binding:"required"`
+	// Maximum number of response per service
+	RespPerService int `json:"respPerService" binding:"required"`
+}
+
+// swagger:parameters recommendMultiCluster
+type Provider struct {
+	Provider string   `json:"provider"`
+	Services []string `json:"services"`
 }
 
 // ClusterScaleoutRecommendationReq encapsulates the recommendation input data

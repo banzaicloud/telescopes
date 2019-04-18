@@ -16,17 +16,17 @@ import (
 	models "github.com/banzaicloud/telescopes/pkg/recommender-client/models"
 )
 
-// RecommendClusterScaleOutReader is a Reader for the RecommendClusterScaleOut structure.
-type RecommendClusterScaleOutReader struct {
+// RecommendMultiClusterReader is a Reader for the RecommendMultiCluster structure.
+type RecommendMultiClusterReader struct {
 	formats strfmt.Registry
 }
 
 // ReadResponse reads a server response into the received o.
-func (o *RecommendClusterScaleOutReader) ReadResponse(response runtime.ClientResponse, consumer runtime.Consumer) (interface{}, error) {
+func (o *RecommendMultiClusterReader) ReadResponse(response runtime.ClientResponse, consumer runtime.Consumer) (interface{}, error) {
 	switch response.Code() {
 
 	case 200:
-		result := NewRecommendClusterScaleOutOK()
+		result := NewRecommendMultiClusterOK()
 		if err := result.readResponse(response, consumer, o.formats); err != nil {
 			return nil, err
 		}
@@ -37,24 +37,24 @@ func (o *RecommendClusterScaleOutReader) ReadResponse(response runtime.ClientRes
 	}
 }
 
-// NewRecommendClusterScaleOutOK creates a RecommendClusterScaleOutOK with default headers values
-func NewRecommendClusterScaleOutOK() *RecommendClusterScaleOutOK {
-	return &RecommendClusterScaleOutOK{}
+// NewRecommendMultiClusterOK creates a RecommendMultiClusterOK with default headers values
+func NewRecommendMultiClusterOK() *RecommendMultiClusterOK {
+	return &RecommendMultiClusterOK{}
 }
 
-/*RecommendClusterScaleOutOK handles this case with default header values.
+/*RecommendMultiClusterOK handles this case with default header values.
 
 RecommendationResponse
 */
-type RecommendClusterScaleOutOK struct {
+type RecommendMultiClusterOK struct {
 	Payload *models.ClusterRecommendationResp
 }
 
-func (o *RecommendClusterScaleOutOK) Error() string {
-	return fmt.Sprintf("[PUT /recommender/provider/{provider}/service/{service}/region/{region}/cluster][%d] recommendClusterScaleOutOK  %+v", 200, o.Payload)
+func (o *RecommendMultiClusterOK) Error() string {
+	return fmt.Sprintf("[POST /recommender/multicloud][%d] recommendMultiClusterOK  %+v", 200, o.Payload)
 }
 
-func (o *RecommendClusterScaleOutOK) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
+func (o *RecommendMultiClusterOK) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
 
 	o.Payload = new(models.ClusterRecommendationResp)
 

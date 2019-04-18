@@ -16,7 +16,35 @@ info:
     url: 'http://www.apache.org/licenses/LICENSE-2.0.html'
   version: 0.0.1
 paths:
-  '/recommender/{provider}/{service}/{region}/cluster':
+  /recommender/multicloud:
+    post:
+      tags:
+        - recommend
+      summary: >-
+        Provides a recommended set of node pools on a given provider in a
+        specific region.
+      operationId: recommendMultiCluster
+      parameters:
+        - x-go-name: Provider
+          name: provider
+          in: query
+          schema:
+            type: string
+        - x-go-name: Services
+          name: services
+          in: query
+          schema:
+            type: array
+            items:
+              type: string
+      responses:
+        '200':
+          description: RecommendationResponse
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RecommendationResponse'
+  '/recommender/provider/{provider}/service/{service}/region/{region}/cluster':
     put:
       tags:
         - recommend
@@ -110,7 +138,7 @@ paths:
       summary: >-
         Provides a recommended set of node pools on a given provider in a
         specific region.
-      operationId: recommendClusterSetup
+      operationId: recommendCluster
       parameters:
         - x-go-name: Provider
           name: provider
@@ -447,6 +475,22 @@ components:
             type: string
           x-go-name: Zones
       x-go-package: github.com/banzaicloud/telescopes/pkg/recommender
+    Continent:
+      description: Continent Continent holds continent and regions of a cloud provider
+      type: object
+      properties:
+        name:
+          description: name
+          type: string
+          x-go-name: Name
+        regions:
+          description: regions
+          type: array
+          items:
+            $ref: '#/components/schemas/Region'
+          x-go-name: Regions
+      x-go-package: >-
+        github.com/banzaicloud/telescopes/vendor/github.com/banzaicloud/cloudinfo/pkg/cloudinfo-client/models
     GetAttributeValuesPathParams:
       description: >-
         GetAttributeValuesPathParams GetAttributeValuesPathParams is a
@@ -585,6 +629,28 @@ components:
           items:
             $ref: '#/components/schemas/Image'
           x-go-name: Images
+      x-go-package: >-
+        github.com/banzaicloud/telescopes/vendor/github.com/banzaicloud/cloudinfo/pkg/cloudinfo-client/models
+    LocationVersion:
+      description: >-
+        LocationVersion LocationVersion struct for displaying version
+        information per location
+      type: object
+      properties:
+        default:
+          description: default
+          type: string
+          x-go-name: Default
+        location:
+          description: location
+          type: string
+          x-go-name: Location
+        versions:
+          description: versions
+          type: array
+          items:
+            type: string
+          x-go-name: Versions
       x-go-package: >-
         github.com/banzaicloud/telescopes/vendor/github.com/banzaicloud/cloudinfo/pkg/cloudinfo-client/models
     NodePool:
@@ -737,6 +803,7 @@ components:
           description: services
           type: array
           items:
+            type: string
             $ref: '#/components/schemas/Service'
           x-go-name: Services
       x-go-package: >-
@@ -819,7 +886,7 @@ components:
         cloud provider
       type: array
       items:
-        $ref: '#/components/schemas/Region'
+        $ref: '#/components/schemas/Continent'
       x-go-package: >-
         github.com/banzaicloud/telescopes/vendor/github.com/banzaicloud/cloudinfo/pkg/cloudinfo-client/models
     Service:
@@ -858,10 +925,14 @@ components:
       x-go-package: >-
         github.com/banzaicloud/telescopes/vendor/github.com/banzaicloud/cloudinfo/pkg/cloudinfo-client/models
     Version:
-      description: Version Version represents a version
+      description: Version version
       type: object
       properties:
-        versions:
+        default:
+          description: default
+          type: boolean
+          x-go-name: Default
+        version:
           description: version
           type: string
           x-go-name: Version
@@ -875,7 +946,7 @@ components:
           description: versions
           type: array
           items:
-            $ref: '#/components/schemas/Version'
+            $ref: '#/components/schemas/LocationVersion'
           x-go-name: Versions
       x-go-package: >-
         github.com/banzaicloud/telescopes/vendor/github.com/banzaicloud/cloudinfo/pkg/cloudinfo-client/models
@@ -958,4 +1029,27 @@ components:
           x-go-name: Zone
       x-go-package: >-
         github.com/banzaicloud/telescopes/vendor/github.com/banzaicloud/cloudinfo/pkg/cloudinfo-client/models
+    recommendMultiCluster:
+      description: MultiClusterRecommendationReq encapsulates the recommendation input data
+      type: object
+      properties:
+        clusterRecommendationReq:
+          $ref: '#/components/schemas/ClusterRecommendationReq'
+        continents:
+          type: array
+          items:
+            type: string
+          x-go-name: Continents
+        providers:
+          type: array
+          items:
+            $ref: '#/components/schemas/Provider'
+          x-go-name: Providers
+        respPerService:
+          description: Maximum number of response per service
+          type: integer
+          format: int64
+          x-go-name: RespPerService
+      x-go-name: MultiClusterRecommendationReq
+      x-go-package: github.com/banzaicloud/telescopes/pkg/recommender
 
