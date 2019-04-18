@@ -22,7 +22,7 @@ type VirtualMachine struct {
 	Burst bool `json:"burst,omitempty"`
 
 	// Instance type category
-	Category string `json:"Category,omitempty"`
+	Category string `json:"category,omitempty"`
 
 	// Number of CPUs in the instance type
 	Cpus float64 `json:"cpusPerVm,omitempty"`

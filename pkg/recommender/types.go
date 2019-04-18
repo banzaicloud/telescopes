@@ -217,7 +217,7 @@ type ClusterRecommendationAccuracy struct {
 // VirtualMachine describes an instance type
 type VirtualMachine struct {
 	// Instance type category
-	Category string
+	Category string `json:"category"`
 	// Instance type
 	Type string `json:"type"`
 	// Average price of the instance (differs from on demand price in case of spot or preemptible instances)

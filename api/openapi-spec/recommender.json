@@ -1130,10 +1130,6 @@
       "description": "VirtualMachine describes an instance type",
       "type": "object",
       "properties": {
-        "Category": {
-          "description": "Instance type category",
-          "type": "string"
-        },
         "avgPrice": {
           "description": "Average price of the instance (differs from on demand price in case of spot or preemptible instances)",
           "type": "number",
@@ -1144,6 +1140,11 @@
           "description": "Burst signals a burst type instance",
           "type": "boolean",
           "x-go-name": "Burst"
+        },
+        "category": {
+          "description": "Instance type category",
+          "type": "string",
+          "x-go-name": "Category"
         },
         "cpusPerVm": {
           "description": "Number of CPUs in the instance type",
