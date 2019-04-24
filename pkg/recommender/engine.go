@@ -18,6 +18,7 @@ import (
 	"fmt"
 	"math"
 	"sort"
+	"strings"
 
 	"github.com/goph/emperror"
 	"github.com/goph/logur"
@@ -228,7 +229,8 @@ func (e *Engine) RecommendMultiCluster(req MultiClusterRecommendationReq) (map[s
 			}
 
 			limitedResponses := e.getLimitedResponses(responses, req.RespPerService)
-			respPerService[service] = limitedResponses
+			key := strings.Join([]string{strings.ToLower(provider.Provider), strings.ToUpper(service)}, "")
+			respPerService[key] = limitedResponses
 		}
 	}
 
