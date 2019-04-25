@@ -1,15 +1,13 @@
 
-SHELL = /bin/bash
 OS = $(shell uname -s)
 
 # Project variables
-PACKAGE = github.com/banzaicloud/telescopes
-BINARY_NAME = telescopes
-#OPENAPI_DESCRIPTOR = docs/openapi/pipeline.yaml
+BUILD_PACKAGE ?= ./cmd/telescopes
+BINARY_NAME ?= telescopes
+DOCKER_IMAGE = banzaicloud/telescopes
 
 # Build variables
 BUILD_DIR ?= build
-BUILD_PACKAGE = ${PACKAGE}/cmd/telescopes
 VERSION ?= $(shell git rev-parse --abbrev-ref HEAD)
 COMMIT_HASH ?= $(shell git rev-parse --short HEAD 2>/dev/null)
 BUILD_DATE ?= $(shell date +%FT%T%z)
@@ -19,15 +17,17 @@ ifeq (${VERBOSE}, 1)
 	GOARGS += -v
 endif
 
-DEP_VERSION = 0.5.0
-GOLANGCI_VERSION = 1.10.2
-GOTESTSUM_VERSION = 0.3.2
+# Docker variables
+DOCKER_TAG ?= ${VERSION}
+
+GOTESTSUM_VERSION = 0.3.4
+GOLANGCI_VERSION = 1.16.0
 MISSPELL_VERSION = 0.3.4
 JQ_VERSION = 1.5
-LICENSEI_VERSION = 0.0.7
+LICENSEI_VERSION = 0.1.0
 OPENAPI_GENERATOR_VERSION = 3.3.0
 
-GOLANG_VERSION = 1.11
+GOLANG_VERSION = 1.12
 
 GOFILES_NOVENDOR = $(shell find . -type f -name '*.go' -not -path "./vendor/*" -not -path "./client/*")
 
@@ -47,14 +47,6 @@ endif
 
 deps: deps-swagger
 	go get ./...
-
-
-docker:
-	docker build --rm -t $(IMAGE):$(TAG) .
-
-push:
-	docker push $(IMAGE):$(TAG)
-
 
 swagger:
 	swagger generate spec -m -b ./cmd/telescopes -o $(SWAGGER_REC_TMP_FILE)

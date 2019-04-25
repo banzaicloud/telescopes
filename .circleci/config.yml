@@ -1,50 +1,80 @@
 version: 2.1
 
-jobs:
-    build:
+executors:
+    docker:
         docker:
             -
-                image: circleci/golang:1.11
+                image: circleci/golang:1.12
+                environment:
+                    GOFLAGS: -mod=readonly
 
-        working_directory: /go/src/github.com/banzaicloud/telescopes
+commands:
+    restore_build_cache:
+        description: Restore build cache
         steps:
-            - checkout
-
             -
                 restore_cache:
                     name: Restore build dependencies
                     keys:
                         - build-deps-v1-{{ .Branch }}-{{ checksum "Makefile" }}
-                        - build-deps-v1-{{ .Branch }}
-                        - build-deps-v1-master
-                        - build-deps-v1
 
+    restore_go_module_cache:
+        description: Restore Go module cache
+        steps:
             -
                 restore_cache:
-                    name: Restore dependencies
+                    name: Restore Go module cache
                     keys:
-                        - gopkg-v1-{{ .Branch }}-{{ checksum "Gopkg.lock" }}
-                        - gopkg-v1-{{ .Branch }}
-                        - gopkg-v1-master
-                        - gopkg-v1
+                        - gomod-v1-{{ .Branch }}-{{ checksum "go.sum" }}
+                        - gomod-v1-{{ .Branch }}
+                        - gomod-v1-master
+                        - gomod-v1
+
+jobs:
+    dependencies:
+        executor: docker
+
+        steps:
+            - checkout
+            - restore_go_module_cache
 
             -
                 run:
-                    name: Install dependencies
-                    command: make vendor
+                    name: Download Go module cache
+                    command: go mod download
+
+            -
+                run:
+                    name: Install build dependencies
+                    command: make -j bin/golangci-lint bin/licensei bin/gotestsum
 
             -
                 save_cache:
-                    name: Save dependencies
-                    key: gopkg-v1-{{ .Branch }}-{{ checksum "Gopkg.lock" }}
+                    name: Save Go module cache
+                    key: gomod-v1-{{ .Branch }}-{{ checksum "go.sum" }}
                     paths:
-                        - vendor/
+                        - /go/pkg/mod
+
+            -
+                save_cache:
+                    name: Save build dependencies
+                    key: build-deps-v1-{{ .Branch }}-{{ checksum "Makefile" }}
+                    paths:
+                        - bin/
+
+    static-checks:
+        executor: docker
+
+        steps:
+            - checkout
+            - restore_build_cache
+            - restore_go_module_cache
 
             -
                 restore_cache:
                     name: Restore license cache
                     keys:
-                        - licensei-v1-{{ .Branch }}-{{ checksum "Gopkg.lock" }}
+                        - licensei-v1-{{ .Branch }}-{{ checksum "go.sum" }}
                         - licensei-v1-{{ .Branch }}
                         - licensei-v1-master
                         - licensei-v1
@@ -57,7 +87,7 @@ jobs:
             -
                 save_cache:
                     name: Save license cache
-                    key: licensei-v1-{{ .Branch }}-{{ checksum "Gopkg.lock" }}
+                    key: licensei-v1-{{ .Branch }}-{{ checksum "go.sum" }}
                     paths:
                         - .licensei.cache
 
@@ -68,37 +98,50 @@ jobs:
 
             -
                 run:
-                    name: Build
-                    command:
-                        make build
-
-            -
-                run:
                     name: Run linter
                     command: make lint
 
-            -
-                run:
-                    name: Run unit tests
-                    command: make test
-                    when: always
+    build:
+        executor: docker
+
+        steps:
+            - checkout
+            - restore_build_cache
+            - restore_go_module_cache
 
             -
-                save_cache:
-                    name: Save build dependencies
-                    key: build-deps-v1-{{ .Branch }}-{{ checksum "Makefile" }}
-                    paths:
-                        - bin/
+                run:
+                    name: Build
+                    command: make build
+
+    unit-tests:
+        executor: docker
+
+        steps:
+            - checkout
+            - restore_build_cache
+            - restore_go_module_cache
+
+            -
+                run:
+                    name: Run tests
+                    command: TEST_PKGS=$(echo `go list ./... | circleci tests split`) TEST_REPORT_NAME=results_${CIRCLE_NODE_INDEX}.xml make test
 
             -
                 store_test_results:
-                    path: build/
-            -
-                store_artifacts:
-                    path: build/
+                    path: build/test_results/
 
 workflows:
     version: 2
     ci:
         jobs:
-            - build
+            - dependencies
+            - static-checks:
+                  requires:
+                      - dependencies
+            - build:
+                  requires:
+                      - dependencies
+            - unit-tests:
+                  requires:
+                      - dependencies

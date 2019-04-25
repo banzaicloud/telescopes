@@ -1,21 +1,24 @@
 # build stage
-FROM golang:1.11-alpine as backend
-RUN apk add --update --no-cache bash ca-certificates curl git make tzdata
+FROM golang:1.12.3-alpine AS builder
+ENV GOFLAGS="-mod=readonly"
 
-RUN mkdir -p /go/src/github.com/banzaicloud/telescopes
-ADD Gopkg.* Makefile main-targets.mk /go/src/github.com/banzaicloud/telescopes/
-WORKDIR /go/src/github.com/banzaicloud/telescopes
-RUN make vendor
-ADD . /go/src/github.com/banzaicloud/telescopes
+RUN apk add --update --no-cache ca-certificates make git curl mercurial bzr
 
-RUN make build
+RUN mkdir -p /build
+WORKDIR /build
 
-FROM alpine:3.7
-COPY --from=backend /usr/share/zoneinfo/ /usr/share/zoneinfo/
-COPY --from=backend /etc/ssl/certs/ca-certificates.crt /etc/ssl/certs/
-COPY --from=backend /go/src/github.com/banzaicloud/telescopes/build/telescopes /bin
+COPY go.* /build/
+RUN go mod download
 
+COPY . /build
+RUN BINARY_NAME=telescopes make build-release
 
+FROM alpine:3.9.3
+
+RUN apk add --update --no-cache ca-certificates tzdata bash curl
+
+COPY --from=builder /build/build/release/telescopes /bin
 
 ENTRYPOINT ["/bin/telescopes"]
+CMD ["/bin/telescopes"]
 
