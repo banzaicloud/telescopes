@@ -37,7 +37,7 @@ type ClusterRecommendationReq struct {
 	MinNodes int64 `json:"minNodes,omitempty"`
 
 	// NetworkPerf specifies the network performance category
-	NetworkPerf string `json:"networkPerf,omitempty"`
+	NetworkPerf []string `json:"networkPerf"`
 
 	// Percentage of regular (on-demand) nodes in the recommended cluster
 	OnDemandPct int64 `json:"onDemandPct,omitempty"`

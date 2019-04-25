@@ -102,7 +102,7 @@ type RecommendClusterParams struct {
 	  NetworkPerf specifies the network performance category
 
 	*/
-	NetworkPerf *string
+	NetworkPerf []string
 	/*OnDemandPct
 	  Percentage of regular (on-demand) nodes in the recommended cluster
 
@@ -256,13 +256,13 @@ func (o *RecommendClusterParams) SetMinNodes(minNodes *int64) {
 }
 
 // WithNetworkPerf adds the networkPerf to the recommend cluster params
-func (o *RecommendClusterParams) WithNetworkPerf(networkPerf *string) *RecommendClusterParams {
+func (o *RecommendClusterParams) WithNetworkPerf(networkPerf []string) *RecommendClusterParams {
 	o.SetNetworkPerf(networkPerf)
 	return o
 }
 
 // SetNetworkPerf adds the networkPerf to the recommend cluster params
-func (o *RecommendClusterParams) SetNetworkPerf(networkPerf *string) {
+func (o *RecommendClusterParams) SetNetworkPerf(networkPerf []string) {
 	o.NetworkPerf = networkPerf
 }
 
@@ -461,20 +461,12 @@ func (o *RecommendClusterParams) WriteToRequest(r runtime.ClientRequest, reg str
 
 	}
 
-	if o.NetworkPerf != nil {
+	valuesNetworkPerf := o.NetworkPerf
 
-		// query param networkPerf
-		var qrNetworkPerf string
-		if o.NetworkPerf != nil {
-			qrNetworkPerf = *o.NetworkPerf
-		}
-		qNetworkPerf := qrNetworkPerf
-		if qNetworkPerf != "" {
-			if err := r.SetQueryParam("networkPerf", qNetworkPerf); err != nil {
-				return err
-			}
-		}
-
+	joinedNetworkPerf := swag.JoinByFormat(valuesNetworkPerf, "")
+	// query array param networkPerf
+	if err := r.SetQueryParam("networkPerf", joinedNetworkPerf...); err != nil {
+		return err
 	}
 
 	if o.OnDemandPct != nil {

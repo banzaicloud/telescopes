@@ -345,7 +345,7 @@ func TestVmSelector_ntwPerformanceFilter(t *testing.T) {
 		{
 			name: "vm passes the network performance filter",
 			req: recommender.ClusterRecommendationReq{
-				NetworkPerf: &ntwLow,
+				NetworkPerf: []string{ntwLow},
 			},
 			vm: recommender.VirtualMachine{
 				NetworkPerfCat: ntwLow,
@@ -358,7 +358,7 @@ func TestVmSelector_ntwPerformanceFilter(t *testing.T) {
 		{
 			name: "vm doesn't pass the network performance filter",
 			req: recommender.ClusterRecommendationReq{
-				NetworkPerf: &ntwLow,
+				NetworkPerf: []string{ntwLow},
 			},
 			vm: recommender.VirtualMachine{
 				NetworkPerfCat: ntwHigh,

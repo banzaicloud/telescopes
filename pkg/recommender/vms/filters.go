@@ -114,7 +114,7 @@ func (s *vmSelector) minCpuRatioFilter(vm recommender.VirtualMachine, req recomm
 }
 
 func (s *vmSelector) ntwPerformanceFilter(vm recommender.VirtualMachine, req recommender.ClusterRecommendationReq) bool {
-	return vm.NetworkPerfCat == *req.NetworkPerf
+	return s.contains(req.NetworkPerf, vm.NetworkPerfCat)
 }
 
 func (s *vmSelector) categoryFilter(vm recommender.VirtualMachine, req recommender.ClusterRecommendationReq) bool {

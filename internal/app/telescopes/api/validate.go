@@ -85,12 +85,12 @@ func categoryValidator() validator.Func {
 func continentValidator(ciCli *recommender.CloudInfoClient) validator.Func {
 	return func(v *validator.Validate, topStruct reflect.Value, currentStruct reflect.Value, field reflect.Value,
 		fieldtype reflect.Type, fieldKind reflect.Kind, param string) bool {
-		continents, err := ciCli.GetRegions("azure", "compute")
+		continents, err := ciCli.GetContinents()
 		if err != nil {
 			return false
 		}
 		for _, continent := range continents {
-			if field.String() == continent.Name {
+			if field.String() == continent {
 				return true
 			}
 		}

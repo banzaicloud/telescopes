@@ -37,10 +37,11 @@
   version = "0.2.26"
 
 [[projects]]
-  digest = "1:b9d5f149de07e39efdb052af56070556b498c046c5903a6b18bfc3ad2f97426d"
+  digest = "1:3c316715395c80d6d971a592be052a7608843a3bd37a7fe3167d8623bd2b4c4e"
   name = "github.com/banzaicloud/cloudinfo"
   packages = [
     "pkg/cloudinfo-client/client",
+    "pkg/cloudinfo-client/client/continents",
     "pkg/cloudinfo-client/client/images",
     "pkg/cloudinfo-client/client/products",
     "pkg/cloudinfo-client/client/provider",
@@ -53,7 +54,7 @@
     "pkg/cloudinfo-client/models",
   ]
   pruneopts = "NUT"
-  revision = "905e64dec9cd944eea07ea370026f858b3624021"
+  revision = "8d91ae3ff5f6d2b69eb3ad6c69e263db0874bef3"
 
 [[projects]]
   digest = "1:2893d610c2ac37c521e873e77b6c0e36f91d6f9fad81250a46a21fa3dd944b6f"
@@ -850,6 +851,7 @@
   input-imports = [
     "github.com/banzaicloud/bank-vaults/auth",
     "github.com/banzaicloud/cloudinfo/pkg/cloudinfo-client/client",
+    "github.com/banzaicloud/cloudinfo/pkg/cloudinfo-client/client/continents",
     "github.com/banzaicloud/cloudinfo/pkg/cloudinfo-client/client/products",
     "github.com/banzaicloud/cloudinfo/pkg/cloudinfo-client/client/provider",
     "github.com/banzaicloud/cloudinfo/pkg/cloudinfo-client/client/region",

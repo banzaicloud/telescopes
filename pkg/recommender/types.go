@@ -76,7 +76,7 @@ type ClusterRecommendationReq struct {
 	// Are burst instances allowed in recommendation
 	AllowBurst *bool `json:"allowBurst,omitempty"`
 	// NetworkPerf specifies the network performance category
-	NetworkPerf *string `json:"networkPerf" binding:"omitempty,networkPerf"`
+	NetworkPerf []string `json:"networkPerf" binding:"omitempty,dive,networkPerf"`
 	// Excludes is a blacklist - a slice with vm types to be excluded from the recommendation
 	Excludes []string `json:"excludes,omitempty"`
 	// Includes is a whitelist - a slice with vm types to be contained in the recommendation
@@ -84,14 +84,14 @@ type ClusterRecommendationReq struct {
 	// AllowOlderGen allow older generations of virtual machines (applies for EC2 only)
 	AllowOlderGen *bool `json:"allowOlderGen,omitempty"`
 	// Category specifies the virtual machine category
-	Category []string `json:"category,omitempty"`
+	Category []string `json:"category" binding:"omitempty,dive,category"`
 }
 
 // MultiClusterRecommendationReq encapsulates the recommendation input data
 // swagger:model recommendMultiCluster
 type MultiClusterRecommendationReq struct {
 	Providers  []Provider `json:"providers" binding:"required"`
-	Continents []string   `json:"continents" binding:"required"`
+	Continents []string   `json:"continents" binding:"required,dive,continents"`
 	// cluster recommendation request
 	ClusterRecommendationReq ClusterRecommendationReq `json:"clusterRecommendationReq" binding:"required"`
 	// Maximum number of response per service
