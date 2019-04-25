@@ -1,21 +1,14 @@
 approved = [
-  "mit",
-  "apache-2.0",
-  "bsd-3-clause",
-  "bsd-2-clause",
-  "mpl-2.0",
+    "mit",
+    "apache-2.0",
+    "bsd-3-clause",
+    "bsd-2-clause",
+    "mpl-2.0",
 ]
 
 ignored = [
-  "github.com/ghodss/yaml",
-  "github.com/gogo/protobuf",
-  "github.com/golang/protobuf",
-  "github.com/stretchr/testify",
-  "github.com/go-openapi/spec",
-  "github.com/magiconair/properties",
-  "github.com/pmezard/go-difflib",
-
-  "github.com/davecgh/go-spew", # ISC license
-  "github.com/howeyc/gopass", # ISC license
-  "github.com/oracle/oci-go-sdk", # UPL-1.0
+    "github.com/gogo/protobuf",
+    "github.com/ghodss/yaml",
+    "github.com/golang/protobuf",
+    "github.com/ugorji/go/codec",
 ]
