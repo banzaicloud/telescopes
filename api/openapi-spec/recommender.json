@@ -284,7 +284,10 @@
             "in": "query"
           },
           {
-            "type": "string",
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
             "x-go-name": "NetworkPerf",
             "description": "NetworkPerf specifies the network performance category",
             "name": "networkPerf",
@@ -476,7 +479,10 @@
         },
         "networkPerf": {
           "description": "NetworkPerf specifies the network performance category",
-          "type": "string",
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
           "x-go-name": "NetworkPerf"
         },
         "onDemandPct": {
@@ -596,6 +602,14 @@
           },
           "x-go-name": "Regions"
         }
+      },
+      "x-go-package": "github.com/banzaicloud/telescopes/vendor/github.com/banzaicloud/cloudinfo/pkg/cloudinfo-client/models"
+    },
+    "ContinentsResponse": {
+      "description": "ContinentsResponse ContinentsResponse holds the list of available continents",
+      "type": "array",
+      "items": {
+        "type": "string"
       },
       "x-go-package": "github.com/banzaicloud/telescopes/vendor/github.com/banzaicloud/cloudinfo/pkg/cloudinfo-client/models"
     },

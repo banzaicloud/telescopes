@@ -16,6 +16,7 @@ package recommender
 
 import (
 	"github.com/banzaicloud/cloudinfo/pkg/cloudinfo-client/client"
+	"github.com/banzaicloud/cloudinfo/pkg/cloudinfo-client/client/continents"
 	"github.com/banzaicloud/cloudinfo/pkg/cloudinfo-client/client/products"
 	"github.com/banzaicloud/cloudinfo/pkg/cloudinfo-client/client/provider"
 	"github.com/banzaicloud/cloudinfo/pkg/cloudinfo-client/client/region"
@@ -137,6 +138,17 @@ func (ciCli *CloudInfoClient) GetRegions(provider, service string) ([]*models.Co
 		return nil, discriminateErrCtx(err)
 	}
 	return r.Payload, nil
+}
+
+// GetContinents gets continents
+func (ciCli *CloudInfoClient) GetContinents() (models.ContinentsResponse, error) {
+	gcp := continents.NewGetContinentsParams()
+	c, err := ciCli.Continents.GetContinents(gcp)
+	if err != nil {
+		return nil, discriminateErrCtx(err)
+	}
+
+	return c.Payload, nil
 }
 
 func discriminateErrCtx(err error) error {

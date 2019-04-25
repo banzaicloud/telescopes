@@ -225,7 +225,9 @@ paths:
           name: networkPerf
           in: query
           schema:
-            type: string
+            type: array
+            items:
+              type: string
         - x-go-name: Excludes
           description: >-
             Excludes is a blacklist - a slice with vm types to be excluded from
@@ -389,7 +391,9 @@ components:
           x-go-name: MinNodes
         networkPerf:
           description: NetworkPerf specifies the network performance category
-          type: string
+          type: array
+          items:
+            type: string
           x-go-name: NetworkPerf
         onDemandPct:
           description: Percentage of regular (on-demand) nodes in the recommended cluster
@@ -489,6 +493,15 @@ components:
           items:
             $ref: '#/components/schemas/Region'
           x-go-name: Regions
+      x-go-package: >-
+        github.com/banzaicloud/telescopes/vendor/github.com/banzaicloud/cloudinfo/pkg/cloudinfo-client/models
+    ContinentsResponse:
+      description: >-
+        ContinentsResponse ContinentsResponse holds the list of available
+        continents
+      type: array
+      items:
+        type: string
       x-go-package: >-
         github.com/banzaicloud/telescopes/vendor/github.com/banzaicloud/cloudinfo/pkg/cloudinfo-client/models
     GetAttributeValuesPathParams:
