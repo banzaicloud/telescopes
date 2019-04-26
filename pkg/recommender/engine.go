@@ -75,8 +75,9 @@ func (e *Engine) RecommendCluster(provider string, service string, region string
 	if err != nil {
 		return nil, err
 	}
-
-	cheapestNodePoolSet = append(cheapestNodePoolSet, cheapestMaster...)
+	if cheapestMaster != nil {
+		cheapestNodePoolSet = append(cheapestNodePoolSet, *cheapestMaster)
+	}
 
 	accuracy := findResponseSum(req.Zones, cheapestNodePoolSet)
 
@@ -90,40 +91,69 @@ func (e *Engine) RecommendCluster(provider string, service string, region string
 	}, nil
 }
 
-func (e *Engine) recommendMaster(provider, service string, req ClusterRecommendationReq, allProducts []VirtualMachine, layoutDesc []NodePoolDesc) ([]NodePool, error) {
-	if (service == "pke" || service == "ack") && layoutDesc == nil {
-		request := ClusterRecommendationReq{
-			SumCpu:      2,
-			SumMem:      4,
-			MinNodes:    1,
-			MaxNodes:    1,
-			OnDemandPct: 100,
-			Zones:       req.Zones,
-		}
-
-		cheapestMaster, err := e.getCheapestNodePoolSet(provider, request, nil, allProducts)
-		if err != nil {
-			return nil, err
-		}
-		var masterNodePool []NodePool
-
-		for _, master := range cheapestMaster {
-			nodepool := NodePool{
-				VmType:   master.VmType,
-				SumNodes: master.SumNodes,
-				VmClass:  master.VmClass,
-				Role:     Master,
+func (e *Engine) recommendMaster(provider, service string, req ClusterRecommendationReq, allProducts []VirtualMachine, layoutDesc []NodePoolDesc) (*NodePool, error) {
+	if layoutDesc == nil {
+		switch service {
+		case "pke":
+			masterNodePool, err := e.masterNodeRecommendation(provider, req, allProducts)
+			if err != nil {
+				return nil, err
 			}
-			if service == "ack" {
-				nodepool.SumNodes = 3
-			}
-			masterNodePool = append(masterNodePool, nodepool)
-		}
+			return masterNodePool, nil
 
-		return masterNodePool, nil
+		case "ack":
+			masterNodePool, err := e.masterNodeRecommendation(provider, req, allProducts)
+			if err != nil {
+				return nil, err
+			}
+			masterNodePool.SumNodes = 3
+
+			return masterNodePool, nil
+
+		case "eks":
+			var masterNodePool *NodePool
+			for _, instance := range allProducts {
+				if instance.Type == "EKS Control Plane" {
+					masterNodePool = &NodePool{
+						VmType:   instance,
+						SumNodes: 1,
+						VmClass:  Regular,
+						Role:     Master,
+					}
+					break
+				}
+			}
+			return masterNodePool, nil
+		}
 	}
+
 	e.log.Debug("service does not require master recommendation", map[string]interface{}{"provider": provider, "service": service})
 	return nil, nil
+}
+
+func (e *Engine) masterNodeRecommendation(provider string, req ClusterRecommendationReq, allProducts []VirtualMachine) (*NodePool, error) {
+	request := ClusterRecommendationReq{
+		SumCpu:      2,
+		SumMem:      4,
+		MinNodes:    1,
+		MaxNodes:    1,
+		OnDemandPct: 100,
+		Zones:       req.Zones,
+	}
+
+	cheapestMaster, err := e.getCheapestNodePoolSet(provider, request, nil, allProducts)
+	if err != nil {
+		return nil, err
+	}
+
+	master := &NodePool{
+		VmType:   cheapestMaster[0].VmType,
+		SumNodes: cheapestMaster[0].SumNodes,
+		VmClass:  cheapestMaster[0].VmClass,
+		Role:     Master,
+	}
+
+	return master, nil
 }
 
 func (e *Engine) getCheapestNodePoolSet(provider string, req ClusterRecommendationReq, layoutDesc []NodePoolDesc, allProducts []VirtualMachine) ([]NodePool, error) {
