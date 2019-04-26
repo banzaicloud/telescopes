@@ -11,4 +11,5 @@ ignored = [
     "github.com/ghodss/yaml",
     "github.com/golang/protobuf",
     "github.com/ugorji/go/codec",
+    "sigs.k8s.io/yaml",
 ]

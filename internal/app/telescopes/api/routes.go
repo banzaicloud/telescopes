@@ -18,7 +18,7 @@ import (
 	"net/http"
 	"os"
 
-	"github.com/banzaicloud/bank-vaults/auth"
+	"github.com/banzaicloud/bank-vaults/pkg/auth"
 	"github.com/banzaicloud/go-gin-prometheus"
 	"github.com/banzaicloud/telescopes/internal/platform/buildinfo"
 	"github.com/banzaicloud/telescopes/internal/platform/log"
