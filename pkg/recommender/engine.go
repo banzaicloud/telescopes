@@ -95,10 +95,26 @@ func (e *Engine) recommendMaster(provider, service string, req ClusterRecommenda
 	if layoutDesc == nil {
 		switch service {
 		case "pke":
+			if provider == "amazon" {
+				req.Includes = []string{
+					"c5.large",
+					"c5.xlarge",
+					"c5.2xlarge",
+					"c5.4xlarge",
+					"c5.9xlarge",
+					"c4.large",
+					"c4.xlarge",
+					"c4.2xlarge",
+					"c4.4xlarge",
+					"c4.8xlarge",
+				}
+			}
+
 			masterNodePool, err := e.masterNodeRecommendation(provider, req, allProducts)
 			if err != nil {
 				return nil, err
 			}
+
 			return masterNodePool, nil
 
 		case "ack":
@@ -139,6 +155,7 @@ func (e *Engine) masterNodeRecommendation(provider string, req ClusterRecommenda
 		MaxNodes:    1,
 		OnDemandPct: 100,
 		Zones:       req.Zones,
+		Includes:    req.Includes,
 	}
 
 	cheapestMaster, err := e.getCheapestNodePoolSet(provider, request, nil, allProducts)
