@@ -92,43 +92,62 @@ func (e *Engine) RecommendCluster(provider string, service string, region string
 }
 
 func (e *Engine) recommendMaster(provider, service string, req ClusterRecommendationReq, allProducts []VirtualMachine, layoutDesc []NodePoolDesc) (*NodePool, error) {
-	if layoutDesc == nil {
-		switch service {
-		case "pke":
-			masterNodePool, err := e.masterNodeRecommendation(provider, req, allProducts)
-			if err != nil {
-				return nil, err
-			}
-			return masterNodePool, nil
-
-		case "ack":
-			masterNodePool, err := e.masterNodeRecommendation(provider, req, allProducts)
-			if err != nil {
-				return nil, err
-			}
-			masterNodePool.SumNodes = 3
-
-			return masterNodePool, nil
-
-		case "eks":
-			var masterNodePool *NodePool
-			for _, instance := range allProducts {
-				if instance.Type == "EKS Control Plane" {
-					masterNodePool = &NodePool{
-						VmType:   instance,
-						SumNodes: 1,
-						VmClass:  Regular,
-						Role:     Master,
-					}
-					break
-				}
-			}
-			return masterNodePool, nil
-		}
+	if layoutDesc != nil {
+		e.log.Debug("there is an existing layout, does not require a master recommendation")
+		return nil, nil
 	}
 
-	e.log.Debug("service does not require master recommendation", map[string]interface{}{"provider": provider, "service": service})
-	return nil, nil
+	switch service {
+	case "pke":
+		if provider == "amazon" {
+			req.Includes = []string{
+				"c5.large",
+				"c5.xlarge",
+				"c5.2xlarge",
+				"c5.4xlarge",
+				"c5.9xlarge",
+				"c4.large",
+				"c4.xlarge",
+				"c4.2xlarge",
+				"c4.4xlarge",
+				"c4.8xlarge",
+			}
+		}
+
+		masterNodePool, err := e.masterNodeRecommendation(provider, req, allProducts)
+		if err != nil {
+			return nil, err
+		}
+
+		return masterNodePool, nil
+
+	case "ack":
+		masterNodePool, err := e.masterNodeRecommendation(provider, req, allProducts)
+		if err != nil {
+			return nil, err
+		}
+		masterNodePool.SumNodes = 3
+
+		return masterNodePool, nil
+
+	case "eks":
+		var masterNodePool *NodePool
+		for _, instance := range allProducts {
+			if instance.Type == "EKS Control Plane" {
+				masterNodePool = &NodePool{
+					VmType:   instance,
+					SumNodes: 1,
+					VmClass:  Regular,
+					Role:     Master,
+				}
+				break
+			}
+		}
+		return masterNodePool, nil
+	default:
+		e.log.Debug("service does not require master recommendation", map[string]interface{}{"provider": provider, "service": service})
+		return nil, nil
+	}
 }
 
 func (e *Engine) masterNodeRecommendation(provider string, req ClusterRecommendationReq, allProducts []VirtualMachine) (*NodePool, error) {
@@ -139,6 +158,7 @@ func (e *Engine) masterNodeRecommendation(provider string, req ClusterRecommenda
 		MaxNodes:    1,
 		OnDemandPct: 100,
 		Zones:       req.Zones,
+		Includes:    req.Includes,
 	}
 
 	cheapestMaster, err := e.getCheapestNodePoolSet(provider, request, nil, allProducts)
