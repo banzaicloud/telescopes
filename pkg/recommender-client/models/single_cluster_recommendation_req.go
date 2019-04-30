@@ -11,9 +11,9 @@ import (
 	"github.com/go-openapi/swag"
 )
 
-// ClusterRecommendationReq ClusterRecommendationReq encapsulates the recommendation input data
-// swagger:model ClusterRecommendationReq
-type ClusterRecommendationReq struct {
+// SingleClusterRecommendationReq SingleClusterRecommendationReq encapsulates the recommendation input data
+// swagger:model SingleClusterRecommendationReq
+type SingleClusterRecommendationReq struct {
 
 	// Are burst instances allowed in recommendation
 	AllowBurst bool `json:"allowBurst,omitempty"`
@@ -23,6 +23,12 @@ type ClusterRecommendationReq struct {
 
 	// Category specifies the virtual machine category
 	Category []string `json:"category"`
+
+	// Excludes is a blacklist - a slice with vm types to be excluded from the recommendation
+	Excludes []string `json:"excludes"`
+
+	// Includes is a whitelist - a slice with vm types to be contained in the recommendation
+	Includes []string `json:"includes"`
 
 	// Maximum number of nodes in the recommended cluster
 	MaxNodes int64 `json:"maxNodes,omitempty"`
@@ -47,15 +53,18 @@ type ClusterRecommendationReq struct {
 
 	// Total memory requested for the cluster (GB)
 	SumMem float64 `json:"sumMem,omitempty"`
+
+	// Availability zone that the cluster should expand to
+	Zone string `json:"zone,omitempty"`
 }
 
-// Validate validates this cluster recommendation req
-func (m *ClusterRecommendationReq) Validate(formats strfmt.Registry) error {
+// Validate validates this single cluster recommendation req
+func (m *SingleClusterRecommendationReq) Validate(formats strfmt.Registry) error {
 	return nil
 }
 
 // MarshalBinary interface implementation
-func (m *ClusterRecommendationReq) MarshalBinary() ([]byte, error) {
+func (m *SingleClusterRecommendationReq) MarshalBinary() ([]byte, error) {
 	if m == nil {
 		return nil, nil
 	}
@@ -63,8 +72,8 @@ func (m *ClusterRecommendationReq) MarshalBinary() ([]byte, error) {
 }
 
 // UnmarshalBinary interface implementation
-func (m *ClusterRecommendationReq) UnmarshalBinary(b []byte) error {
-	var res ClusterRecommendationReq
+func (m *SingleClusterRecommendationReq) UnmarshalBinary(b []byte) error {
+	var res SingleClusterRecommendationReq
 	if err := swag.ReadJSON(b, &res); err != nil {
 		return err
 	}

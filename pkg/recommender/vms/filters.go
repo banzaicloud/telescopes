@@ -20,10 +20,10 @@ import (
 	"github.com/pkg/errors"
 )
 
-type vmFilter func(vm recommender.VirtualMachine, req recommender.ClusterRecommendationReq) bool
+type vmFilter func(vm recommender.VirtualMachine, req recommender.SingleClusterRecommendationReq) bool
 
 // filtersForAttr returns the slice for
-func (s *vmSelector) filtersForAttr(attr string, provider string, req recommender.ClusterRecommendationReq) ([]vmFilter, error) {
+func (s *vmSelector) filtersForAttr(attr string, provider string, req recommender.SingleClusterRecommendationReq) ([]vmFilter, error) {
 	var filters []vmFilter
 	// generic filters - not depending on providers and attributes
 	if len(req.Includes) != 0 {
@@ -38,7 +38,7 @@ func (s *vmSelector) filtersForAttr(attr string, provider string, req recommende
 		filters = append(filters, s.categoryFilter)
 	}
 
-	if len(req.Zones) != 0 {
+	if req.Zone != "" {
 		filters = append(filters, s.zonesFilter)
 	}
 
@@ -76,7 +76,7 @@ func (s *vmSelector) filtersForAttr(attr string, provider string, req recommende
 }
 
 // filtersApply returns true if all the filters apply for the given vm
-func (s *vmSelector) filtersApply(vm recommender.VirtualMachine, filters []vmFilter, req recommender.ClusterRecommendationReq) bool {
+func (s *vmSelector) filtersApply(vm recommender.VirtualMachine, filters []vmFilter, req recommender.SingleClusterRecommendationReq) bool {
 	for _, filter := range filters {
 		if !filter(vm, req) {
 			// one of the filters doesn't apply - quit the iteration
@@ -87,42 +87,37 @@ func (s *vmSelector) filtersApply(vm recommender.VirtualMachine, filters []vmFil
 	return true
 }
 
-func (s *vmSelector) zonesFilter(vm recommender.VirtualMachine, req recommender.ClusterRecommendationReq) bool {
+func (s *vmSelector) zonesFilter(vm recommender.VirtualMachine, req recommender.SingleClusterRecommendationReq) bool {
 	if len(vm.Zones) != 0 {
-		for _, zone := range req.Zones {
-			if s.contains(vm.Zones, zone) {
-				return true
-			}
-		}
-		return false
+		return s.contains(vm.Zones, req.Zone)
 	}
 	return true
 }
 
-func (s *vmSelector) minMemRatioFilter(vm recommender.VirtualMachine, req recommender.ClusterRecommendationReq) bool {
+func (s *vmSelector) minMemRatioFilter(vm recommender.VirtualMachine, req recommender.SingleClusterRecommendationReq) bool {
 	minMemToCpuRatio := req.SumMem / req.SumCpu
 	return minMemToCpuRatio <= vm.Mem/vm.Cpus
 }
 
-func (s *vmSelector) burstFilter(vm recommender.VirtualMachine, req recommender.ClusterRecommendationReq) bool {
+func (s *vmSelector) burstFilter(vm recommender.VirtualMachine, req recommender.SingleClusterRecommendationReq) bool {
 	return !vm.Burst
 }
 
-func (s *vmSelector) minCpuRatioFilter(vm recommender.VirtualMachine, req recommender.ClusterRecommendationReq) bool {
+func (s *vmSelector) minCpuRatioFilter(vm recommender.VirtualMachine, req recommender.SingleClusterRecommendationReq) bool {
 	minCpuToMemRatio := req.SumCpu / req.SumMem
 	return minCpuToMemRatio <= vm.Cpus/vm.Mem
 }
 
-func (s *vmSelector) ntwPerformanceFilter(vm recommender.VirtualMachine, req recommender.ClusterRecommendationReq) bool {
+func (s *vmSelector) ntwPerformanceFilter(vm recommender.VirtualMachine, req recommender.SingleClusterRecommendationReq) bool {
 	return s.contains(req.NetworkPerf, vm.NetworkPerfCat)
 }
 
-func (s *vmSelector) categoryFilter(vm recommender.VirtualMachine, req recommender.ClusterRecommendationReq) bool {
+func (s *vmSelector) categoryFilter(vm recommender.VirtualMachine, req recommender.SingleClusterRecommendationReq) bool {
 	return s.contains(req.Category, vm.Category)
 }
 
 // excludeFilter checks for the vm type in the request' exclude list, the filter  passes if the type is not excluded
-func (s *vmSelector) excludesFilter(vm recommender.VirtualMachine, req recommender.ClusterRecommendationReq) bool {
+func (s *vmSelector) excludesFilter(vm recommender.VirtualMachine, req recommender.SingleClusterRecommendationReq) bool {
 	if s.contains(req.Excludes, vm.Type) {
 		s.log.Debug("the vm type is blacklisted", map[string]interface{}{"type": vm.Type})
 		return false
@@ -131,7 +126,7 @@ func (s *vmSelector) excludesFilter(vm recommender.VirtualMachine, req recommend
 }
 
 // includesFilter checks whether the vm type is in the includes list; the filter passes if the type is in the list
-func (s *vmSelector) includesFilter(vm recommender.VirtualMachine, req recommender.ClusterRecommendationReq) bool {
+func (s *vmSelector) includesFilter(vm recommender.VirtualMachine, req recommender.SingleClusterRecommendationReq) bool {
 	if s.contains(req.Includes, vm.Type) {
 		s.log.Debug("the vm type is whitelisted", map[string]interface{}{"type": vm.Type})
 		return true
@@ -152,7 +147,7 @@ func (s *vmSelector) filterSpots(vms []recommender.VirtualMachine) []recommender
 }
 
 // currentGenFilter removes instance types that are not the current generation (amazon only)
-func (s *vmSelector) currentGenFilter(vm recommender.VirtualMachine, req recommender.ClusterRecommendationReq) bool {
+func (s *vmSelector) currentGenFilter(vm recommender.VirtualMachine, req recommender.SingleClusterRecommendationReq) bool {
 	// filter by current generation
 	return vm.CurrentGen
 }

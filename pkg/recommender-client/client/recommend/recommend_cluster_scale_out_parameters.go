@@ -101,11 +101,11 @@ type RecommendClusterScaleOutParams struct {
 	Region string
 	/*Service*/
 	Service string
-	/*Zones
-	  Availability zones to be included in the recommendation
+	/*Zone
+	  Availability zone to be included in the recommendation
 
 	*/
-	Zones []string
+	Zone *string
 
 	timeout    time.Duration
 	Context    context.Context
@@ -244,15 +244,15 @@ func (o *RecommendClusterScaleOutParams) SetService(service string) {
 	o.Service = service
 }
 
-// WithZones adds the zones to the recommend cluster scale out params
-func (o *RecommendClusterScaleOutParams) WithZones(zones []string) *RecommendClusterScaleOutParams {
-	o.SetZones(zones)
+// WithZone adds the zone to the recommend cluster scale out params
+func (o *RecommendClusterScaleOutParams) WithZone(zone *string) *RecommendClusterScaleOutParams {
+	o.SetZone(zone)
 	return o
 }
 
-// SetZones adds the zones to the recommend cluster scale out params
-func (o *RecommendClusterScaleOutParams) SetZones(zones []string) {
-	o.Zones = zones
+// SetZone adds the zone to the recommend cluster scale out params
+func (o *RecommendClusterScaleOutParams) SetZone(zone *string) {
+	o.Zone = zone
 }
 
 // WriteToRequest writes these params to a swagger request
@@ -356,12 +356,20 @@ func (o *RecommendClusterScaleOutParams) WriteToRequest(r runtime.ClientRequest,
 		return err
 	}
 
-	valuesZones := o.Zones
+	if o.Zone != nil {
 
-	joinedZones := swag.JoinByFormat(valuesZones, "")
-	// query array param zones
-	if err := r.SetQueryParam("zones", joinedZones...); err != nil {
-		return err
+		// query param zone
+		var qrZone string
+		if o.Zone != nil {
+			qrZone = *o.Zone
+		}
+		qZone := qrZone
+		if qZone != "" {
+			if err := r.SetQueryParam("zone", qZone); err != nil {
+				return err
+			}
+		}
+
 	}
 
 	if len(res) > 0 {

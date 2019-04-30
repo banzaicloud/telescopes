@@ -35,7 +35,7 @@ const (
 type ClusterRecommender interface {
 
 	// RecommendCluster performs recommendation based on the provided arguments
-	RecommendCluster(provider string, service string, region string, req ClusterRecommendationReq, layoutDesc []NodePoolDesc) (*ClusterRecommendationResp, error)
+	RecommendCluster(provider string, service string, region string, req SingleClusterRecommendationReq, layoutDesc []NodePoolDesc) (*ClusterRecommendationResp, error)
 
 	// RecommendClusterScaleOut performs recommendation for an existing layout's scale out
 	RecommendClusterScaleOut(provider string, service string, region string, req ClusterScaleoutRecommendationReq) (*ClusterRecommendationResp, error)
@@ -45,17 +45,29 @@ type ClusterRecommender interface {
 }
 
 type VmRecommender interface {
-	RecommendVms(provider string, vms []VirtualMachine, attr string, req ClusterRecommendationReq, layout []NodePool) ([]VirtualMachine, []VirtualMachine, error)
+	RecommendVms(provider string, vms []VirtualMachine, attr string, req SingleClusterRecommendationReq, layout []NodePool) ([]VirtualMachine, []VirtualMachine, error)
 
-	FindVmsWithAttrValues(attr string, req ClusterRecommendationReq, layoutDesc []NodePoolDesc, allProducts []VirtualMachine) ([]VirtualMachine, error)
+	FindVmsWithAttrValues(attr string, req SingleClusterRecommendationReq, layoutDesc []NodePoolDesc, allProducts []VirtualMachine) ([]VirtualMachine, error)
 }
 
 type NodePoolRecommender interface {
-	RecommendNodePools(attr string, req ClusterRecommendationReq, layout []NodePool, odVms []VirtualMachine, spotVms []VirtualMachine) []NodePool
+	RecommendNodePools(attr string, req SingleClusterRecommendationReq, layout []NodePool, odVms []VirtualMachine, spotVms []VirtualMachine) []NodePool
+}
+
+// SingleClusterRecommendationReq encapsulates the recommendation input data
+// swagger:parameters recommendCluster
+type SingleClusterRecommendationReq struct {
+	// Embedded struct
+	ClusterRecommendationReq
+	// Excludes is a blacklist - a slice with vm types to be excluded from the recommendation
+	Excludes []string `json:"excludes,omitempty"`
+	// Includes is a whitelist - a slice with vm types to be contained in the recommendation
+	Includes []string `json:"includes,omitempty"`
+	// Availability zone that the cluster should expand to
+	Zone string `json:"zone,omitempty"`
 }
 
 // ClusterRecommendationReq encapsulates the recommendation input data
-// swagger:parameters recommendCluster
 type ClusterRecommendationReq struct {
 	// Total number of CPUs requested for the cluster
 	SumCpu float64 `json:"sumCpu" binding:"min=1"`
@@ -69,18 +81,12 @@ type ClusterRecommendationReq struct {
 	SameSize bool `json:"sameSize,omitempty"`
 	// Percentage of regular (on-demand) nodes in the recommended cluster
 	OnDemandPct int `json:"onDemandPct,omitempty" binding:"min=0,max=100"`
-	// Availability zones that the cluster should expand to
-	Zones []string `json:"zones,omitempty"`
 	// Total number of GPUs requested for the cluster
 	SumGpu int `json:"sumGpu,omitempty"`
 	// Are burst instances allowed in recommendation
 	AllowBurst *bool `json:"allowBurst,omitempty"`
 	// NetworkPerf specifies the network performance category
 	NetworkPerf []string `json:"networkPerf" binding:"omitempty,dive,networkPerf"`
-	// Excludes is a blacklist - a slice with vm types to be excluded from the recommendation
-	Excludes []string `json:"excludes,omitempty"`
-	// Includes is a whitelist - a slice with vm types to be contained in the recommendation
-	Includes []string `json:"includes,omitempty"`
 	// AllowOlderGen allow older generations of virtual machines (applies for EC2 only)
 	AllowOlderGen *bool `json:"allowOlderGen,omitempty"`
 	// Category specifies the virtual machine category
@@ -92,8 +98,12 @@ type ClusterRecommendationReq struct {
 type MultiClusterRecommendationReq struct {
 	Providers  []Provider `json:"providers" binding:"required"`
 	Continents []string   `json:"continents" binding:"required,dive,continents"`
-	// cluster recommendation request
-	ClusterRecommendationReq ClusterRecommendationReq `json:"clusterRecommendationReq" binding:"required"`
+	// Embedded struct
+	ClusterRecommendationReq
+	// Excludes is a blacklist - a slice with vm types to be excluded from the recommendation
+	Excludes map[string]map[string][]string `json:"excludes,omitempty"`
+	// Includes is a whitelist - a slice with vm types to be contained in the recommendation
+	Includes map[string]map[string][]string `json:"includes,omitempty"`
 	// Maximum number of response per service
 	RespPerService int `json:"respPerService" binding:"required"`
 }
@@ -115,8 +125,8 @@ type ClusterScaleoutRecommendationReq struct {
 	DesiredGpu int `json:"desiredGpu" binding:"min=0"`
 	// Percentage of regular (on-demand) nodes among the scale out nodes
 	OnDemandPct int `json:"onDemandPct,omitempty" binding:"min=0,max=100"`
-	// Availability zones to be included in the recommendation
-	Zones []string `json:"zones,omitempty"`
+	// Availability zone to be included in the recommendation
+	Zone string `json:"zone,omitempty"`
 	// Excludes is a blacklist - a slice with vm types to be excluded from the recommendation
 	Excludes []string `json:"excludes,omitempty"`
 	// Description of the current cluster layout
@@ -155,8 +165,8 @@ type ClusterRecommendationResp struct {
 	Service string `json:"service"`
 	// Service's region
 	Region string `json:"region"`
-	// Availability zones in the recommendation - a multi-zone recommendation means that all node pools should expand to all zones
-	Zones []string `json:"zones,omitempty"`
+	// Availability zone in the recommendation - a multi-zone recommendation means that all node pools should expand to all zones
+	Zone string `json:"zone,omitempty"`
 	// Recommended node pools
 	NodePools []NodePool `json:"nodePools"`
 	// Accuracy of the recommendation
@@ -200,8 +210,8 @@ type ClusterRecommendationAccuracy struct {
 	RecCpu float64 `json:"cpu"`
 	// Number of recommended nodes
 	RecNodes int `json:"nodes"`
-	// Availability zones in the recommendation
-	RecZone []string `json:"zone,omitempty"`
+	// Availability zone in the recommendation
+	RecZone string `json:"zone,omitempty"`
 	// Amount of regular instance type prices in the recommended cluster
 	RecRegularPrice float64 `json:"regularPrice"`
 	// Number of regular instance type in the recommended cluster

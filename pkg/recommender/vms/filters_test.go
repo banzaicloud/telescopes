@@ -31,7 +31,7 @@ func TestVmSelector_filtersApply(t *testing.T) {
 	tests := []struct {
 		name     string
 		vm       recommender.VirtualMachine
-		req      recommender.ClusterRecommendationReq
+		req      recommender.SingleClusterRecommendationReq
 		attr     string
 		provider string
 		check    func(filtersApply bool)
@@ -39,7 +39,13 @@ func TestVmSelector_filtersApply(t *testing.T) {
 		{
 			name: "filter applies for cpu/mem and burst allowed",
 			// minRatio = SumCpu/SumMem = 0.5
-			req: recommender.ClusterRecommendationReq{SumCpu: 4, SumMem: 8, AllowBurst: &trueVal},
+			req: recommender.SingleClusterRecommendationReq{
+				ClusterRecommendationReq: recommender.ClusterRecommendationReq{
+					SumCpu:     4,
+					SumMem:     8,
+					AllowBurst: &trueVal,
+				},
+			},
 			// ratio = Cpus/Mem = 1
 			vm:       recommender.VirtualMachine{Cpus: 4, Mem: 4, Burst: true, CurrentGen: true},
 			attr:     recommender.Memory,
@@ -51,7 +57,13 @@ func TestVmSelector_filtersApply(t *testing.T) {
 		{
 			name: "filter doesn't apply for cpu/mem and burst not allowed ",
 			// minRatio = SumCpu/SumMem = 0.5
-			req: recommender.ClusterRecommendationReq{SumCpu: 4, SumMem: 8, AllowBurst: &falseVal},
+			req: recommender.SingleClusterRecommendationReq{
+				ClusterRecommendationReq: recommender.ClusterRecommendationReq{
+					SumCpu:     4,
+					SumMem:     8,
+					AllowBurst: &falseVal,
+				},
+			},
 			// ratio = Cpus/Mem = 1
 			vm:       recommender.VirtualMachine{Cpus: 4, Mem: 4, Burst: true, CurrentGen: true},
 			attr:     recommender.Cpu,
@@ -63,7 +75,13 @@ func TestVmSelector_filtersApply(t *testing.T) {
 		{
 			name: "filter applies for mem/cpu and burst allowed",
 			// minRatio = SumMem/SumCpu = 2
-			req: recommender.ClusterRecommendationReq{SumMem: 8, SumCpu: 4, AllowBurst: &trueVal},
+			req: recommender.SingleClusterRecommendationReq{
+				ClusterRecommendationReq: recommender.ClusterRecommendationReq{
+					SumMem:     8,
+					SumCpu:     4,
+					AllowBurst: &trueVal,
+				},
+			},
 			// ratio = Mem/Cpus = 1
 			vm:       recommender.VirtualMachine{Mem: 20, Cpus: 4, Burst: true, CurrentGen: true},
 			attr:     recommender.Cpu,
@@ -75,7 +93,13 @@ func TestVmSelector_filtersApply(t *testing.T) {
 		{
 			name: "filter doesn't apply for mem/cpu and burst not allowed ",
 			// minRatio = SumMem/SumCpu = 2
-			req: recommender.ClusterRecommendationReq{SumMem: 8, SumCpu: 4, AllowBurst: &falseVal},
+			req: recommender.SingleClusterRecommendationReq{
+				ClusterRecommendationReq: recommender.ClusterRecommendationReq{
+					SumMem:     8,
+					SumCpu:     4,
+					AllowBurst: &falseVal,
+				},
+			},
 			// ratio = Mem/Cpus = 1
 			vm:       recommender.VirtualMachine{Mem: 20, Cpus: 4, Burst: true, CurrentGen: true},
 			attr:     recommender.Memory,
@@ -99,13 +123,18 @@ func TestVmSelector_minCpuRatioFilter(t *testing.T) {
 		name  string
 		vm    recommender.VirtualMachine
 		attr  string
-		req   recommender.ClusterRecommendationReq
+		req   recommender.SingleClusterRecommendationReq
 		check func(filterApplies bool)
 	}{
 		{
 			name: "minCpuRatioFilter applies",
 			// minRatio = SumCpu/SumMem = 0.5
-			req: recommender.ClusterRecommendationReq{SumCpu: 4, SumMem: 8},
+			req: recommender.SingleClusterRecommendationReq{
+				ClusterRecommendationReq: recommender.ClusterRecommendationReq{
+					SumCpu: 4,
+					SumMem: 8,
+				},
+			},
 			// ratio = Cpus/Mem = 1
 			vm:   recommender.VirtualMachine{Cpus: 4, Mem: 4},
 			attr: recommender.Cpu,
@@ -116,7 +145,12 @@ func TestVmSelector_minCpuRatioFilter(t *testing.T) {
 		{
 			name: "minCpuRatioFilter doesn't apply",
 			// minRatio = SumCpu/SumMem = 1
-			req: recommender.ClusterRecommendationReq{SumCpu: 4, SumMem: float64(4)},
+			req: recommender.SingleClusterRecommendationReq{
+				ClusterRecommendationReq: recommender.ClusterRecommendationReq{
+					SumCpu: 4,
+					SumMem: 4,
+				},
+			},
 			// ratio = Cpus/Mem = 0.5
 			vm:   recommender.VirtualMachine{Cpus: 4, Mem: float64(8)},
 			attr: recommender.Cpu,
@@ -136,7 +170,7 @@ func TestVmSelector_minCpuRatioFilter(t *testing.T) {
 func TestVmSelector_minMemRatioFilter(t *testing.T) {
 	tests := []struct {
 		name  string
-		req   recommender.ClusterRecommendationReq
+		req   recommender.SingleClusterRecommendationReq
 		vm    recommender.VirtualMachine
 		attr  string
 		check func(filterApplies bool)
@@ -144,7 +178,12 @@ func TestVmSelector_minMemRatioFilter(t *testing.T) {
 		{
 			name: "minMemRatioFilter applies",
 			// minRatio = SumMem/SumCpu = 2
-			req: recommender.ClusterRecommendationReq{SumMem: 8, SumCpu: 4},
+			req: recommender.SingleClusterRecommendationReq{
+				ClusterRecommendationReq: recommender.ClusterRecommendationReq{
+					SumMem: 8,
+					SumCpu: 4,
+				},
+			},
 			// ratio = Mem/Cpus = 4
 			vm:   recommender.VirtualMachine{Mem: 16, Cpus: 4},
 			attr: recommender.Cpu,
@@ -155,7 +194,12 @@ func TestVmSelector_minMemRatioFilter(t *testing.T) {
 		{
 			name: "minMemRatioFilter doesn't apply",
 			// minRatio = SumMem/SumCpu = 2
-			req: recommender.ClusterRecommendationReq{SumMem: 8, SumCpu: 4},
+			req: recommender.SingleClusterRecommendationReq{
+				ClusterRecommendationReq: recommender.ClusterRecommendationReq{
+					SumMem: 8,
+					SumCpu: 4,
+				},
+			},
 			// ratio = Mem/Cpus = 0.5
 			vm:   recommender.VirtualMachine{Cpus: 4, Mem: 4},
 			attr: recommender.Cpu,
@@ -190,7 +234,7 @@ func TestVmSelector_burstFilter(t *testing.T) {
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
 			selector := NewVmSelector(logur.NewTestLogger())
-			test.check(selector.burstFilter(test.vm, recommender.ClusterRecommendationReq{}))
+			test.check(selector.burstFilter(test.vm, recommender.SingleClusterRecommendationReq{}))
 		})
 	}
 }
@@ -199,7 +243,7 @@ func TestVmSelector_excludesFilter(t *testing.T) {
 	tests := []struct {
 		name  string
 		vm    recommender.VirtualMachine
-		req   recommender.ClusterRecommendationReq
+		req   recommender.SingleClusterRecommendationReq
 		check func(res bool)
 	}{
 		{
@@ -207,7 +251,7 @@ func TestVmSelector_excludesFilter(t *testing.T) {
 			vm: recommender.VirtualMachine{
 				Type: "vm-type",
 			},
-			req: recommender.ClusterRecommendationReq{},
+			req: recommender.SingleClusterRecommendationReq{},
 			check: func(res bool) {
 				assert.True(t, res, "all vms should pass")
 			},
@@ -217,7 +261,7 @@ func TestVmSelector_excludesFilter(t *testing.T) {
 			vm: recommender.VirtualMachine{
 				Type: "vm-type",
 			},
-			req: recommender.ClusterRecommendationReq{
+			req: recommender.SingleClusterRecommendationReq{
 				Excludes: []string{},
 			},
 			check: func(res bool) {
@@ -229,7 +273,7 @@ func TestVmSelector_excludesFilter(t *testing.T) {
 			vm: recommender.VirtualMachine{
 				Type: "blacklisted-type",
 			},
-			req: recommender.ClusterRecommendationReq{
+			req: recommender.SingleClusterRecommendationReq{
 				Excludes: []string{"blacklisted-type", "other type"},
 			},
 			check: func(res bool) {
@@ -241,7 +285,7 @@ func TestVmSelector_excludesFilter(t *testing.T) {
 			vm: recommender.VirtualMachine{
 				Type: "not-blacklisted-type",
 			},
-			req: recommender.ClusterRecommendationReq{
+			req: recommender.SingleClusterRecommendationReq{
 				Excludes: []string{"blacklisted-type", "other type"},
 			},
 			check: func(res bool) {
@@ -261,7 +305,7 @@ func TestVmSelector_includesFilter(t *testing.T) {
 	tests := []struct {
 		name  string
 		vm    recommender.VirtualMachine
-		req   recommender.ClusterRecommendationReq
+		req   recommender.SingleClusterRecommendationReq
 		check func(res bool)
 	}{
 		{
@@ -269,7 +313,7 @@ func TestVmSelector_includesFilter(t *testing.T) {
 			vm: recommender.VirtualMachine{
 				Type: "whitelisted-type",
 			},
-			req: recommender.ClusterRecommendationReq{
+			req: recommender.SingleClusterRecommendationReq{
 				Includes: []string{"whitelisted-type", "other type"},
 			},
 			check: func(res bool) {
@@ -281,7 +325,7 @@ func TestVmSelector_includesFilter(t *testing.T) {
 			vm: recommender.VirtualMachine{
 				Type: "not-blacklisted-type",
 			},
-			req: recommender.ClusterRecommendationReq{
+			req: recommender.SingleClusterRecommendationReq{
 				Includes: []string{"blacklisted-type", "other type"},
 			},
 			check: func(res bool) {
@@ -338,14 +382,16 @@ func TestVmSelector_ntwPerformanceFilter(t *testing.T) {
 	)
 	tests := []struct {
 		name  string
-		req   recommender.ClusterRecommendationReq
+		req   recommender.SingleClusterRecommendationReq
 		vm    recommender.VirtualMachine
 		check func(passed bool)
 	}{
 		{
 			name: "vm passes the network performance filter",
-			req: recommender.ClusterRecommendationReq{
-				NetworkPerf: []string{ntwLow},
+			req: recommender.SingleClusterRecommendationReq{
+				ClusterRecommendationReq: recommender.ClusterRecommendationReq{
+					NetworkPerf: []string{ntwLow},
+				},
 			},
 			vm: recommender.VirtualMachine{
 				NetworkPerfCat: ntwLow,
@@ -357,8 +403,10 @@ func TestVmSelector_ntwPerformanceFilter(t *testing.T) {
 		},
 		{
 			name: "vm doesn't pass the network performance filter",
-			req: recommender.ClusterRecommendationReq{
-				NetworkPerf: []string{ntwLow},
+			req: recommender.SingleClusterRecommendationReq{
+				ClusterRecommendationReq: recommender.ClusterRecommendationReq{
+					NetworkPerf: []string{ntwLow},
+				},
 			},
 			vm: recommender.VirtualMachine{
 				NetworkPerfCat: ntwHigh,
@@ -407,7 +455,7 @@ func TestVmSelector_currentGenFilter(t *testing.T) {
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
 			selector := NewVmSelector(logur.NewTestLogger())
-			test.check(selector.currentGenFilter(test.vm, recommender.ClusterRecommendationReq{}))
+			test.check(selector.currentGenFilter(test.vm, recommender.SingleClusterRecommendationReq{}))
 		})
 	}
 }

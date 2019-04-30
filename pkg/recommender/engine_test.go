@@ -47,7 +47,7 @@ type dummyVms struct {
 	TcId string
 }
 
-func (v *dummyVms) RecommendVms(provider string, vms []VirtualMachine, attr string, req ClusterRecommendationReq, layout []NodePool) ([]VirtualMachine, []VirtualMachine, error) {
+func (v *dummyVms) RecommendVms(provider string, vms []VirtualMachine, attr string, req SingleClusterRecommendationReq, layout []NodePool) ([]VirtualMachine, []VirtualMachine, error) {
 	return nil, []VirtualMachine{
 		{
 			Cpus:          16,
@@ -76,7 +76,7 @@ func (v *dummyVms) RecommendVms(provider string, vms []VirtualMachine, attr stri
 	}, nil
 }
 
-func (v *dummyVms) FindVmsWithAttrValues(attr string, req ClusterRecommendationReq, layoutDesc []NodePoolDesc, allProducts []VirtualMachine) ([]VirtualMachine, error) {
+func (v *dummyVms) FindVmsWithAttrValues(attr string, req SingleClusterRecommendationReq, layoutDesc []NodePoolDesc, allProducts []VirtualMachine) ([]VirtualMachine, error) {
 	return nil, nil
 }
 
@@ -85,7 +85,7 @@ type dummyNodePools struct {
 	TcId string
 }
 
-func (nps *dummyNodePools) RecommendNodePools(attr string, req ClusterRecommendationReq, layout []NodePool, odVms []VirtualMachine, spotVms []VirtualMachine) []NodePool {
+func (nps *dummyNodePools) RecommendNodePools(attr string, req SingleClusterRecommendationReq, layout []NodePool, odVms []VirtualMachine, spotVms []VirtualMachine) []NodePool {
 	return []NodePool{
 		{ // price = 2*3 +2*2 = 10
 			VmType: VirtualMachine{
@@ -146,18 +146,20 @@ func TestEngine_RecommendCluster(t *testing.T) {
 		vms      VmRecommender
 		np       NodePoolRecommender
 		ciSource CloudInfoSource
-		request  ClusterRecommendationReq
+		request  SingleClusterRecommendationReq
 		check    func(resp *ClusterRecommendationResp, err error)
 	}{
 		{
 			name: "cluster recommendation success",
 			vms:  &dummyVms{},
 			np:   &dummyNodePools{},
-			request: ClusterRecommendationReq{
-				MinNodes: 1,
-				MaxNodes: 1,
-				SumMem:   32,
-				SumCpu:   16,
+			request: SingleClusterRecommendationReq{
+				ClusterRecommendationReq: ClusterRecommendationReq{
+					MinNodes: 1,
+					MaxNodes: 1,
+					SumMem:   32,
+					SumCpu:   16,
+				},
 			},
 			ciSource: &dummyProducts{},
 			check: func(resp *ClusterRecommendationResp, err error) {

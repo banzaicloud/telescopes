@@ -44,7 +44,7 @@ func NewEngine(log logur.Logger, ciSource CloudInfoSource, vmSelector VmRecommen
 }
 
 // RecommendCluster performs recommendation based on the provided arguments
-func (e *Engine) RecommendCluster(provider string, service string, region string, req ClusterRecommendationReq, layoutDesc []NodePoolDesc) (*ClusterRecommendationResp, error) {
+func (e *Engine) RecommendCluster(provider string, service string, region string, req SingleClusterRecommendationReq, layoutDesc []NodePoolDesc) (*ClusterRecommendationResp, error) {
 	e.log.Info(fmt.Sprintf("recommending cluster configuration. request: [%#v]", req))
 
 	allProducts, err := e.ciSource.GetProductDetails(provider, service, region)
@@ -79,19 +79,19 @@ func (e *Engine) RecommendCluster(provider string, service string, region string
 		cheapestNodePoolSet = append(cheapestNodePoolSet, *cheapestMaster)
 	}
 
-	accuracy := findResponseSum(req.Zones, cheapestNodePoolSet)
+	accuracy := findResponseSum(req.Zone, cheapestNodePoolSet)
 
 	return &ClusterRecommendationResp{
 		Provider:  provider,
 		Service:   service,
 		Region:    region,
-		Zones:     req.Zones,
+		Zone:      req.Zone,
 		NodePools: cheapestNodePoolSet,
 		Accuracy:  accuracy,
 	}, nil
 }
 
-func (e *Engine) recommendMaster(provider, service string, req ClusterRecommendationReq, allProducts []VirtualMachine, layoutDesc []NodePoolDesc) (*NodePool, error) {
+func (e *Engine) recommendMaster(provider, service string, req SingleClusterRecommendationReq, allProducts []VirtualMachine, layoutDesc []NodePoolDesc) (*NodePool, error) {
 	if layoutDesc != nil {
 		e.log.Debug("there is an existing layout, does not require a master recommendation")
 		return nil, nil
@@ -150,15 +150,17 @@ func (e *Engine) recommendMaster(provider, service string, req ClusterRecommenda
 	}
 }
 
-func (e *Engine) masterNodeRecommendation(provider string, req ClusterRecommendationReq, allProducts []VirtualMachine) (*NodePool, error) {
-	request := ClusterRecommendationReq{
-		SumCpu:      2,
-		SumMem:      4,
-		MinNodes:    1,
-		MaxNodes:    1,
-		OnDemandPct: 100,
-		Zones:       req.Zones,
-		Includes:    req.Includes,
+func (e *Engine) masterNodeRecommendation(provider string, req SingleClusterRecommendationReq, allProducts []VirtualMachine) (*NodePool, error) {
+	request := SingleClusterRecommendationReq{
+		ClusterRecommendationReq: ClusterRecommendationReq{
+			SumCpu:      2,
+			SumMem:      4,
+			MinNodes:    1,
+			MaxNodes:    1,
+			OnDemandPct: 100,
+		},
+		Zone:     req.Zone,
+		Includes: req.Includes,
 	}
 
 	cheapestMaster, err := e.getCheapestNodePoolSet(provider, request, nil, allProducts)
@@ -176,7 +178,7 @@ func (e *Engine) masterNodeRecommendation(provider string, req ClusterRecommenda
 	return master, nil
 }
 
-func (e *Engine) getCheapestNodePoolSet(provider string, req ClusterRecommendationReq, layoutDesc []NodePoolDesc, allProducts []VirtualMachine) ([]NodePool, error) {
+func (e *Engine) getCheapestNodePoolSet(provider string, req SingleClusterRecommendationReq, layoutDesc []NodePoolDesc, allProducts []VirtualMachine) ([]NodePool, error) {
 	desiredCpu := req.SumCpu
 	desiredMem := req.SumMem
 	desiredOdPct := req.OnDemandPct
@@ -239,20 +241,22 @@ func (e *Engine) RecommendClusterScaleOut(provider string, service string, regio
 		includes[i] = npd.InstanceType
 	}
 
-	clReq := ClusterRecommendationReq{
-		Zones:         req.Zones,
-		AllowBurst:    boolPointer(true),
-		Includes:      includes,
-		Excludes:      req.Excludes,
-		AllowOlderGen: boolPointer(true),
-		MaxNodes:      math.MaxInt8,
-		MinNodes:      1,
-		NetworkPerf:   nil,
-		OnDemandPct:   req.OnDemandPct,
-		SameSize:      false,
-		SumCpu:        req.DesiredCpu,
-		SumMem:        req.DesiredMem,
-		SumGpu:        req.DesiredGpu,
+	clReq := SingleClusterRecommendationReq{
+		ClusterRecommendationReq: ClusterRecommendationReq{
+			AllowBurst:    boolPointer(true),
+			AllowOlderGen: boolPointer(true),
+			MaxNodes:      math.MaxInt8,
+			MinNodes:      1,
+			NetworkPerf:   nil,
+			OnDemandPct:   req.OnDemandPct,
+			SameSize:      false,
+			SumCpu:        req.DesiredCpu,
+			SumMem:        req.DesiredMem,
+			SumGpu:        req.DesiredGpu,
+		},
+		Includes: includes,
+		Excludes: req.Excludes,
+		Zone:     req.Zone,
 	}
 
 	return e.RecommendCluster(provider, service, region, clReq, req.ActualLayout)
@@ -271,7 +275,12 @@ func (e *Engine) RecommendMultiCluster(req MultiClusterRecommendationReq) (map[s
 
 			var responses []*ClusterRecommendationResp
 			for _, region := range regions {
-				if response, err := e.RecommendCluster(provider.Provider, service, region, req.ClusterRecommendationReq, nil); err != nil {
+				singleClusterRecommendationReq := SingleClusterRecommendationReq{
+					ClusterRecommendationReq: req.ClusterRecommendationReq,
+					Excludes:                 req.Excludes[provider.Provider][service],
+					Includes:                 req.Includes[provider.Provider][service],
+				}
+				if response, err := e.RecommendCluster(provider.Provider, service, region, singleClusterRecommendationReq, nil); err != nil {
 					e.log.Warn("could not recommend cluster")
 				} else {
 					responses = append(responses, response)
@@ -342,7 +351,7 @@ func boolPointer(b bool) *bool {
 	return &b
 }
 
-func findResponseSum(zones []string, nodePoolSet []NodePool) ClusterRecommendationAccuracy {
+func findResponseSum(zone string, nodePoolSet []NodePool) ClusterRecommendationAccuracy {
 	var sumCpus float64
 	var sumMem float64
 	var sumWorkerNodes int
@@ -371,7 +380,7 @@ func findResponseSum(zones []string, nodePoolSet []NodePool) ClusterRecommendati
 		RecCpu:          sumCpus,
 		RecMem:          sumMem,
 		RecNodes:        sumWorkerNodes,
-		RecZone:         zones,
+		RecZone:         zone,
 		RecRegularPrice: sumRegularPrice,
 		RecRegularNodes: sumRegularNodes,
 		RecSpotPrice:    sumSpotPrice,

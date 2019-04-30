@@ -39,8 +39,8 @@ type ClusterRecommendationAccuracy struct {
 	// Total price in the recommended cluster
 	RecTotalPrice float64 `json:"totalPrice,omitempty"`
 
-	// Availability zones in the recommendation
-	RecZone []string `json:"zone"`
+	// Availability zone in the recommendation
+	RecZone string `json:"zone,omitempty"`
 }
 
 // Validate validates this cluster recommendation accuracy

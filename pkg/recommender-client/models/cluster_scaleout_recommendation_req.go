@@ -37,8 +37,8 @@ type ClusterScaleoutRecommendationReq struct {
 	// Percentage of regular (on-demand) nodes among the scale out nodes
 	OnDemandPct int64 `json:"onDemandPct,omitempty"`
 
-	// Availability zones to be included in the recommendation
-	Zones []string `json:"zones"`
+	// Availability zone to be included in the recommendation
+	Zone string `json:"zone,omitempty"`
 }
 
 // Validate validates this cluster scaleout recommendation req

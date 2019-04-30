@@ -30,8 +30,8 @@ type ClusterRecommendationResp struct {
 	// Provider's service
 	Service string `json:"service,omitempty"`
 
-	// Availability zones in the recommendation - a multi-zone recommendation means that all node pools should expand to all zones
-	Zones []string `json:"zones"`
+	// Availability zone in the recommendation - a multi-zone recommendation means that all node pools should expand to all zones
+	Zone string `json:"zone,omitempty"`
 
 	// accuracy
 	Accuracy *ClusterRecommendationAccuracy `json:"accuracy,omitempty"`

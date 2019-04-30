@@ -18,8 +18,35 @@ import (
 // swagger:model MultiClusterRecommendationReq
 type MultiClusterRecommendationReq struct {
 
+	// Are burst instances allowed in recommendation
+	AllowBurst bool `json:"allowBurst,omitempty"`
+
+	// AllowOlderGen allow older generations of virtual machines (applies for EC2 only)
+	AllowOlderGen bool `json:"allowOlderGen,omitempty"`
+
+	// Category specifies the virtual machine category
+	Category []string `json:"category"`
+
 	// continents
 	Continents []string `json:"continents"`
+
+	// Excludes is a blacklist - a slice with vm types to be excluded from the recommendation
+	Excludes map[string]map[string][]string `json:"excludes,omitempty"`
+
+	// Includes is a whitelist - a slice with vm types to be contained in the recommendation
+	Includes map[string]map[string][]string `json:"includes,omitempty"`
+
+	// Maximum number of nodes in the recommended cluster
+	MaxNodes int64 `json:"maxNodes,omitempty"`
+
+	// Minimum number of nodes in the recommended cluster
+	MinNodes int64 `json:"minNodes,omitempty"`
+
+	// NetworkPerf specifies the network performance category
+	NetworkPerf []string `json:"networkPerf"`
+
+	// Percentage of regular (on-demand) nodes in the recommended cluster
+	OnDemandPct int64 `json:"onDemandPct,omitempty"`
 
 	// providers
 	Providers []*Provider `json:"providers"`
@@ -27,8 +54,17 @@ type MultiClusterRecommendationReq struct {
 	// Maximum number of response per service
 	RespPerService int64 `json:"respPerService,omitempty"`
 
-	// cluster recommendation req
-	ClusterRecommendationReq *ClusterRecommendationReq `json:"clusterRecommendationReq,omitempty"`
+	// If true, recommended instance types will have a similar size
+	SameSize bool `json:"sameSize,omitempty"`
+
+	// Total number of CPUs requested for the cluster
+	SumCPU float64 `json:"sumCpu,omitempty"`
+
+	// Total number of GPUs requested for the cluster
+	SumGpu int64 `json:"sumGpu,omitempty"`
+
+	// Total memory requested for the cluster (GB)
+	SumMem float64 `json:"sumMem,omitempty"`
 }
 
 // Validate validates this multi cluster recommendation req
@@ -36,10 +72,6 @@ func (m *MultiClusterRecommendationReq) Validate(formats strfmt.Registry) error 
 	var res []error
 
 	if err := m.validateProviders(formats); err != nil {
-		res = append(res, err)
-	}
-
-	if err := m.validateClusterRecommendationReq(formats); err != nil {
 		res = append(res, err)
 	}
 
@@ -69,24 +101,6 @@ func (m *MultiClusterRecommendationReq) validateProviders(formats strfmt.Registr
 			}
 		}
 
-	}
-
-	return nil
-}
-
-func (m *MultiClusterRecommendationReq) validateClusterRecommendationReq(formats strfmt.Registry) error {
-
-	if swag.IsZero(m.ClusterRecommendationReq) { // not required
-		return nil
-	}
-
-	if m.ClusterRecommendationReq != nil {
-		if err := m.ClusterRecommendationReq.Validate(formats); err != nil {
-			if ve, ok := err.(*errors.Validation); ok {
-				return ve.ValidateName("clusterRecommendationReq")
-			}
-			return err
-		}
 	}
 
 	return nil

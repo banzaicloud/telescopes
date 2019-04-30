@@ -62,7 +62,7 @@ func (r *RouteHandler) recommendCluster() gin.HandlerFunc {
 		}
 
 		// request decorated with provider and region - used to validate the request
-		req := recommender.ClusterRecommendationReq{}
+		req := recommender.SingleClusterRecommendationReq{}
 
 		if err := c.BindJSON(&req); err != nil {
 			errorresponse.NewErrorResponder(c).Respond(

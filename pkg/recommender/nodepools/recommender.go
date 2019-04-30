@@ -34,7 +34,7 @@ func NewNodePoolSelector(log logur.Logger) *nodePoolSelector {
 }
 
 // RecommendNodePools finds the slice of NodePools that may participate in the recommendation process
-func (s *nodePoolSelector) RecommendNodePools(attr string, req recommender.ClusterRecommendationReq, layout []recommender.NodePool, odVms []recommender.VirtualMachine, spotVms []recommender.VirtualMachine) []recommender.NodePool {
+func (s *nodePoolSelector) RecommendNodePools(attr string, req recommender.SingleClusterRecommendationReq, layout []recommender.NodePool, odVms []recommender.VirtualMachine, spotVms []recommender.VirtualMachine) []recommender.NodePool {
 	s.log.Debug(fmt.Sprintf("requested sum for attribute [%s]: [%f]", attr, sum(req, attr)))
 	var sumOnDemandValue = sum(req, attr) * float64(req.OnDemandPct) / 100
 	s.log.Debug(fmt.Sprintf("on demand sum value for attr [%s]: [%f]", attr, sumOnDemandValue))
@@ -187,7 +187,7 @@ func (a ByNonZeroNodePools) Less(i, j int) bool {
 }
 
 // gets the requested sum for the attribute value
-func sum(req recommender.ClusterRecommendationReq, attr string) float64 {
+func sum(req recommender.SingleClusterRecommendationReq, attr string) float64 {
 	switch attr {
 	case recommender.Cpu:
 		return req.SumCpu

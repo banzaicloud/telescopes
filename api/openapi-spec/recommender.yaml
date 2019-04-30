@@ -99,14 +99,12 @@ paths:
           schema:
             type: integer
             format: int64
-        - x-go-name: Zones
-          description: Availability zones to be included in the recommendation
-          name: zones
+        - x-go-name: Zone
+          description: Availability zone to be included in the recommendation
+          name: zone
           in: query
           schema:
-            type: array
-            items:
-              type: string
+            type: string
         - x-go-name: Excludes
           description: >-
             Excludes is a blacklist - a slice with vm types to be excluded from
@@ -199,14 +197,6 @@ paths:
           schema:
             type: integer
             format: int64
-        - x-go-name: Zones
-          description: Availability zones that the cluster should expand to
-          name: zones
-          in: query
-          schema:
-            type: array
-            items:
-              type: string
         - x-go-name: SumGpu
           description: Total number of GPUs requested for the cluster
           name: sumGpu
@@ -223,6 +213,22 @@ paths:
         - x-go-name: NetworkPerf
           description: NetworkPerf specifies the network performance category
           name: networkPerf
+          in: query
+          schema:
+            type: array
+            items:
+              type: string
+        - x-go-name: AllowOlderGen
+          description: >-
+            AllowOlderGen allow older generations of virtual machines (applies
+            for EC2 only)
+          name: allowOlderGen
+          in: query
+          schema:
+            type: boolean
+        - x-go-name: Category
+          description: Category specifies the virtual machine category
+          name: category
           in: query
           schema:
             type: array
@@ -248,22 +254,12 @@ paths:
             type: array
             items:
               type: string
-        - x-go-name: AllowOlderGen
-          description: >-
-            AllowOlderGen allow older generations of virtual machines (applies
-            for EC2 only)
-          name: allowOlderGen
+        - x-go-name: Zone
+          description: Availability zone that the cluster should expand to
+          name: zone
           in: query
           schema:
-            type: boolean
-        - x-go-name: Category
-          description: Category specifies the virtual machine category
-          name: category
-          in: query
-          schema:
-            type: array
-            items:
-              type: string
+            type: string
       responses:
         '200':
           description: RecommendationResponse
@@ -337,10 +333,8 @@ components:
           format: double
           x-go-name: RecTotalPrice
         zone:
-          description: Availability zones in the recommendation
-          type: array
-          items:
-            type: string
+          description: Availability zone in the recommendation
+          type: string
           x-go-name: RecZone
       x-go-package: github.com/banzaicloud/telescopes/pkg/recommender
     ClusterRecommendationReq:
@@ -363,22 +357,6 @@ components:
           items:
             type: string
           x-go-name: Category
-        excludes:
-          description: >-
-            Excludes is a blacklist - a slice with vm types to be excluded from
-            the recommendation
-          type: array
-          items:
-            type: string
-          x-go-name: Excludes
-        includes:
-          description: >-
-            Includes is a whitelist - a slice with vm types to be contained in
-            the recommendation
-          type: array
-          items:
-            type: string
-          x-go-name: Includes
         maxNodes:
           description: Maximum number of nodes in the recommended cluster
           type: integer
@@ -419,12 +397,6 @@ components:
           type: number
           format: double
           x-go-name: SumMem
-        zones:
-          description: Availability zones that the cluster should expand to
-          type: array
-          items:
-            type: string
-          x-go-name: Zones
       x-go-package: github.com/banzaicloud/telescopes/pkg/recommender
     ClusterRecommender:
       description: ClusterRecommender is the main entry point for cluster recommendation
@@ -472,12 +444,10 @@ components:
           type: integer
           format: int64
           x-go-name: OnDemandPct
-        zones:
-          description: Availability zones to be included in the recommendation
-          type: array
-          items:
-            type: string
-          x-go-name: Zones
+        zone:
+          description: Availability zone to be included in the recommendation
+          type: string
+          x-go-name: Zone
       x-go-package: github.com/banzaicloud/telescopes/pkg/recommender
     Continent:
       description: Continent Continent holds continent and regions of a cloud provider
@@ -805,7 +775,6 @@ components:
       x-go-package: >-
         github.com/banzaicloud/telescopes/vendor/github.com/banzaicloud/cloudinfo/pkg/cloudinfo-client/models
     Provider:
-      description: Provider Provider represents a cloud provider
       type: object
       properties:
         provider:
@@ -819,8 +788,7 @@ components:
             type: string
             $ref: '#/components/schemas/Service'
           x-go-name: Services
-      x-go-package: >-
-        github.com/banzaicloud/telescopes/vendor/github.com/banzaicloud/cloudinfo/pkg/cloudinfo-client/models
+      x-go-package: github.com/banzaicloud/telescopes/pkg/recommender
     ProviderResponse:
       description: >-
         ProviderResponse ProviderResponse is the response used for the requested
@@ -869,14 +837,12 @@ components:
           description: Provider's service
           type: string
           x-go-name: Service
-        zones:
+        zone:
           description: >-
-            Availability zones in the recommendation - a multi-zone
+            Availability zone in the recommendation - a multi-zone
             recommendation means that all node pools should expand to all zones
-          type: array
-          items:
-            type: string
-          x-go-name: Zones
+          type: string
+          x-go-name: Zone
       x-go-name: ClusterRecommendationResp
       x-go-package: github.com/banzaicloud/telescopes/pkg/recommender
     Region:
@@ -937,6 +903,89 @@ components:
           x-go-name: Services
       x-go-package: >-
         github.com/banzaicloud/telescopes/vendor/github.com/banzaicloud/cloudinfo/pkg/cloudinfo-client/models
+    SingleClusterRecommendationReq:
+      description: >-
+        SingleClusterRecommendationReq encapsulates the recommendation input
+        data
+      type: object
+      properties:
+        allowBurst:
+          description: Are burst instances allowed in recommendation
+          type: boolean
+          x-go-name: AllowBurst
+        allowOlderGen:
+          description: >-
+            AllowOlderGen allow older generations of virtual machines (applies
+            for EC2 only)
+          type: boolean
+          x-go-name: AllowOlderGen
+        category:
+          description: Category specifies the virtual machine category
+          type: array
+          items:
+            type: string
+          x-go-name: Category
+        excludes:
+          description: >-
+            Excludes is a blacklist - a slice with vm types to be excluded from
+            the recommendation
+          type: array
+          items:
+            type: string
+          x-go-name: Excludes
+        includes:
+          description: >-
+            Includes is a whitelist - a slice with vm types to be contained in
+            the recommendation
+          type: array
+          items:
+            type: string
+          x-go-name: Includes
+        maxNodes:
+          description: Maximum number of nodes in the recommended cluster
+          type: integer
+          format: int64
+          x-go-name: MaxNodes
+        minNodes:
+          description: Minimum number of nodes in the recommended cluster
+          type: integer
+          format: int64
+          x-go-name: MinNodes
+        networkPerf:
+          description: NetworkPerf specifies the network performance category
+          type: array
+          items:
+            type: string
+          x-go-name: NetworkPerf
+        onDemandPct:
+          description: Percentage of regular (on-demand) nodes in the recommended cluster
+          type: integer
+          format: int64
+          x-go-name: OnDemandPct
+        sameSize:
+          description: 'If true, recommended instance types will have a similar size'
+          type: boolean
+          x-go-name: SameSize
+        sumCpu:
+          description: Total number of CPUs requested for the cluster
+          type: number
+          format: double
+          x-go-name: SumCpu
+        sumGpu:
+          description: Total number of GPUs requested for the cluster
+          type: integer
+          format: int64
+          x-go-name: SumGpu
+        sumMem:
+          description: Total memory requested for the cluster (GB)
+          type: number
+          format: double
+          x-go-name: SumMem
+        zone:
+          description: Availability zone that the cluster should expand to
+          type: string
+          x-go-name: Zone
+      x-go-package: github.com/banzaicloud/telescopes/pkg/recommender
     Version:
       description: Version version
       type: object
@@ -1047,13 +1096,72 @@ components:
       description: MultiClusterRecommendationReq encapsulates the recommendation input data
       type: object
       properties:
-        clusterRecommendationReq:
-          $ref: '#/components/schemas/ClusterRecommendationReq'
+        allowBurst:
+          description: Are burst instances allowed in recommendation
+          type: boolean
+          x-go-name: AllowBurst
+        allowOlderGen:
+          description: >-
+            AllowOlderGen allow older generations of virtual machines (applies
+            for EC2 only)
+          type: boolean
+          x-go-name: AllowOlderGen
+        category:
+          description: Category specifies the virtual machine category
+          type: array
+          items:
+            type: string
+          x-go-name: Category
         continents:
           type: array
           items:
             type: string
           x-go-name: Continents
+        excludes:
+          description: >-
+            Excludes is a blacklist - a slice with vm types to be excluded from
+            the recommendation
+          type: object
+          additionalProperties:
+            type: object
+            additionalProperties:
+              type: array
+              items:
+                type: string
+          x-go-name: Excludes
+        includes:
+          description: >-
+            Includes is a whitelist - a slice with vm types to be contained in
+            the recommendation
+          type: object
+          additionalProperties:
+            type: object
+            additionalProperties:
+              type: array
+              items:
+                type: string
+          x-go-name: Includes
+        maxNodes:
+          description: Maximum number of nodes in the recommended cluster
+          type: integer
+          format: int64
+          x-go-name: MaxNodes
+        minNodes:
+          description: Minimum number of nodes in the recommended cluster
+          type: integer
+          format: int64
+          x-go-name: MinNodes
+        networkPerf:
+          description: NetworkPerf specifies the network performance category
+          type: array
+          items:
+            type: string
+          x-go-name: NetworkPerf
+        onDemandPct:
+          description: Percentage of regular (on-demand) nodes in the recommended cluster
+          type: integer
+          format: int64
+          x-go-name: OnDemandPct
         providers:
           type: array
           items:
@@ -1064,6 +1172,25 @@ components:
           type: integer
           format: int64
           x-go-name: RespPerService
+        sameSize:
+          description: 'If true, recommended instance types will have a similar size'
+          type: boolean
+          x-go-name: SameSize
+        sumCpu:
+          description: Total number of CPUs requested for the cluster
+          type: number
+          format: double
+          x-go-name: SumCpu
+        sumGpu:
+          description: Total number of GPUs requested for the cluster
+          type: integer
+          format: int64
+          x-go-name: SumGpu
+        sumMem:
+          description: Total memory requested for the cluster (GB)
+          type: number
+          format: double
+          x-go-name: SumMem
       x-go-name: MultiClusterRecommendationReq
       x-go-package: github.com/banzaicloud/telescopes/pkg/recommender
 
