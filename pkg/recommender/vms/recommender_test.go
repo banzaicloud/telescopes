@@ -129,19 +129,21 @@ func TestVmSelector_RecommendVms(t *testing.T) {
 	tests := []struct {
 		name      string
 		values    []float64
-		request   recommender.ClusterRecommendationReq
+		request   recommender.SingleClusterRecommendationReq
 		attribute string
 		check     func([]recommender.VirtualMachine, []recommender.VirtualMachine, error)
 	}{
 		{
 			name:   "recommend three vm-s",
 			values: []float64{2},
-			request: recommender.ClusterRecommendationReq{
-				MinNodes:    3,
-				MaxNodes:    3,
-				OnDemandPct: 100,
-				SumCpu:      6,
-				SumMem:      13,
+			request: recommender.SingleClusterRecommendationReq{
+				ClusterRecommendationReq: recommender.ClusterRecommendationReq{
+					MinNodes:    3,
+					MaxNodes:    3,
+					OnDemandPct: 100,
+					SumCpu:      6,
+					SumMem:      13,
+				},
 			},
 			attribute: recommender.Cpu,
 			check: func(odVms []recommender.VirtualMachine, spotVms []recommender.VirtualMachine, err error) {
@@ -162,18 +164,20 @@ func TestVmSelector_RecommendVms(t *testing.T) {
 func TestVmSelector_recommendAttrValues(t *testing.T) {
 	tests := []struct {
 		name      string
-		request   recommender.ClusterRecommendationReq
+		request   recommender.SingleClusterRecommendationReq
 		attribute string
 		check     func([]float64, error)
 	}{
 
 		{
 			name: "successfully get recommended attribute values",
-			request: recommender.ClusterRecommendationReq{
-				MinNodes: 5,
-				MaxNodes: 10,
-				SumMem:   100,
-				SumCpu:   100,
+			request: recommender.SingleClusterRecommendationReq{
+				ClusterRecommendationReq: recommender.ClusterRecommendationReq{
+					MinNodes: 5,
+					MaxNodes: 10,
+					SumMem:   100,
+					SumCpu:   100,
+				},
 			},
 			attribute: recommender.Cpu,
 			check: func(values []float64, err error) {

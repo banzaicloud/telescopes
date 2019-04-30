@@ -34,7 +34,7 @@ func NewVmSelector(log logur.Logger) *vmSelector {
 }
 
 // RecommendVms selects a slice of VirtualMachines for the given attribute and requirements in the request
-func (s *vmSelector) RecommendVms(provider string, vms []recommender.VirtualMachine, attr string, req recommender.ClusterRecommendationReq, layout []recommender.NodePool) ([]recommender.VirtualMachine, []recommender.VirtualMachine, error) {
+func (s *vmSelector) RecommendVms(provider string, vms []recommender.VirtualMachine, attr string, req recommender.SingleClusterRecommendationReq, layout []recommender.NodePool) ([]recommender.VirtualMachine, []recommender.VirtualMachine, error) {
 	s.log.Info("recommending virtual machines", map[string]interface{}{"attribute": attr})
 
 	vmFilters, err := s.filtersForAttr(attr, provider, req)
@@ -84,7 +84,7 @@ func (s *vmSelector) RecommendVms(provider string, vms []recommender.VirtualMach
 	return odVms, spotVms, nil
 }
 
-func (s *vmSelector) FindVmsWithAttrValues(attr string, req recommender.ClusterRecommendationReq, layoutDesc []recommender.NodePoolDesc, allProducts []recommender.VirtualMachine) ([]recommender.VirtualMachine, error) {
+func (s *vmSelector) FindVmsWithAttrValues(attr string, req recommender.SingleClusterRecommendationReq, layoutDesc []recommender.NodePoolDesc, allProducts []recommender.VirtualMachine) ([]recommender.VirtualMachine, error) {
 	var (
 		vms    []recommender.VirtualMachine
 		values []float64
@@ -128,7 +128,7 @@ func (s *vmSelector) FindVmsWithAttrValues(attr string, req recommender.ClusterR
 }
 
 // recommendAttrValues selects the attribute values allowed to participate in the recommendation process
-func (s *vmSelector) recommendAttrValues(allProducts []recommender.VirtualMachine, attr string, req recommender.ClusterRecommendationReq) ([]float64, error) {
+func (s *vmSelector) recommendAttrValues(allProducts []recommender.VirtualMachine, attr string, req recommender.SingleClusterRecommendationReq) ([]float64, error) {
 
 	allValues := make([]float64, 0)
 	valueSet := make(map[float64]interface{})
@@ -155,7 +155,7 @@ func (s *vmSelector) recommendAttrValues(allProducts []recommender.VirtualMachin
 }
 
 // maxValuePerVm calculates the maximum value per node for the given attribute
-func maxValuePerVm(req recommender.ClusterRecommendationReq, attr string) float64 {
+func maxValuePerVm(req recommender.SingleClusterRecommendationReq, attr string) float64 {
 	switch attr {
 	case recommender.Cpu:
 		return req.SumCpu / float64(req.MinNodes)
@@ -167,7 +167,7 @@ func maxValuePerVm(req recommender.ClusterRecommendationReq, attr string) float6
 }
 
 // minValuePerVm calculates the minimum value per node for the given attribute
-func minValuePerVm(req recommender.ClusterRecommendationReq, attr string) float64 {
+func minValuePerVm(req recommender.SingleClusterRecommendationReq, attr string) float64 {
 	switch attr {
 	case recommender.Cpu:
 		return req.SumCpu / float64(req.MaxNodes)

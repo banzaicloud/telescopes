@@ -134,11 +134,11 @@ type RecommendClusterParams struct {
 
 	*/
 	SumMem *float64
-	/*Zones
-	  Availability zones that the cluster should expand to
+	/*Zone
+	  Availability zone that the cluster should expand to
 
 	*/
-	Zones []string
+	Zone *string
 
 	timeout    time.Duration
 	Context    context.Context
@@ -354,15 +354,15 @@ func (o *RecommendClusterParams) SetSumMem(sumMem *float64) {
 	o.SumMem = sumMem
 }
 
-// WithZones adds the zones to the recommend cluster params
-func (o *RecommendClusterParams) WithZones(zones []string) *RecommendClusterParams {
-	o.SetZones(zones)
+// WithZone adds the zone to the recommend cluster params
+func (o *RecommendClusterParams) WithZone(zone *string) *RecommendClusterParams {
+	o.SetZone(zone)
 	return o
 }
 
-// SetZones adds the zones to the recommend cluster params
-func (o *RecommendClusterParams) SetZones(zones []string) {
-	o.Zones = zones
+// SetZone adds the zone to the recommend cluster params
+func (o *RecommendClusterParams) SetZone(zone *string) {
+	o.Zone = zone
 }
 
 // WriteToRequest writes these params to a swagger request
@@ -564,12 +564,20 @@ func (o *RecommendClusterParams) WriteToRequest(r runtime.ClientRequest, reg str
 
 	}
 
-	valuesZones := o.Zones
+	if o.Zone != nil {
 
-	joinedZones := swag.JoinByFormat(valuesZones, "")
-	// query array param zones
-	if err := r.SetQueryParam("zones", joinedZones...); err != nil {
-		return err
+		// query param zone
+		var qrZone string
+		if o.Zone != nil {
+			qrZone = *o.Zone
+		}
+		qZone := qrZone
+		if qZone != "" {
+			if err := r.SetQueryParam("zone", qZone); err != nil {
+				return err
+			}
+		}
+
 	}
 
 	if len(res) > 0 {
