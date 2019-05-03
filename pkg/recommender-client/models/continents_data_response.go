@@ -14,12 +14,12 @@ import (
 	"github.com/go-openapi/swag"
 )
 
-// RegionsResponse RegionsResponse RegionsResponse holds the list of available regions of a cloud provider
-// swagger:model RegionsResponse
-type RegionsResponse []*Region
+// ContinentsDataResponse ContinentsDataResponse ContinentsDataResponse holds the list of available continents and regions of a cloud provider
+// swagger:model ContinentsDataResponse
+type ContinentsDataResponse []*Continent
 
-// Validate validates this regions response
-func (m RegionsResponse) Validate(formats strfmt.Registry) error {
+// Validate validates this continents data response
+func (m ContinentsDataResponse) Validate(formats strfmt.Registry) error {
 	var res []error
 
 	for i := 0; i < len(m); i++ {

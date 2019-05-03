@@ -368,6 +368,12 @@
           "format": "double",
           "x-go-name": "RecCpu"
         },
+        "masterPrice": {
+          "description": "Amount of master instance type prices in the recommended cluster",
+          "type": "number",
+          "format": "double",
+          "x-go-name": "RecMasterPrice"
+        },
         "memory": {
           "description": "The summarised amount of memory in the recommended cluster",
           "type": "number",
@@ -409,6 +415,12 @@
           "type": "number",
           "format": "double",
           "x-go-name": "RecTotalPrice"
+        },
+        "workerPrice": {
+          "description": "Amount of worker instance type prices in the recommended cluster",
+          "type": "number",
+          "format": "double",
+          "x-go-name": "RecWorkerPrice"
         },
         "zone": {
           "description": "Availability zone in the recommendation",
@@ -566,6 +578,14 @@
           },
           "x-go-name": "Regions"
         }
+      },
+      "x-go-package": "github.com/banzaicloud/telescopes/vendor/github.com/banzaicloud/cloudinfo/pkg/cloudinfo-client/models"
+    },
+    "ContinentsDataResponse": {
+      "description": "ContinentsDataResponse ContinentsDataResponse holds the list of available continents and regions of a cloud provider",
+      "type": "array",
+      "items": {
+        "$ref": "#/definitions/Continent"
       },
       "x-go-package": "github.com/banzaicloud/telescopes/vendor/github.com/banzaicloud/cloudinfo/pkg/cloudinfo-client/models"
     },
@@ -917,6 +937,7 @@
       "x-go-package": "github.com/banzaicloud/telescopes/vendor/github.com/banzaicloud/cloudinfo/pkg/cloudinfo-client/models"
     },
     "Provider": {
+      "description": "Provider Provider represents a cloud provider",
       "type": "object",
       "properties": {
         "provider": {
@@ -934,7 +955,7 @@
           "x-go-name": "Services"
         }
       },
-      "x-go-package": "github.com/banzaicloud/telescopes/pkg/recommender"
+      "x-go-package": "github.com/banzaicloud/telescopes/vendor/github.com/banzaicloud/cloudinfo/pkg/cloudinfo-client/models"
     },
     "ProviderResponse": {
       "description": "ProviderResponse ProviderResponse is the response used for the requested provider",
@@ -1021,7 +1042,7 @@
       "description": "RegionsResponse RegionsResponse holds the list of available regions of a cloud provider",
       "type": "array",
       "items": {
-        "$ref": "#/definitions/Continent"
+        "$ref": "#/definitions/Region"
       },
       "x-go-package": "github.com/banzaicloud/telescopes/vendor/github.com/banzaicloud/cloudinfo/pkg/cloudinfo-client/models"
     },
@@ -1162,23 +1183,6 @@
         }
       },
       "x-go-package": "github.com/banzaicloud/telescopes/pkg/recommender"
-    },
-    "Version": {
-      "description": "Version version",
-      "type": "object",
-      "properties": {
-        "default": {
-          "description": "default",
-          "type": "boolean",
-          "x-go-name": "Default"
-        },
-        "version": {
-          "description": "version",
-          "type": "string",
-          "x-go-name": "Version"
-        }
-      },
-      "x-go-package": "github.com/banzaicloud/telescopes/vendor/github.com/banzaicloud/cloudinfo/pkg/cloudinfo-client/models"
     },
     "VersionsResponse": {
       "description": "VersionsResponse VersionsResponse holds the list of available versions",

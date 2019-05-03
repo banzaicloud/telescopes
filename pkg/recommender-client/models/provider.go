@@ -14,7 +14,7 @@ import (
 	"github.com/go-openapi/swag"
 )
 
-// Provider provider
+// Provider Provider Provider represents a cloud provider
 // swagger:model Provider
 type Provider struct {
 

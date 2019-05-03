@@ -220,6 +220,10 @@ type ClusterRecommendationAccuracy struct {
 	RecSpotPrice float64 `json:"spotPrice"`
 	// Number of spot instance type in the recommended cluster
 	RecSpotNodes int `json:"spotNodes"`
+	// Amount of worker instance type prices in the recommended cluster
+	RecWorkerPrice float64 `json:"workerPrice"`
+	// Amount of master instance type prices in the recommended cluster
+	RecMasterPrice float64 `json:"masterPrice"`
 	// Total price in the recommended cluster
 	RecTotalPrice float64 `json:"totalPrice"`
 }
