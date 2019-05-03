@@ -22,4 +22,3 @@ linters:
         - gas
         - megacheck
         - varcheck
-    fast: false
