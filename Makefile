@@ -17,6 +17,8 @@ ifeq (${VERBOSE}, 1)
 	GOARGS += -v
 endif
 
+CLOUDINFO_VERSION = 0.5.0
+
 # Docker variables
 DOCKER_TAG ?= ${VERSION}
 
@@ -25,7 +27,7 @@ GOLANGCI_VERSION = 1.16.0
 MISSPELL_VERSION = 0.3.4
 JQ_VERSION = 1.5
 LICENSEI_VERSION = 0.1.0
-OPENAPI_GENERATOR_VERSION = 3.3.0
+OPENAPI_GENERATOR_VERSION = PR1869
 
 GOLANG_VERSION = 1.12
 
@@ -55,3 +57,14 @@ swagger:
 generate-client:
 	swagger generate client -f $(SWAGGER_REC_TMP_FILE) -A recommender -t pkg/recommender-client/
 
+.PHONY: generate-cloudinfo-client
+generate-cloudinfo-client: ## Generate client from Cloudinfo OpenAPI spec
+	curl https://raw.githubusercontent.com/banzaicloud/cloudinfo/${CLOUDINFO_VERSION}/api/openapi-spec/cloudinfo.yaml | sed "s/version: .*/version: ${CLOUDINFO_VERSION}/" > cloudinfo-openapi.yaml
+	rm -rf .gen/cloudinfo
+	docker run --rm -v ${PWD}:/local banzaicloud/openapi-generator-cli:${OPENAPI_GENERATOR_VERSION} generate \
+	--additional-properties packageName=cloudinfo \
+	--additional-properties withGoCodegenComment=true \
+	-i /local/cloudinfo-openapi.yaml \
+	-g go \
+	-o /local/.gen/cloudinfo
+	rm cloudinfo-openapi.yaml .gen/cloudinfo/.travis.yml .gen/cloudinfo/git_push.sh
