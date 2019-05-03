@@ -347,7 +347,7 @@ func (e *Engine) getRegions(provider, service string, req MultiClusterRecommenda
 		for _, continent := range continents {
 			if validContinent == continent.Name {
 				for _, region := range continent.Regions {
-					regions = append(regions, region.ID)
+					regions = append(regions, region.Id)
 				}
 			}
 		}

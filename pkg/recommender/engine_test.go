@@ -17,7 +17,7 @@ package recommender
 import (
 	"testing"
 
-	"github.com/banzaicloud/cloudinfo/pkg/cloudinfo-client/models"
+	"github.com/banzaicloud/telescopes/.gen/cloudinfo"
 	"github.com/goph/logur"
 	"github.com/stretchr/testify/assert"
 )
@@ -27,7 +27,7 @@ type dummyProducts struct {
 	TcId string
 }
 
-func (p *dummyProducts) GetContinentsData(provider, service string) (models.ContinentsDataResponse, error) {
+func (p *dummyProducts) GetContinentsData(provider, service string) ([]cloudinfo.Continent, error) {
 	panic("implement me")
 }
 
@@ -46,7 +46,7 @@ func (p *dummyProducts) GetProductDetails(provider string, service string, regio
 	}, nil
 }
 
-func (p *dummyProducts) GetRegions(provider, service string) (models.RegionsResponse, error) {
+func (p *dummyProducts) GetRegions(provider, service string) ([]cloudinfo.Region, error) {
 	return nil, nil
 }
 
