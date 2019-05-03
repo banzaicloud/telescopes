@@ -15,14 +15,10 @@
 package recommender
 
 import (
-	"github.com/banzaicloud/cloudinfo/pkg/cloudinfo-client/client"
-	"github.com/banzaicloud/cloudinfo/pkg/cloudinfo-client/client/continents"
-	"github.com/banzaicloud/cloudinfo/pkg/cloudinfo-client/client/products"
-	"github.com/banzaicloud/cloudinfo/pkg/cloudinfo-client/client/provider"
-	"github.com/banzaicloud/cloudinfo/pkg/cloudinfo-client/client/region"
-	"github.com/banzaicloud/cloudinfo/pkg/cloudinfo-client/client/regions"
-	"github.com/banzaicloud/cloudinfo/pkg/cloudinfo-client/client/service"
-	"github.com/banzaicloud/cloudinfo/pkg/cloudinfo-client/models"
+	"context"
+	"net/url"
+
+	"github.com/banzaicloud/telescopes/.gen/cloudinfo"
 	"github.com/go-openapi/runtime"
 	"github.com/goph/emperror"
 )
@@ -33,17 +29,17 @@ type CloudInfoSource interface {
 	GetProductDetails(provider string, service string, region string) ([]VirtualMachine, error)
 
 	// GetRegions retrieves the regions
-	GetRegions(provider, service string) (models.RegionsResponse, error)
+	GetRegions(provider, service string) ([]cloudinfo.Region, error)
+
+	GetContinentsData(provider, service string) ([]cloudinfo.Continent, error)
 
 	GetZones(prv, svc, reg string) ([]string, error)
-
-	GetContinentsData(provider, service string) (models.ContinentsDataResponse, error)
 }
 
 // CloudInfoClient application struct to retrieve data for the recommender; wraps the generated product info client
 // It implements the CloudInfoSource interface, delegates to the embedded generated client
 type CloudInfoClient struct {
-	*client.Cloudinfo
+	*cloudinfo.APIClient
 }
 
 const (
@@ -52,33 +48,37 @@ const (
 )
 
 // NewCloudInfoClient creates a new product info client wrapper instance
-func NewCloudInfoClient(pic *client.Cloudinfo) *CloudInfoClient {
-	return &CloudInfoClient{Cloudinfo: pic}
+func NewCloudInfoClient(ciUrl *url.URL) *CloudInfoClient {
+	apiCli := cloudinfo.NewAPIClient(&cloudinfo.Configuration{
+		BasePath:      ciUrl.String(),
+		DefaultHeader: make(map[string]string),
+		UserAgent:     "Telescopes/go",
+	})
+	return &CloudInfoClient{APIClient: apiCli}
 }
 
 // GetProductDetails gets the available product details from the provider in the region
 func (ciCli *CloudInfoClient) GetProductDetails(provider string, service string, region string) ([]VirtualMachine, error) {
-	gpdp := products.NewGetProductsParams().WithRegion(region).WithProvider(provider).WithService(service)
 
-	allProducts, err := ciCli.Products.GetProducts(gpdp)
+	allProducts, _, err := ciCli.ProductsApi.GetProducts(context.Background(), provider, service, region)
 	if err != nil {
 		return nil, discriminateErrCtx(err)
 	}
 
 	var vms []VirtualMachine
 
-	for _, p := range allProducts.Payload.Products {
+	for _, p := range allProducts.Products {
 		vms = append(vms, VirtualMachine{
 			Category:       p.Category,
 			Type:           p.Type,
 			OnDemandPrice:  p.OnDemandPrice,
 			AvgPrice:       avg(p.SpotPrice),
-			Cpus:           p.Cpus,
-			Mem:            p.Mem,
-			Gpus:           p.Gpus,
+			Cpus:           p.CpusPerVm,
+			Mem:            p.MemPerVm,
+			Gpus:           p.GpusPerVm,
 			Burst:          p.Burst,
 			NetworkPerf:    p.NtwPerf,
-			NetworkPerfCat: p.NtwPerfCat,
+			NetworkPerfCat: p.NtwPerfCategory,
 			CurrentGen:     p.CurrentGen,
 			Zones:          p.Zones,
 		})
@@ -87,7 +87,7 @@ func (ciCli *CloudInfoClient) GetProductDetails(provider string, service string,
 	return vms, nil
 }
 
-func avg(prices []*models.ZonePrice) float64 {
+func avg(prices []cloudinfo.ZonePrice) float64 {
 	if len(prices) == 0 {
 		return 0.0
 	}
@@ -100,81 +100,74 @@ func avg(prices []*models.ZonePrice) float64 {
 
 // GetProvider validates provider
 func (ciCli *CloudInfoClient) GetProvider(prv string) (string, error) {
-	gpp := provider.NewGetProviderParams().WithProvider(prv)
 
-	provider, err := ciCli.Provider.GetProvider(gpp)
+	provider, _, err := ciCli.ProviderApi.GetProvider(context.Background(), prv)
 	if err != nil {
 		return "", discriminateErrCtx(err)
 	}
 
-	return provider.Payload.Provider.Provider, nil
+	return provider.Provider.Provider, nil
 }
 
 // GetService validates service
 func (ciCli *CloudInfoClient) GetService(prv string, svc string) (string, error) {
-	gsp := service.NewGetServiceParams().WithProvider(prv).WithService(svc)
 
-	service, err := ciCli.Service.GetService(gsp)
+	service, _, err := ciCli.ServiceApi.GetService(context.Background(), prv, svc)
 	if err != nil {
 		return "", discriminateErrCtx(err)
 	}
 
-	return service.Payload.Service.Service, nil
+	return service.Service.Service, nil
 }
 
 // GetRegion validates region
 func (ciCli *CloudInfoClient) GetRegion(prv, svc, reg string) (string, error) {
-	grp := region.NewGetRegionParams().WithProvider(prv).WithService(svc).WithRegion(reg)
 
-	r, err := ciCli.Region.GetRegion(grp)
+	r, _, err := ciCli.RegionApi.GetRegion(context.Background(), prv, svc, reg)
 	if err != nil {
 		return "", discriminateErrCtx(err)
 	}
 
-	return r.Payload.Name, nil
+	return r.Name, nil
 }
 
 // GetZones get zones
-func (ciCli *CloudInfoClient) GetZones(prv, svc, reg string) ([]string, error) {
-	grp := region.NewGetRegionParams().WithProvider(prv).WithService(svc).WithRegion(reg)
+func (ciCli *CloudInfoClient) GetZones(provider, service, region string) ([]string, error) {
 
-	r, err := ciCli.Region.GetRegion(grp)
+	r, _, err := ciCli.RegionApi.GetRegion(context.Background(), provider, service, region)
 	if err != nil {
 		return nil, discriminateErrCtx(err)
 	}
 
-	return r.Payload.Zones, nil
+	return r.Zones, nil
 }
 
 // GetRegions gets regions
-func (ciCli *CloudInfoClient) GetRegions(provider, service string) (models.RegionsResponse, error) {
-	grp := regions.NewGetRegionsParams().WithProvider(provider).WithService(service)
-	r, err := ciCli.Regions.GetRegions(grp)
+func (ciCli *CloudInfoClient) GetRegions(provider, service string) ([]cloudinfo.Region, error) {
+	r, _, err := ciCli.RegionsApi.GetRegions(context.Background(), provider, service)
 	if err != nil {
 		return nil, discriminateErrCtx(err)
 	}
-	return r.Payload, nil
+	return r, nil
 }
 
-func (ciCli *CloudInfoClient) GetContinentsData(provider, service string) (models.ContinentsDataResponse, error) {
-	continentDataParams := continents.NewGetContinentsDataParams().WithProvider(provider).WithService(service)
-	r, err := ciCli.Continents.GetContinentsData(continentDataParams)
+func (ciCli *CloudInfoClient) GetContinentsData(provider, service string) ([]cloudinfo.Continent, error) {
+	r, _, err := ciCli.ContinentsApi.GetContinentsData(context.Background(), provider, service)
 	if err != nil {
 		return nil, discriminateErrCtx(err)
 	}
-	return r.Payload, nil
+	return r, nil
 
 }
 
 // GetContinents gets continents
-func (ciCli *CloudInfoClient) GetContinents() (models.ContinentsResponse, error) {
-	gcp := continents.NewGetContinentsParams()
-	c, err := ciCli.Continents.GetContinents(gcp)
+func (ciCli *CloudInfoClient) GetContinents() ([]string, error) {
+	c, _, err := ciCli.ContinentsApi.GetContinents(context.Background())
 	if err != nil {
 		return nil, discriminateErrCtx(err)
 	}
 
-	return c.Payload, nil
+	return c, nil
 }
 
 func discriminateErrCtx(err error) error {

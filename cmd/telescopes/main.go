@@ -30,7 +30,6 @@ import (
 	"fmt"
 	"net/url"
 
-	"github.com/banzaicloud/cloudinfo/pkg/cloudinfo-client/client"
 	"github.com/banzaicloud/telescopes/internal/app/telescopes/api"
 	"github.com/banzaicloud/telescopes/internal/platform/buildinfo"
 	"github.com/banzaicloud/telescopes/internal/platform/log"
@@ -38,8 +37,6 @@ import (
 	"github.com/banzaicloud/telescopes/pkg/recommender/nodepools"
 	"github.com/banzaicloud/telescopes/pkg/recommender/vms"
 	"github.com/gin-gonic/gin"
-	httptransport "github.com/go-openapi/runtime/client"
-	"github.com/go-openapi/strfmt"
 	"github.com/goph/emperror"
 	"github.com/pkg/errors"
 	"github.com/spf13/pflag"
@@ -80,10 +77,7 @@ func main() {
 		map[string]interface{}{"version": Version, "commit_hash": CommitHash, "build_date": BuildDate})
 
 	piUrl := parseCloudInfoAddress()
-	transport := httptransport.New(piUrl.Host, piUrl.Path, []string{piUrl.Scheme})
-	pc := client.New(transport, strfmt.Default)
-
-	ciCli := recommender.NewCloudInfoClient(pc)
+	ciCli := recommender.NewCloudInfoClient(piUrl)
 
 	// configure the gin validator
 	err = api.ConfigureValidator(ciCli)
