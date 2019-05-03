@@ -19,7 +19,7 @@ import (
 	"os"
 
 	"github.com/banzaicloud/bank-vaults/pkg/auth"
-	"github.com/banzaicloud/go-gin-prometheus"
+	ginprometheus "github.com/banzaicloud/go-gin-prometheus"
 	"github.com/banzaicloud/telescopes/internal/platform/buildinfo"
 	"github.com/banzaicloud/telescopes/internal/platform/log"
 	"github.com/banzaicloud/telescopes/pkg/recommender"

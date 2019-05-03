@@ -70,12 +70,12 @@ func (r *RouteHandler) recommendCluster() gin.HandlerFunc {
 			return
 		}
 
-		if response, err := r.engine.RecommendCluster(pathParams.Provider, pathParams.Service, pathParams.Region, req, nil); err != nil {
+		response, err := r.engine.RecommendCluster(pathParams.Provider, pathParams.Service, pathParams.Region, req, nil)
+		if err != nil {
 			errorresponse.NewErrorResponder(c).Respond(err)
 			return
-		} else {
-			c.JSON(http.StatusOK, RecommendationResponse{*response})
 		}
+		c.JSON(http.StatusOK, RecommendationResponse{*response})
 	}
 }
 
@@ -122,12 +122,12 @@ func (r *RouteHandler) recommendClusterScaleOut() gin.HandlerFunc {
 			return
 		}
 
-		if response, err := r.engine.RecommendClusterScaleOut(pathParams.Provider, pathParams.Service, pathParams.Region, req); err != nil {
+		response, err := r.engine.RecommendClusterScaleOut(pathParams.Provider, pathParams.Service, pathParams.Region, req)
+		if err != nil {
 			errorresponse.NewErrorResponder(c).Respond(err)
 			return
-		} else {
-			c.JSON(http.StatusOK, RecommendationResponse{*response})
 		}
+		c.JSON(http.StatusOK, RecommendationResponse{*response})
 	}
 }
 
@@ -165,12 +165,13 @@ func (r *RouteHandler) recommendMultiCluster() gin.HandlerFunc {
 			return
 		}
 
-		if response, err := r.engine.RecommendMultiCluster(req); err != nil {
+		response, err := r.engine.RecommendMultiCluster(req)
+		if err != nil {
 			errorresponse.NewErrorResponder(c).Respond(err)
 			return
-		} else {
-			c.JSON(http.StatusOK, response)
 		}
+
+		c.JSON(http.StatusOK, response)
 	}
 }
 

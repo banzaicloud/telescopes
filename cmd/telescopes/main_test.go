@@ -24,8 +24,6 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-var stdin *os.File
-
 func Test_processFlags(t *testing.T) {
 	tests := []struct {
 		name  string
@@ -75,9 +73,7 @@ func setupInputs(args []string, file *os.File) {
 
 	// This enables stdin to be mocked for testing.
 	if file != nil {
-		stdin = file
-	} else {
-		stdin = os.Stdin
+		os.Stdin = file
 	}
 }
 
