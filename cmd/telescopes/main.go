@@ -43,6 +43,14 @@ import (
 	"github.com/spf13/viper"
 )
 
+// Provisioned by ldflags
+// nolint: gochecknoglobals
+var (
+	version    string
+	commitHash string
+	buildDate  string
+)
+
 func main() {
 
 	// read configuration (commandline, env etc)
@@ -74,7 +82,7 @@ func main() {
 	logger = log.WithFields(logger, map[string]interface{}{"environment": config.Environment, "application": serviceName})
 
 	logger.Info("initializing the application",
-		map[string]interface{}{"version": Version, "commit_hash": CommitHash, "build_date": BuildDate})
+		map[string]interface{}{"version": version, "commit_hash": commitHash, "build_date": buildDate})
 
 	piUrl := parseCloudInfoAddress()
 	ciCli := recommender.NewCloudInfoClient(piUrl)
@@ -87,7 +95,7 @@ func main() {
 	nodePoolSelector := nodepools.NewNodePoolSelector(logger)
 	engine := recommender.NewEngine(logger, ciCli, vmSelector, nodePoolSelector)
 
-	buildInfo := buildinfo.New(Version, CommitHash, BuildDate)
+	buildInfo := buildinfo.New(version, commitHash, buildDate)
 	routeHandler := api.NewRouteHandler(engine, buildInfo, ciCli, logger)
 
 	// new default gin engine (recovery, logger middleware)

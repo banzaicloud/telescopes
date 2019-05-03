@@ -22,87 +22,89 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-var productDetails = []recommender.VirtualMachine{
-	{
-		Type:          "type-3",
-		CurrentGen:    true,
-		OnDemandPrice: 0.023,
-		Cpus:          1,
-		Mem:           2,
-		AvgPrice:      0.0069,
-	},
-	{
-		Type:          "type-4",
-		CurrentGen:    true,
-		OnDemandPrice: 0.096,
-		Cpus:          2,
-		Mem:           4,
-		AvgPrice:      0.018,
-	},
-	{
-		Type:          "type-5",
-		CurrentGen:    true,
-		OnDemandPrice: 0.046,
-		Cpus:          2,
-		Mem:           4,
-		AvgPrice:      0.014,
-	},
-	{
-		Type:          "type-6",
-		CurrentGen:    true,
-		OnDemandPrice: 0.096,
-		Cpus:          2,
-		Mem:           8,
-		AvgPrice:      0.02,
-	},
-	{
-		Type:          "type-7",
-		CurrentGen:    true,
-		OnDemandPrice: 0.17,
-		Cpus:          4,
-		Mem:           8,
-		AvgPrice:      0.037,
-	},
-	{
-		Type:          "type-8",
-		CurrentGen:    true,
-		OnDemandPrice: 0.186,
-		Cpus:          4,
-		Mem:           16,
-		AvgPrice:      0.056,
-	},
-	{
-		Type:          "type-9",
-		CurrentGen:    true,
-		OnDemandPrice: 0.34,
-		Cpus:          8,
-		Mem:           16,
-		AvgPrice:      0.097,
-	},
-	{
-		Type:          "type-10",
-		CurrentGen:    true,
-		OnDemandPrice: 0.68,
-		Cpus:          17,
-		Mem:           32,
-		AvgPrice:      0.171,
-	},
-	{
-		Type:          "type-11",
-		CurrentGen:    true,
-		OnDemandPrice: 0.91,
-		Cpus:          16,
-		Mem:           64,
-		AvgPrice:      0.157,
-	},
-	{
-		Type:          "type-12",
-		CurrentGen:    true,
-		OnDemandPrice: 1.872,
-		Cpus:          32,
-		Mem:           128,
-		AvgPrice:      0.66,
-	},
+func productDetails() []recommender.VirtualMachine {
+	return []recommender.VirtualMachine{
+		{
+			Type:          "type-3",
+			CurrentGen:    true,
+			OnDemandPrice: 0.023,
+			Cpus:          1,
+			Mem:           2,
+			AvgPrice:      0.0069,
+		},
+		{
+			Type:          "type-4",
+			CurrentGen:    true,
+			OnDemandPrice: 0.096,
+			Cpus:          2,
+			Mem:           4,
+			AvgPrice:      0.018,
+		},
+		{
+			Type:          "type-5",
+			CurrentGen:    true,
+			OnDemandPrice: 0.046,
+			Cpus:          2,
+			Mem:           4,
+			AvgPrice:      0.014,
+		},
+		{
+			Type:          "type-6",
+			CurrentGen:    true,
+			OnDemandPrice: 0.096,
+			Cpus:          2,
+			Mem:           8,
+			AvgPrice:      0.02,
+		},
+		{
+			Type:          "type-7",
+			CurrentGen:    true,
+			OnDemandPrice: 0.17,
+			Cpus:          4,
+			Mem:           8,
+			AvgPrice:      0.037,
+		},
+		{
+			Type:          "type-8",
+			CurrentGen:    true,
+			OnDemandPrice: 0.186,
+			Cpus:          4,
+			Mem:           16,
+			AvgPrice:      0.056,
+		},
+		{
+			Type:          "type-9",
+			CurrentGen:    true,
+			OnDemandPrice: 0.34,
+			Cpus:          8,
+			Mem:           16,
+			AvgPrice:      0.097,
+		},
+		{
+			Type:          "type-10",
+			CurrentGen:    true,
+			OnDemandPrice: 0.68,
+			Cpus:          17,
+			Mem:           32,
+			AvgPrice:      0.171,
+		},
+		{
+			Type:          "type-11",
+			CurrentGen:    true,
+			OnDemandPrice: 0.91,
+			Cpus:          16,
+			Mem:           64,
+			AvgPrice:      0.157,
+		},
+		{
+			Type:          "type-12",
+			CurrentGen:    true,
+			OnDemandPrice: 1.872,
+			Cpus:          32,
+			Mem:           128,
+			AvgPrice:      0.66,
+		},
+	}
 }
 
 func TestVmSelector_RecommendVms(t *testing.T) {
@@ -191,7 +193,7 @@ func TestVmSelector_recommendAttrValues(t *testing.T) {
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
 			selector := NewVmSelector(logur.NewTestLogger())
-			test.check(selector.recommendAttrValues(productDetails, test.attribute, test.request))
+			test.check(selector.recommendAttrValues(productDetails(), test.attribute, test.request))
 		})
 	}
 }

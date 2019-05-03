@@ -22,10 +22,9 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-var (
-	trueVal  = true
-	falseVal = false
-)
+func boolref(b bool) *bool {
+	return &b
+}
 
 func TestVmSelector_filtersApply(t *testing.T) {
 	tests := []struct {
@@ -43,7 +42,7 @@ func TestVmSelector_filtersApply(t *testing.T) {
 				ClusterRecommendationReq: recommender.ClusterRecommendationReq{
 					SumCpu:     4,
 					SumMem:     8,
-					AllowBurst: &trueVal,
+					AllowBurst: boolref(true),
 				},
 			},
 			// ratio = Cpus/Mem = 1
@@ -61,7 +60,7 @@ func TestVmSelector_filtersApply(t *testing.T) {
 				ClusterRecommendationReq: recommender.ClusterRecommendationReq{
 					SumCpu:     4,
 					SumMem:     8,
-					AllowBurst: &falseVal,
+					AllowBurst: boolref(false),
 				},
 			},
 			// ratio = Cpus/Mem = 1
@@ -79,7 +78,7 @@ func TestVmSelector_filtersApply(t *testing.T) {
 				ClusterRecommendationReq: recommender.ClusterRecommendationReq{
 					SumMem:     8,
 					SumCpu:     4,
-					AllowBurst: &trueVal,
+					AllowBurst: boolref(true),
 				},
 			},
 			// ratio = Mem/Cpus = 1
@@ -97,7 +96,7 @@ func TestVmSelector_filtersApply(t *testing.T) {
 				ClusterRecommendationReq: recommender.ClusterRecommendationReq{
 					SumMem:     8,
 					SumCpu:     4,
-					AllowBurst: &falseVal,
+					AllowBurst: boolref(false),
 				},
 			},
 			// ratio = Mem/Cpus = 1

@@ -205,9 +205,8 @@ func findNWithLayout(nonZeroNps, vmOptions int) int {
 	}
 	if nonZeroNps < vmOptions {
 		return nonZeroNps
-	} else {
-		return vmOptions
 	}
+	return vmOptions
 }
 
 func (s *nodePoolSelector) fillSpotNodePools(sumSpotValue float64, N int, nps []recommender.NodePool, attr string) []recommender.NodePool {
@@ -273,9 +272,9 @@ func findN(avg int) int {
 func findM(N int, spotVms []recommender.VirtualMachine) int {
 	if N > 0 {
 		return int(math.Min(math.Ceil(float64(N)*1.5), float64(len(spotVms))))
-	} else {
-		return int(math.Min(3, float64(len(spotVms))))
 	}
+	return int(math.Min(3, float64(len(spotVms))))
+
 }
 
 func avgSpotNodeCount(minNodes, maxNodes, odNodes int) int {
