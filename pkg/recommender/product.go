@@ -35,6 +35,8 @@ type CloudInfoSource interface {
 	// GetRegions retrieves the regions
 	GetRegions(provider, service string) (models.RegionsResponse, error)
 
+	GetZones(prv, svc, reg string) ([]string, error)
+
 	GetContinentsData(provider, service string) (models.ContinentsDataResponse, error)
 }
 
@@ -130,6 +132,18 @@ func (ciCli *CloudInfoClient) GetRegion(prv, svc, reg string) (string, error) {
 	}
 
 	return r.Payload.Name, nil
+}
+
+// GetZones get zones
+func (ciCli *CloudInfoClient) GetZones(prv, svc, reg string) ([]string, error) {
+	grp := region.NewGetRegionParams().WithProvider(prv).WithService(svc).WithRegion(reg)
+
+	r, err := ciCli.Region.GetRegion(grp)
+	if err != nil {
+		return nil, discriminateErrCtx(err)
+	}
+
+	return r.Payload.Zones, nil
 }
 
 // GetRegions gets regions

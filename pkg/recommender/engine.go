@@ -275,14 +275,9 @@ func (e *Engine) RecommendMultiCluster(req MultiClusterRecommendationReq) (map[s
 
 			var responses []*ClusterRecommendationResp
 			for _, region := range regions {
-				singleClusterRecommendationReq := SingleClusterRecommendationReq{
-					ClusterRecommendationReq: req.ClusterRecommendationReq,
-					Excludes:                 req.Excludes[provider.Provider][service],
-					Includes:                 req.Includes[provider.Provider][service],
-				}
-				if response, err := e.RecommendCluster(provider.Provider, service, region, singleClusterRecommendationReq, nil); err != nil {
-					e.log.Warn("could not recommend cluster")
-				} else {
+				if response, err := e.recommendCluster(provider.Provider, service, region, req); err != nil {
+					return nil, err
+				} else if response != nil {
 					responses = append(responses, response)
 				}
 			}
@@ -297,6 +292,48 @@ func (e *Engine) RecommendMultiCluster(req MultiClusterRecommendationReq) (map[s
 		return nil, errors.New("failed to recommend clusters")
 	}
 	return respPerService, nil
+}
+
+func (e *Engine) recommendCluster(provider, service, region string, req MultiClusterRecommendationReq) (*ClusterRecommendationResp, error) {
+	var (
+		response *ClusterRecommendationResp
+		err      error
+	)
+
+	if service == "ack" {
+		zones, err := e.ciSource.GetZones(provider, service, region)
+		if err != nil {
+			return nil, err
+		}
+		for _, zone := range zones {
+			request := SingleClusterRecommendationReq{
+				ClusterRecommendationReq: req.ClusterRecommendationReq,
+				Excludes:                 req.Excludes[provider][service],
+				Includes:                 req.Includes[provider][service],
+				Zone:                     zone,
+			}
+			zoneResp, err := e.RecommendCluster(provider, service, region, request, nil)
+			if err != nil {
+				e.log.Warn("could not recommend cluster")
+				continue
+			}
+			if response == nil || zoneResp.Accuracy.RecTotalPrice < response.Accuracy.RecTotalPrice {
+				response = zoneResp
+			}
+		}
+	} else {
+		request := SingleClusterRecommendationReq{
+			ClusterRecommendationReq: req.ClusterRecommendationReq,
+			Excludes:                 req.Excludes[provider][service],
+			Includes:                 req.Includes[provider][service],
+		}
+
+		response, err = e.RecommendCluster(provider, service, region, request, nil)
+		if err != nil {
+			e.log.Warn("could not recommend cluster")
+		}
+	}
+	return response, nil
 }
 
 func (e *Engine) getRegions(provider, service string, req MultiClusterRecommendationReq) ([]string, error) {
@@ -359,20 +396,28 @@ func findResponseSum(zone string, nodePoolSet []NodePool) ClusterRecommendationA
 	var sumRegularNodes int
 	var sumSpotPrice float64
 	var sumSpotNodes int
+	var sumWorkerPrice float64
+	var sumMasterPrice float64
 	var sumTotalPrice float64
 	for _, nodePool := range nodePoolSet {
 		sumCpus += nodePool.GetSum(Cpu)
 		sumMem += nodePool.GetSum(Memory)
-		if nodePool.Role == "worker" {
+		switch nodePool.Role {
+		case Worker:
 			sumWorkerNodes += nodePool.SumNodes
+			sumWorkerPrice += nodePool.PoolPrice()
+
+			if nodePool.VmClass == Regular {
+				sumRegularPrice += nodePool.PoolPrice()
+				sumRegularNodes += nodePool.SumNodes
+			} else {
+				sumSpotPrice += nodePool.PoolPrice()
+				sumSpotNodes += nodePool.SumNodes
+			}
+		case Master:
+			sumMasterPrice += nodePool.PoolPrice()
 		}
-		if nodePool.VmClass == Regular {
-			sumRegularPrice += nodePool.PoolPrice()
-			sumRegularNodes += nodePool.SumNodes
-		} else {
-			sumSpotPrice += nodePool.PoolPrice()
-			sumSpotNodes += nodePool.SumNodes
-		}
+
 		sumTotalPrice += nodePool.PoolPrice()
 	}
 
@@ -385,6 +430,8 @@ func findResponseSum(zone string, nodePoolSet []NodePool) ClusterRecommendationA
 		RecRegularNodes: sumRegularNodes,
 		RecSpotPrice:    sumSpotPrice,
 		RecSpotNodes:    sumSpotNodes,
+		RecWorkerPrice:  sumWorkerPrice,
+		RecMasterPrice:  sumMasterPrice,
 		RecTotalPrice:   sumTotalPrice,
 	}
 }

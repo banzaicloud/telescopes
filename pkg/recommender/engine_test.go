@@ -31,6 +31,10 @@ func (p *dummyProducts) GetContinentsData(provider, service string) (models.Cont
 	panic("implement me")
 }
 
+func (p *dummyProducts) GetZones(prv, svc, reg string) ([]string, error) {
+	panic("implement me")
+}
+
 func (p *dummyProducts) GetProductDetails(provider string, service string, region string) ([]VirtualMachine, error) {
 	return []VirtualMachine{
 		{

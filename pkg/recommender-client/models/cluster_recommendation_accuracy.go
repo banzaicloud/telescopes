@@ -18,6 +18,9 @@ type ClusterRecommendationAccuracy struct {
 	// Number of recommended cpus
 	RecCPU float64 `json:"cpu,omitempty"`
 
+	// Amount of master instance type prices in the recommended cluster
+	RecMasterPrice float64 `json:"masterPrice,omitempty"`
+
 	// The summarised amount of memory in the recommended cluster
 	RecMem float64 `json:"memory,omitempty"`
 
@@ -38,6 +41,9 @@ type ClusterRecommendationAccuracy struct {
 
 	// Total price in the recommended cluster
 	RecTotalPrice float64 `json:"totalPrice,omitempty"`
+
+	// Amount of worker instance type prices in the recommended cluster
+	RecWorkerPrice float64 `json:"workerPrice,omitempty"`
 
 	// Availability zone in the recommendation
 	RecZone string `json:"zone,omitempty"`
