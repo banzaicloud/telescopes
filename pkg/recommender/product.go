@@ -33,7 +33,9 @@ type CloudInfoSource interface {
 	GetProductDetails(provider string, service string, region string) ([]VirtualMachine, error)
 
 	// GetRegions retrieves the regions
-	GetRegions(provider, service string) ([]*models.Continent, error)
+	GetRegions(provider, service string) (models.RegionsResponse, error)
+
+	GetContinentsData(provider, service string) (models.ContinentsDataResponse, error)
 }
 
 // CloudInfoClient application struct to retrieve data for the recommender; wraps the generated product info client
@@ -131,13 +133,23 @@ func (ciCli *CloudInfoClient) GetRegion(prv, svc, reg string) (string, error) {
 }
 
 // GetRegions gets regions
-func (ciCli *CloudInfoClient) GetRegions(provider, service string) ([]*models.Continent, error) {
+func (ciCli *CloudInfoClient) GetRegions(provider, service string) (models.RegionsResponse, error) {
 	grp := regions.NewGetRegionsParams().WithProvider(provider).WithService(service)
 	r, err := ciCli.Regions.GetRegions(grp)
 	if err != nil {
 		return nil, discriminateErrCtx(err)
 	}
 	return r.Payload, nil
+}
+
+func (ciCli *CloudInfoClient) GetContinentsData(provider, service string) (models.ContinentsDataResponse, error) {
+	continentDataParams := continents.NewGetContinentsDataParams().WithProvider(provider).WithService(service)
+	r, err := ciCli.Continents.GetContinentsData(continentDataParams)
+	if err != nil {
+		return nil, discriminateErrCtx(err)
+	}
+	return r.Payload, nil
+
 }
 
 // GetContinents gets continents

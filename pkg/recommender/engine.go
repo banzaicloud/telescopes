@@ -301,7 +301,7 @@ func (e *Engine) RecommendMultiCluster(req MultiClusterRecommendationReq) (map[s
 
 func (e *Engine) getRegions(provider, service string, req MultiClusterRecommendationReq) ([]string, error) {
 	var regions []string
-	continents, err := e.ciSource.GetRegions(provider, service)
+	continents, err := e.ciSource.GetContinentsData(provider, service)
 	if err != nil {
 		return nil, err
 	}

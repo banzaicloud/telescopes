@@ -27,6 +27,10 @@ type dummyProducts struct {
 	TcId string
 }
 
+func (p *dummyProducts) GetContinentsData(provider, service string) (models.ContinentsDataResponse, error) {
+	panic("implement me")
+}
+
 func (p *dummyProducts) GetProductDetails(provider string, service string, region string) ([]VirtualMachine, error) {
 	return []VirtualMachine{
 		{
@@ -38,7 +42,7 @@ func (p *dummyProducts) GetProductDetails(provider string, service string, regio
 	}, nil
 }
 
-func (p *dummyProducts) GetRegions(provider, service string) ([]*models.Continent, error) {
+func (p *dummyProducts) GetRegions(provider, service string) (models.RegionsResponse, error) {
 	return nil, nil
 }
 
