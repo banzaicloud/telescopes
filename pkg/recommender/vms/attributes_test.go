@@ -80,6 +80,7 @@ func TestAttributeValues_SelectAttributeValues(t *testing.T) {
 		},
 	}
 	for _, test := range tests {
+		test := test // scopelint!
 		t.Run(test.name, func(t *testing.T) {
 			test.check(test.values.SelectAttributeValues(test.min, test.max))
 		})

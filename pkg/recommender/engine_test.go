@@ -178,6 +178,7 @@ func TestEngine_RecommendCluster(t *testing.T) {
 		},
 	}
 	for _, test := range tests {
+		test := test
 		t.Run(test.name, func(t *testing.T) {
 			engine := NewEngine(logur.NewTestLogger(), test.ciSource, test.vms, test.np)
 
@@ -247,6 +248,7 @@ func TestEngine_findCheapestNodePoolSet(t *testing.T) {
 		},
 	}
 	for _, test := range tests {
+		test := test
 		t.Run(test.name, func(t *testing.T) {
 			engine := NewEngine(logur.NewTestLogger(), nil, test.vms, test.np)
 			test.check(engine.findCheapestNodePoolSet(test.nodePools))

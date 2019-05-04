@@ -209,12 +209,12 @@ func findNWithLayout(nonZeroNps, vmOptions int) int {
 	return vmOptions
 }
 
-func (s *nodePoolSelector) fillSpotNodePools(sumSpotValue float64, N int, nps []recommender.NodePool, attr string) []recommender.NodePool {
+func (s *nodePoolSelector) fillSpotNodePools(sumSpotValue float64, n int, nps []recommender.NodePool, attr string) []recommender.NodePool {
 	var (
 		sumValueInPools, minValue float64
 		idx, minIndex             int
 	)
-	for i := 0; i < N; i++ {
+	for i := 0; i < n; i++ {
 		v := float64(nps[i].SumNodes) * nps[i].VmType.GetAttrValue(attr)
 		sumValueInPools += v
 		if i == 0 {
@@ -228,7 +228,7 @@ func (s *nodePoolSelector) fillSpotNodePools(sumSpotValue float64, N int, nps []
 	desiredSpotValue := sumValueInPools + sumSpotValue
 	idx = minIndex
 	for sumValueInPools < desiredSpotValue {
-		nodePoolIdx := idx % N
+		nodePoolIdx := idx % n
 		if nodePoolIdx == minIndex {
 			// always add a new instance to the option with the lowest attribute value to balance attributes and move on
 			nps[nodePoolIdx].SumNodes += 1
@@ -251,27 +251,27 @@ func (s *nodePoolSelector) fillSpotNodePools(sumSpotValue float64, N int, nps []
 
 // findN returns the number of nodes required
 func findN(avg int) int {
-	var N int
+	var n int
 	switch {
 	case avg <= 4:
-		N = avg
+		n = avg
 	case avg <= 8:
-		N = 4
+		n = 4
 	case avg <= 15:
-		N = 5
+		n = 5
 	case avg <= 24:
-		N = 6
+		n = 6
 	case avg <= 35:
-		N = 7
+		n = 7
 	case avg > 35:
-		N = 8
+		n = 8
 	}
-	return N
+	return n
 }
 
-func findM(N int, spotVms []recommender.VirtualMachine) int {
-	if N > 0 {
-		return int(math.Min(math.Ceil(float64(N)*1.5), float64(len(spotVms))))
+func findM(n int, spotVms []recommender.VirtualMachine) int {
+	if n > 0 {
+		return int(math.Min(math.Ceil(float64(n)*1.5), float64(len(spotVms))))
 	}
 	return int(math.Min(3, float64(len(spotVms))))
 
