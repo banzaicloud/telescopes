@@ -156,6 +156,7 @@ func TestVmSelector_RecommendVms(t *testing.T) {
 		},
 	}
 	for _, test := range tests {
+		test := test //scopelint
 		t.Run(test.name, func(t *testing.T) {
 			selector := NewVmSelector(logur.NewTestLogger())
 			test.check(selector.RecommendVms("google", vms, test.attribute, test.request, nil))
@@ -191,6 +192,7 @@ func TestVmSelector_recommendAttrValues(t *testing.T) {
 		},
 	}
 	for _, test := range tests {
+		test := test // scopelint
 		t.Run(test.name, func(t *testing.T) {
 			selector := NewVmSelector(logur.NewTestLogger())
 			test.check(selector.recommendAttrValues(productDetails(), test.attribute, test.request))

@@ -11,12 +11,12 @@ linters-settings:
         min-complexity: 15
 
 linters:
-    enable:
-        - misspell
-        - gofmt
-        - golint
-        - goimports
-        - gochecknoglobals
+    enable-all: true
+#        - misspell
+#        - gofmt
+#        - golint
+#        - goimports
+#        - gochecknoglobals
     disable:
         - errcheck
         - gas

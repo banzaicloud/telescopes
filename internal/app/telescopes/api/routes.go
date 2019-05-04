@@ -42,7 +42,7 @@ type RouteHandler struct {
 }
 
 // NewRouteHandler creates a new RouteHandler and returns a reference to it
-func NewRouteHandler(engine *recommender.Engine, info buildinfo.BuildInfo, ciCli *recommender.CloudInfoClient, log logur.Logger) *RouteHandler {
+func NewRouteHandler(engine recommender.ClusterRecommender, info buildinfo.BuildInfo, ciCli *recommender.CloudInfoClient, log logur.Logger) *RouteHandler {
 	return &RouteHandler{
 		engine:    engine,
 		buildInfo: info,

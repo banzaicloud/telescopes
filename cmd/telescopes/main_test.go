@@ -41,6 +41,7 @@ func Test_processFlags(t *testing.T) {
 		},
 	}
 	for _, test := range tests {
+		test := test // scopelint
 		t.Run(test.name, func(t *testing.T) {
 			pflag.CommandLine = pflag.NewFlagSet(os.Args[0], pflag.ContinueOnError)
 			// define flags
@@ -128,6 +129,7 @@ func Test_configurationStringDefaults(t *testing.T) {
 		},
 	}
 	for _, test := range tests {
+		test := test // scopelint
 		t.Run(test.name, func(t *testing.T) {
 			// cleaning flags
 			pflag.CommandLine = pflag.NewFlagSet(os.Args[0], pflag.ContinueOnError)

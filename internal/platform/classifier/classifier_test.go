@@ -74,6 +74,7 @@ func TestErrResponseClassifier_Classify(t *testing.T) {
 		},
 	}
 	for _, test := range tests {
+		test := test //pin the variable
 		t.Run(test.name, func(t *testing.T) {
 			// create the classifier
 			erc := NewErrorClassifier()

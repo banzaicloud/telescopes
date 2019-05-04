@@ -16,7 +16,6 @@ package recommender
 
 import (
 	"context"
-	"net/url"
 
 	"github.com/banzaicloud/telescopes/.gen/cloudinfo"
 	"github.com/go-openapi/runtime"
@@ -48,9 +47,9 @@ const (
 )
 
 // NewCloudInfoClient creates a new product info client wrapper instance
-func NewCloudInfoClient(ciUrl *url.URL) *CloudInfoClient {
+func NewCloudInfoClient(ciUrl string) *CloudInfoClient {
 	apiCli := cloudinfo.NewAPIClient(&cloudinfo.Configuration{
-		BasePath:      ciUrl.String(),
+		BasePath:      ciUrl,
 		DefaultHeader: make(map[string]string),
 		UserAgent:     "Telescopes/go",
 	})
@@ -65,7 +64,7 @@ func (ciCli *CloudInfoClient) GetProductDetails(provider string, service string,
 		return nil, discriminateErrCtx(err)
 	}
 
-	var vms []VirtualMachine
+	vms := make([]VirtualMachine, 0)
 
 	for _, p := range allProducts.Products {
 		vms = append(vms, VirtualMachine{
