@@ -33,7 +33,6 @@ const (
 
 // ClusterRecommender is the main entry point for cluster recommendation
 type ClusterRecommender interface {
-
 	// RecommendCluster performs recommendation based on the provided arguments
 	RecommendCluster(provider string, service string, region string, req SingleClusterRecommendationReq, layoutDesc []NodePoolDesc) (*ClusterRecommendationResp, error)
 
@@ -230,10 +229,6 @@ type ClusterRecommendationAccuracy struct {
 
 // VirtualMachine describes an instance type
 type VirtualMachine struct {
-	// Instance type category
-	Category string `json:"category"`
-	// Instance type
-	Type string `json:"type"`
 	// Average price of the instance (differs from on demand price in case of spot or preemptible instances)
 	AvgPrice float64 `json:"avgPrice"`
 	// Regular price of the instance type
@@ -246,14 +241,18 @@ type VirtualMachine struct {
 	Gpus float64 `json:"gpusPerVm"`
 	// Burst signals a burst type instance
 	Burst bool `json:"burst"`
-	// NetworkPerf holds the network performance
-	NetworkPerf string `json:"networkPerf"`
-	// NetworkPerfCat holds the network performance category
-	NetworkPerfCat string `json:"networkPerfCategory"`
 	// CurrentGen the vm is of current generation
 	CurrentGen bool `json:"currentGen"`
 	// Zones
 	Zones []string `json:"zones"`
+	// Instance type category
+	Category string `json:"category"`
+	// Instance type
+	Type string `json:"type"`
+	// NetworkPerf holds the network performance
+	NetworkPerf string `json:"networkPerf"`
+	// NetworkPerfCat holds the network performance category
+	NetworkPerfCat string `json:"networkPerfCategory"`
 }
 
 func (v *VirtualMachine) GetAttrValue(attr string) float64 {

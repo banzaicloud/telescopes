@@ -34,7 +34,11 @@ func NewVmSelector(log logur.Logger) *vmSelector {
 }
 
 // RecommendVms selects a slice of VirtualMachines for the given attribute and requirements in the request
-func (s *vmSelector) RecommendVms(provider string, vms []recommender.VirtualMachine, attr string, req recommender.SingleClusterRecommendationReq, layout []recommender.NodePool) ([]recommender.VirtualMachine, []recommender.VirtualMachine, error) {
+func (s *vmSelector) RecommendVms(provider string,
+	vms []recommender.VirtualMachine,
+	attr string,
+	req recommender.SingleClusterRecommendationReq,
+	layout []recommender.NodePool) ([]recommender.VirtualMachine, []recommender.VirtualMachine, error) {
 	s.log.Info("recommending virtual machines", map[string]interface{}{"attribute": attr})
 
 	vmFilters, err := s.filtersForAttr(attr, provider, req)
@@ -84,7 +88,10 @@ func (s *vmSelector) RecommendVms(provider string, vms []recommender.VirtualMach
 	return odVms, spotVms, nil
 }
 
-func (s *vmSelector) FindVmsWithAttrValues(attr string, req recommender.SingleClusterRecommendationReq, layoutDesc []recommender.NodePoolDesc, allProducts []recommender.VirtualMachine) ([]recommender.VirtualMachine, error) {
+func (s *vmSelector) FindVmsWithAttrValues(attr string,
+	req recommender.SingleClusterRecommendationReq,
+	layoutDesc []recommender.NodePoolDesc,
+	allProducts []recommender.VirtualMachine) ([]recommender.VirtualMachine, error) {
 	var (
 		vms    []recommender.VirtualMachine
 		values []float64
