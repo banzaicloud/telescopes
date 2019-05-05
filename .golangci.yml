@@ -13,17 +13,11 @@ linters-settings:
     lll:
         line-length: 200
 
+    goimports:
+        local-prefixes: github.com/sagikazarmark/modern-go-application
+
 linters:
     enable-all: true
-    #        - misspell
-    #        - gofmt
-    #        - golint
-    #        - goimports
-    #        - gochecknoglobals
     disable:
         - gocritic
-#        - errcheck
-#        - gas
-#        - megacheck
-#        - varcheck
 
