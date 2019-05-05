@@ -504,7 +504,14 @@ func (e *Engine) computeScaleoutResources(layout []NodePool, attr string, desire
 		return scaleoutCpu, scaleoutMem, 0, nil
 	}
 
-	e.log.Debug(fmt.Sprintf("desiredCpu: %v, desiredMem: %v, currentCpuTotal/currentCpuOnDemand: %v/%v, currentMemTotal/currentMemOnDemand: %v/%v", desiredCpu, desiredMem, currentCpuTotal, sumCurrentOdCpu, currentMemTotal, sumCurrentOdMem))
+	e.log.Debug(fmt.Sprintf("desiredCpu: %v, "+
+		"desiredMem: %v, "+
+		"currentCpuTotal/currentCpuOnDemand: %v/%v, "+
+		"currentMemTotal/currentMemOnDemand: %v/%v",
+		desiredCpu,
+		desiredMem,
+		currentCpuTotal, sumCurrentOdCpu,
+		currentMemTotal, sumCurrentOdMem))
 	e.log.Debug(fmt.Sprintf("total scaleout cpu/mem needed: %v/%v", scaleoutCpu, scaleoutMem))
 	e.log.Debug(fmt.Sprintf("desired on-demand percentage: %v", desiredOdPct))
 

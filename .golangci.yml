@@ -8,17 +8,22 @@ linters-settings:
         min-confidence: 0.9
 
     gocyclo:
-        min-complexity: 15
+        min-complexity: 20
+
+    lll:
+        line-length: 200
 
 linters:
     enable-all: true
-#        - misspell
-#        - gofmt
-#        - golint
-#        - goimports
-#        - gochecknoglobals
+    #        - misspell
+    #        - gofmt
+    #        - golint
+    #        - goimports
+    #        - gochecknoglobals
     disable:
-        - errcheck
-        - gas
-        - megacheck
-        - varcheck
+        - gocritic
+#        - errcheck
+#        - gas
+#        - megacheck
+#        - varcheck
+
