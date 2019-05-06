@@ -42,22 +42,19 @@ func (s *vmSelector) filtersForAttr(attr string, provider string, req recommende
 		filters = append(filters, s.zonesFilter)
 	}
 
+	if len(req.NetworkPerf) != 0 {
+		filters = append(filters, s.ntwPerformanceFilter)
+	}
+
 	// provider specific filters
 	switch provider {
 	case "amazon":
-		if req.NetworkPerf != nil {
-			filters = append(filters, s.ntwPerformanceFilter)
-		}
 		// burst is not allowed
 		if req.AllowBurst != nil && !*req.AllowBurst {
 			filters = append(filters, s.burstFilter)
 		}
 		if req.AllowOlderGen == nil || !*req.AllowOlderGen {
 			filters = append(filters, s.currentGenFilter)
-		}
-	case "google", "alibaba":
-		if req.NetworkPerf != nil {
-			filters = append(filters, s.ntwPerformanceFilter)
 		}
 	}
 
