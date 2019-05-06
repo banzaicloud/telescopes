@@ -283,8 +283,10 @@ func (e *Engine) RecommendMultiCluster(req MultiClusterRecommendationReq) (map[s
 			}
 
 			limitedResponses := e.getLimitedResponses(responses, req.RespPerService)
-			key := strings.Join([]string{strings.ToLower(provider.Provider), strings.ToUpper(service)}, "")
-			respPerService[key] = limitedResponses
+			if limitedResponses != nil {
+				key := strings.Join([]string{strings.ToLower(provider.Provider), strings.ToUpper(service)}, "")
+				respPerService[key] = limitedResponses
+			}
 		}
 	}
 
