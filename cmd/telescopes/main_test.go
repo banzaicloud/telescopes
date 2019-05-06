@@ -40,15 +40,16 @@ func Test_processFlags(t *testing.T) {
 			},
 		},
 	}
+	v := viper.GetViper()
 	for _, test := range tests {
 		test := test // scopelint
 		t.Run(test.name, func(t *testing.T) {
 			pflag.CommandLine = pflag.NewFlagSet(os.Args[0], pflag.ContinueOnError)
 			// define flags
-			defineFlags(pflag.CommandLine)
+			Configure(v, pflag.CommandLine)
 			// mock the input
 			setupInputs(test.args, nil)
-			test.check(viper.GetString(logLevelFlag))
+			test.check(v.GetString("log-level"))
 
 		})
 	}
@@ -87,54 +88,56 @@ func Test_configurationStringDefaults(t *testing.T) {
 		check    func(val interface{})
 	}{
 		{
-			name:     fmt.Sprintf("defaults for: %s", logLevelFlag),
-			viperKey: logLevelFlag,
+			name:     fmt.Sprintf("defaults for: %s", "log-level"),
+			viperKey: "log-level",
 			args:     []string{}, // no flags provided
 			valType:  "",
 			check: func(val interface{}) {
-				assert.Equal(t, "info", val, fmt.Sprintf("invalid default for %s", logLevelFlag))
+				assert.Equal(t, "info", val, fmt.Sprintf("invalid default for %s", "log-level"))
 			},
 		},
 		{
-			name:     fmt.Sprintf("defaults for: %s", listenAddressFlag),
-			viperKey: listenAddressFlag,
+			name:     fmt.Sprintf("defaults for: %s", "listen-address"),
+			viperKey: "listen-address",
 			args:     []string{}, // no flags provided
 			check: func(val interface{}) {
-				assert.Equal(t, ":9090", val, fmt.Sprintf("invalid default for %s", listenAddressFlag))
+				assert.Equal(t, ":9090", val, fmt.Sprintf("invalid default for %s", "listen-address"))
 			},
 		},
 		{
-			name:     fmt.Sprintf("defaults for: %s", devModeFlag),
-			viperKey: devModeFlag,
+			name:     fmt.Sprintf("defaults for: %s", "dev-mode"),
+			viperKey: "dev-mode",
 			args:     []string{}, // no flags provided
 			check: func(val interface{}) {
-				assert.Equal(t, false, val, fmt.Sprintf("invalid default for %s", devModeFlag))
+				assert.Equal(t, false, val, fmt.Sprintf("invalid default for %s", "dev-mode"))
 			},
 		},
 		{
-			name:     fmt.Sprintf("defaults for: %s", tokenSigningKeyFlag),
-			viperKey: tokenSigningKeyFlag,
+			name:     fmt.Sprintf("defaults for: %s", "tokensigningkey"),
+			viperKey: "tokensigningkey",
 			args:     []string{}, // no flags provided
 			check: func(val interface{}) {
-				assert.Equal(t, "", val, fmt.Sprintf("invalid default for %s", tokenSigningKeyFlag))
+				assert.Equal(t, "", val, fmt.Sprintf("invalid default for %s", "tokensigningkey"))
 			},
 		},
 		{
-			name:     fmt.Sprintf("defaults for: %s", vaultAddrFlag),
-			viperKey: vaultAddrFlag,
+			name:     fmt.Sprintf("defaults for: %s", "vault-address"),
+			viperKey: "vault-address",
 			args:     []string{}, // no flags provided
 			check: func(val interface{}) {
-				assert.Equal(t, ":8200", val, fmt.Sprintf("invalid default for %s", vaultAddrFlag))
+				assert.Equal(t, ":8200", val, fmt.Sprintf("invalid default for %s", "vault-address"))
 			},
 		},
 	}
+
+	v := viper.GetViper()
 	for _, test := range tests {
 		test := test // scopelint
 		t.Run(test.name, func(t *testing.T) {
 			// cleaning flags
 			pflag.CommandLine = pflag.NewFlagSet(os.Args[0], pflag.ContinueOnError)
 			// define flags
-			defineFlags(pflag.CommandLine)
+			Configure(v, pflag.CommandLine)
 			// mock the input
 			setupInputs(test.args, nil)
 
