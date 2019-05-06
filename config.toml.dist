@@ -1,0 +1,25 @@
+environment = "production"
+debug = false
+shutdownTimeout = "5s"
+
+[log]
+format = "json"
+level = "info"
+
+
+[app]
+address = ":9090"
+devmode = false
+
+
+[app.vault]
+tokensigningkey = ""
+
+
+[metrics]
+enabled = false
+address = ":9900"
+
+
+[cloudinfo]
+address = "http://localhost:8000"
