@@ -8,6 +8,10 @@ clean: ## Clean builds
 clear: ## Clear the working area and the project
 	rm -rf bin/
 
+config.toml:
+	sed 's/production/development/g; s/debug = false/debug = true/g; s/shutdownTimeout = "5s"/shutdownTimeout = "0s"/g; s/format = "json"/format = "logfmt"/g; s/level = "info"/level = "trace"/g; s/address = ":/address = "127.0.0.1:/g' config.toml.dist > config.toml
+
+
 .PHONY: build
 build: ## Build a binary
 ifeq (${VERBOSE}, 1)
