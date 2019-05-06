@@ -46,7 +46,6 @@ type configuration struct {
 		Address string
 
 		DevMode bool
-
 		Vault struct {
 			TokenSigningKey string
 		}
