@@ -15,23 +15,17 @@
 package main
 
 const (
-	serviceName = "telescopes"
+	// appName is an identifier-like name used anywhere this app needs to be identified.
+	//
+	// It identifies the application itself, the actual instance needs to be identified via environment
+	// and other details.
+	appName = "telescopes"
 
 	// friendlyServiceName is the visible name of the service.
-	friendlyServiceName = "Banzai Cloud Telescopes Service"
+	friendlyAppName = "Banzai Cloud Telescopes Service"
 
-	// the list of flags supported by the application
-	// these constants can be used to retrieve the passed in values or defaults via viper
-	logLevelFlag        = "log-level"
-	logFormatFlag       = "log-format"
-	listenAddressFlag   = "listen-address"
-	cloudInfoFlag       = "cloudinfo-address"
-	devModeFlag         = "dev-mode"
-	tokenSigningKeyFlag = "tokensigningkey"
-	vaultAddrFlag       = "vault-address"
-	helpFlag            = "help"
-	metricsEnabledFlag  = "metrics-enabled"
-	metricsAddressFlag  = "metrics-address"
+	// envPrefix is prepended to environment variables when processing configuration.
+	envPrefix = "telescopes"
 
 	cfgAppRole = "telescopes-app-role"
 )

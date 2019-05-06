@@ -15,18 +15,20 @@
 package main
 
 import (
+	"fmt"
+	"os"
 	"strings"
+	"time"
 
 	"github.com/banzaicloud/telescopes/internal/platform/log"
 	"github.com/banzaicloud/telescopes/internal/platform/metrics"
-	"github.com/goph/emperror"
 	"github.com/spf13/pflag"
 	"github.com/spf13/viper"
 )
 
-// Config holds any kind of configuration that comes from the outside world and
+// configuration holds any kind of configuration that comes from the outside world and
 // is necessary for running the application.
-type Config struct {
+type configuration struct {
 	// Meaningful values are recommended (eg. production, development, staging, release/123, etc)
 	Environment string
 
@@ -37,51 +39,90 @@ type Config struct {
 
 	// Log configuration
 	Log log.Config
-}
 
-// defineFlags defines supported flags and makes them available for viper
-func defineFlags(pf *pflag.FlagSet) {
-	pf.String(logLevelFlag, "info", "log level")
-	pf.String(logFormatFlag, "", "log format")
-	pf.String(listenAddressFlag, ":9090", "the address where the server listens to HTTP requests.")
-	pf.String(cloudInfoFlag, "http://localhost:9090/api/v1", "the address of the Cloud Info service to retrieve attribute and pricing info [format=scheme://host:port/basepath]")
-	pf.Bool(devModeFlag, false, "development mode, if true token based authentication is disabled, false by default")
-	pf.String(tokenSigningKeyFlag, "", "The token signing key for the authentication process")
-	pf.String(vaultAddrFlag, ":8200", "The vault address for authentication token management")
-	pf.Bool(helpFlag, false, "print usage")
-	pf.Bool(metricsEnabledFlag, false, "internal metrics are exposed if enabled")
-	pf.String(metricsAddressFlag, ":9900", "the address where internal metrics are exposed")
+	// App configuration
+	App struct {
+		// HTTP server address
+		Address string
+
+		DevMode bool
+
+		Vault struct {
+			TokenSigningKey string
+		}
+	}
+
+	Cloudinfo struct {
+		Address string
+	}
 }
 
 // Configure configures some defaults in the Viper instance.
-func Configure(v *viper.Viper, pf *pflag.FlagSet) {
-	// configure viper
-	// Viper check for an environment variable
+func Configure(v *viper.Viper, p *pflag.FlagSet) {
 
-	// Application constants
-	v.Set("serviceName", serviceName)
+	// Viper settings
+	v.AddConfigPath(".")
+	v.AddConfigPath(fmt.Sprintf("$%s_CONFIG_DIR/", strings.ToUpper(envPrefix)))
 
+	// Environment variable settings
+	// TODO: enable env prefix
+	// v.SetEnvPrefix(envPrefix)
 	v.SetEnvKeyReplacer(strings.NewReplacer(".", "_", "-", "_"))
-
+	v.AllowEmptyEnv(true)
 	v.AutomaticEnv()
 
+	// Application constants
+	v.Set("appName", appName)
+
+	// Global configuration
+	v.SetDefault("environment", "production")
+	v.SetDefault("debug", false)
+	v.SetDefault("shutdownTimeout", 5*time.Second)
+	if _, ok := os.LookupEnv("NO_COLOR"); ok {
+		v.SetDefault("no_color", true)
+	}
+
 	// Log configuration
-	v.RegisterAlias("log.format", logFormatFlag)
-	v.RegisterAlias("log.level", logLevelFlag)
+	p.String("log-level", "info", "log level")
+	_ = v.BindPFlag("log.level", p.Lookup("log-level"))
+
+	p.String("log-format", "json", "log format")
+	_ = v.BindPFlag("log.format", p.Lookup("log-format"))
+
 	v.RegisterAlias("log.noColor", "no_color")
 
-	// Metrics
-	v.RegisterAlias("metrics.enabled", metricsEnabledFlag)
-	v.RegisterAlias("metrics.address", metricsAddressFlag)
+	// Telescopes app address
+	p.String("listen-address", ":9090", "the address where the server listens to HTTP requests.")
+	_ = v.BindPFlag("app.address", p.Lookup("listen-address"))
+	_ = v.BindEnv("app.address", "LISTEN_ADDRESS")
 
-	pf.Init(friendlyServiceName, pflag.ExitOnError)
+	// Cloudinfo
+	p.String("cloudinfo-address", "http://localhost:9090/api/v1", "the address of the Cloud Info "+
+		"service to retrieve attribute and pricing info [format=scheme://host:port/basepath]")
+	_ = v.BindPFlag("cloudinfo.address", p.Lookup("cloudinfo-address"))
+	_ = v.BindEnv("cloudinfo.address", "CLOUDINFO_ADDRESS")
 
-	// define flags
-	defineFlags(pf)
+	//operating mode
+	p.Bool("dev-mode", false, "development mode, if true token based authentication is disabled, false by default")
+	_ = v.BindPFlag("app.devmode", p.Lookup("dev-mode"))
+	_ = v.BindEnv("app.devmode", "DEV_MODE")
 
-	// bind flags to viper
-	if err := viper.BindPFlags(pf); err != nil {
-		emperror.Panic(emperror.Wrap(err, "could not parse flags"))
-	}
+	p.String("tokensigningkey", "", "The token signing key for the authentication process")
+	_ = v.BindPFlag("app.vault.tokensigningkey", p.Lookup("tokensigningkey"))
+	_ = v.BindEnv("app.vault.tokensigningkey", "TOKENSIGNINIGKEY")
+
+	p.String("vault-address", ":8200", "The vault address for authentication token management")
+	_ = v.BindPFlag("app.vault.address", p.Lookup("vault-address"))
+	_ = v.BindEnv("app.vault.address", "VAULT_ADDRESS")
+
+	p.Bool("metrics-enabled", false, "internal metrics are exposed if enabled")
+	_ = v.BindPFlag("metrics.enabled", p.Lookup("metrics-enabled"))
+	_ = v.BindEnv("metrics.enabled", "METRICS_ENABLED")
+
+	p.String("metrics-address", ":9900", "the address where internal metrics are exposed")
+	_ = v.BindPFlag("metrics.address", p.Lookup("metrics-address"))
+	_ = v.BindEnv("metrics.address", "METRICS_ADDRESS")
+
+	p.Init(friendlyAppName, pflag.ExitOnError)
 
 }

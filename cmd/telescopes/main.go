@@ -59,7 +59,7 @@ func main() {
 	// parse the command line
 	pflag.Parse()
 
-	if viper.GetBool(helpFlag) {
+	if viper.GetBool("help") {
 		pflag.Usage()
 		return
 	}
@@ -70,7 +70,7 @@ func main() {
 		emperror.Panic(errors.Wrap(err, "failed to read configuration"))
 	}
 
-	var config Config
+	var config configuration
 	// configuration gets populated here - external configuration sources (flags, env vars) are processed into the instance
 	err = viper.Unmarshal(&config)
 	emperror.Panic(errors.Wrap(err, "failed to unmarshal configuration"))
@@ -79,12 +79,12 @@ func main() {
 	logger := log.NewLogger(config.Log)
 
 	// Provide some basic context to all log lines
-	logger = log.WithFields(logger, map[string]interface{}{"environment": config.Environment, "application": serviceName})
+	logger = log.WithFields(logger, map[string]interface{}{"environment": config.Environment, "application": appName})
 
 	logger.Info("initializing the application",
 		map[string]interface{}{"version": version, "commit_hash": commitHash, "build_date": buildDate})
 
-	piUrl := parseCloudInfoAddress()
+	piUrl := parseCloudInfoAddress(config.Cloudinfo.Address)
 	ciCli := recommender.NewCloudInfoClient(piUrl.String())
 
 	// configure the gin validator
@@ -102,12 +102,11 @@ func main() {
 	router := gin.Default()
 
 	// enable authentication if not dev-mode
-	if !viper.GetBool(devModeFlag) {
-		logger.Debug("enable authentication")
-		signingKey := viper.GetString(tokenSigningKeyFlag)
-		appRole := viper.GetString(cfgAppRole)
 
-		routeHandler.EnableAuth(router, appRole, signingKey)
+	if !config.App.DevMode {
+		logger.Debug("enable authentication")
+		appRole := viper.GetString(cfgAppRole)
+		routeHandler.EnableAuth(router, appRole, config.App.Vault.TokenSigningKey)
 	}
 
 	// add prometheus metric endpoint
@@ -118,13 +117,12 @@ func main() {
 	routeHandler.ConfigureRoutes(router)
 	logger.Info("configured routes")
 
-	err = router.Run(viper.GetString(listenAddressFlag))
+	err = router.Run(config.App.Address)
 	emperror.Panic(errors.Wrap(err, "failed to run router"))
 }
 
-func parseCloudInfoAddress() *url.URL {
-	u, err := url.ParseRequestURI(viper.GetString(cloudInfoFlag))
-	emperror.Panic(errors.Wrap(err, fmt.Sprintf("invalid URI: %s", viper.GetString(cloudInfoFlag))))
-
+func parseCloudInfoAddress(ciUrl string) *url.URL {
+	u, err := url.ParseRequestURI(ciUrl)
+	emperror.Panic(errors.Wrap(err, fmt.Sprintf("invalid URI: %s", ciUrl)))
 	return u
 }
