@@ -99,7 +99,8 @@ func (e *Engine) recommendMaster(provider, service string, req SingleClusterReco
 
 	switch service {
 	case "pke":
-		if provider == "amazon" {
+		switch provider {
+		case "amazon":
 			req.Includes = []string{
 				"c5.large",
 				"c5.xlarge",
@@ -111,6 +112,15 @@ func (e *Engine) recommendMaster(provider, service string, req SingleClusterReco
 				"c4.2xlarge",
 				"c4.4xlarge",
 				"c4.8xlarge",
+			}
+		case "azure":
+			req.Includes = []string{
+				"Standard_DS2",
+				"Standard_DS2_v2",
+				"Standard_D2s_v3",
+				"Standard_DS3",
+				"Standard_DS3_v2",
+				"Standard_D4s_v3",
 			}
 		}
 
