@@ -92,6 +92,10 @@ func (r *RouteHandler) ConfigureRoutes(router *gin.Engine) {
 		recGroup.POST("/multicloud", r.recommendMultiCluster())
 		recGroup.POST("/provider/:provider/service/:service/region/:region/cluster", r.recommendCluster())
 		recGroup.PUT("/provider/:provider/service/:service/region/:region/cluster", r.recommendClusterScaleOut())
+
+		// TODO: remove legacy endpoint
+		recGroup.POST("/:provider/:service/:region/cluster", r.recommendCluster())
+		recGroup.PUT("/:provider/:service/:region/cluster", r.recommendClusterScaleOut())
 	}
 }
 
