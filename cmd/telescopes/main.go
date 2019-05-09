@@ -86,7 +86,7 @@ func main() {
 		map[string]interface{}{"version": version, "commit_hash": commitHash, "build_date": buildDate})
 
 	piUrl := parseCloudInfoAddress(config.Cloudinfo.Address)
-	ciCli := recommender.NewCloudInfoClient(piUrl.String())
+	ciCli := recommender.NewCloudInfoClient(piUrl.String(), logger)
 
 	// configure the gin validator
 	err = api.ConfigureValidator(ciCli)

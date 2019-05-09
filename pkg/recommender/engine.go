@@ -278,7 +278,7 @@ func (e *Engine) RecommendMultiCluster(req MultiClusterRecommendationReq) (map[s
 
 	for _, provider := range req.Providers {
 		for _, service := range provider.Services {
-			regions, err := e.getRegions(provider.Provider, service, req)
+			regions, err := e.getRegions(provider.Provider, service, req.Continents)
 			if err != nil {
 				return nil, err
 			}
@@ -348,15 +348,15 @@ func (e *Engine) recommendCluster(provider, service, region string, req MultiClu
 	return response, nil
 }
 
-func (e *Engine) getRegions(provider, service string, req MultiClusterRecommendationReq) ([]string, error) {
+func (e *Engine) getRegions(provider, service string, continents []string) ([]string, error) {
 	var regions []string
-	continents, err := e.ciSource.GetContinentsData(provider, service)
+	continentsData, err := e.ciSource.GetContinentsData(provider, service)
 	if err != nil {
 		return nil, err
 	}
 
-	for _, validContinent := range req.Continents {
-		for _, continent := range continents {
+	for _, validContinent := range continents {
+		for _, continent := range continentsData {
 			if validContinent == continent.Name {
 				for _, region := range continent.Regions {
 					regions = append(regions, region.Id)
