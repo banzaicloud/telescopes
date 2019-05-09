@@ -21,6 +21,7 @@ import (
 	"github.com/banzaicloud/telescopes/pkg/recommender"
 	"github.com/gin-gonic/gin/binding"
 	"github.com/goph/emperror"
+	"github.com/hashicorp/nomad/helper"
 	"github.com/pkg/errors"
 	"gopkg.in/go-playground/validator.v8"
 )
@@ -48,9 +49,7 @@ func ConfigureValidator(ciCli *recommender.CloudInfoClient) error {
 	if err := v.RegisterValidation("category", categoryValidator()); err != nil {
 		return emperror.Wrap(err, "could not register category validator")
 	}
-	if err := v.RegisterValidation("continents", continentValidator(ciCli)); err != nil {
-		return emperror.Wrap(err, "could not register continent validator")
-	}
+
 	return nil
 }
 
@@ -81,35 +80,34 @@ func categoryValidator() validator.Func {
 	}
 }
 
-// continentValidator validates the continent in the recommendation request.
-func continentValidator(ciCli *recommender.CloudInfoClient) validator.Func {
-	return func(v *validator.Validate, topStruct reflect.Value, currentStruct reflect.Value, field reflect.Value,
-		fieldtype reflect.Type, fieldKind reflect.Kind, param string) bool {
-		continents, err := ciCli.GetContinents()
-		if err != nil {
-			return false
-		}
-		for _, continent := range continents {
-			if field.String() == continent {
-				return true
-			}
-		}
-		return false
-	}
-}
-
 // CloudInfoValidator contract for validating cloud info data
 type CloudInfoValidator interface {
 	// Validate checks the existence, correctness etc... of the parameters
-	Validate(params interface{}) error
+	ValidatePathParams(params interface{}) error
+
+	// ValidateContinents checks the existence of provided continents
+	ValidateContinents(continents []string) error
 }
 
 type pathParamValidator struct {
 	ciCli *recommender.CloudInfoClient
 }
 
+func (ppV *pathParamValidator) ValidateContinents(continents []string) error {
+	ciContinents, err := ppV.ciCli.GetContinents()
+	if err != nil {
+		return err
+	}
+
+	if ok, diff := helper.SliceStringIsSubset(ciContinents, continents); !ok {
+		return errors.Errorf("unsupported continent(s) %s", diff)
+	}
+
+	return nil
+}
+
 // Validate validates path parameters against the connected cloud info service
-func (ppV *pathParamValidator) Validate(params interface{}) error {
+func (ppV *pathParamValidator) ValidatePathParams(params interface{}) error {
 
 	var (
 		pathParams GetRecommendationParams

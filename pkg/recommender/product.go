@@ -46,8 +46,8 @@ type CloudInfoClient struct {
 }
 
 const (
-	cloudInfoErrTag    = "cloud-info"
-	cloudInfoCliErrTag = "cloud-info-client"
+	cloudInfoService         = "cloud-info"
+	cloudInfoClientComponent = "cloud-info-client"
 )
 
 // NewCloudInfoClient creates a new product info client wrapper instance
@@ -59,7 +59,7 @@ func NewCloudInfoClient(ciUrl string, logger logur.Logger) *CloudInfoClient {
 	})
 	return &CloudInfoClient{
 		APIClient: apiCli,
-		logger:    logur.WithFields(logger, map[string]interface{}{"cli": "ciClient"}),
+		logger:    logur.WithFields(logger, map[string]interface{}{"cli": cloudInfoClientComponent}),
 	}
 }
 
@@ -223,10 +223,10 @@ func discriminateErrCtx(err error) error {
 
 	if _, ok := err.(*runtime.APIError); ok {
 		// the service can be reached
-		return emperror.With(err, cloudInfoErrTag)
+		return emperror.With(err, cloudInfoService)
 	}
 	// handle other cloud info errors here
 
 	// probably connectivity error (should it be analized further?!)
-	return emperror.With(err, cloudInfoCliErrTag)
+	return emperror.With(err, cloudInfoClientComponent)
 }

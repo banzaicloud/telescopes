@@ -96,7 +96,7 @@ type ClusterRecommendationReq struct {
 // swagger:model recommendMultiCluster
 type MultiClusterRecommendationReq struct {
 	Providers  []Provider `json:"providers" binding:"required"`
-	Continents []string   `json:"continents" binding:"required,dive,continents"`
+	Continents []string   `json:"continents"`
 	// Embedded struct
 	ClusterRecommendationReq
 	// Excludes is a blacklist - a slice with vm types to be excluded from the recommendation
