@@ -24,7 +24,6 @@ require (
 	github.com/goph/logur v0.11.0
 	github.com/gorilla/websocket v1.4.0 // indirect
 	github.com/grpc-ecosystem/go-grpc-middleware v1.0.0 // indirect
-	github.com/hashicorp/nomad v0.8.7
 	github.com/mitchellh/mapstructure v1.1.2
 	github.com/moogar0880/problems v0.0.0-20180130003543-91791093a28a
 	github.com/pkg/errors v0.8.1
