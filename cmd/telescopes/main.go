@@ -29,6 +29,7 @@ package main
 import (
 	"fmt"
 	"net/url"
+	"strings"
 
 	"github.com/banzaicloud/telescopes/internal/app/telescopes/api"
 	"github.com/banzaicloud/telescopes/internal/platform/buildinfo"
@@ -122,6 +123,7 @@ func main() {
 }
 
 func parseCloudInfoAddress(ciUrl string) *url.URL {
+	ciUrl = strings.TrimSuffix(ciUrl, "/")
 	u, err := url.ParseRequestURI(ciUrl)
 	emperror.Panic(errors.Wrap(err, fmt.Sprintf("invalid URI: %s", ciUrl)))
 	return u
