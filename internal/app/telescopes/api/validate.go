@@ -126,7 +126,7 @@ func (ppV *pathParamValidator) ValidateContinents(continents []string) error {
 
 		return errors.Errorf("unsupported continent(s) %s", notfound)
 	}
-	
+
 	return nil
 }
 
