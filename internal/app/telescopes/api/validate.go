@@ -21,7 +21,6 @@ import (
 	"github.com/banzaicloud/telescopes/pkg/recommender"
 	"github.com/gin-gonic/gin/binding"
 	"github.com/goph/emperror"
-	"github.com/hashicorp/nomad/helper"
 	"github.com/pkg/errors"
 	"gopkg.in/go-playground/validator.v8"
 )
@@ -94,15 +93,40 @@ type pathParamValidator struct {
 }
 
 func (ppV *pathParamValidator) ValidateContinents(continents []string) error {
+
 	ciContinents, err := ppV.ciCli.GetContinents()
 	if err != nil {
+
 		return err
 	}
 
-	if ok, diff := helper.SliceStringIsSubset(ciContinents, continents); !ok {
-		return errors.Errorf("unsupported continent(s) %s", diff)
+	var (
+		found    bool
+		notfound = make([]string, 0)
+	)
+
+	for _, continent := range continents {
+
+		found = false
+		for _, ciContinent := range ciContinents {
+
+			if continent == ciContinent {
+
+				found = true
+				continue
+			}
+		}
+
+		if !found {
+			notfound = append(notfound, continent)
+		}
 	}
 
+	if len(notfound) > 0 {
+
+		return errors.Errorf("unsupported continent(s) %s", notfound)
+	}
+	
 	return nil
 }
 
