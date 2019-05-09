@@ -56,7 +56,7 @@ func (r *RouteHandler) recommendCluster() gin.HandlerFunc {
 
 		logger.Info("recommend cluster setup")
 
-		if err := NewCloudInfoValidator(r.ciCli).Validate(pathParams); err != nil {
+		if err := NewCloudInfoValidator(r.ciCli).ValidatePathParams(pathParams); err != nil {
 			errorresponse.NewErrorResponder(c).Respond(err)
 			return
 		}
@@ -109,7 +109,7 @@ func (r *RouteHandler) recommendClusterScaleOut() gin.HandlerFunc {
 
 		logger.Info("recommend cluster scale out")
 
-		if e := NewCloudInfoValidator(r.ciCli).Validate(pathParams); e != nil {
+		if e := NewCloudInfoValidator(r.ciCli).ValidatePathParams(pathParams); e != nil {
 			errorresponse.NewErrorResponder(c).Respond(e)
 			return
 		}
@@ -156,12 +156,13 @@ func (r *RouteHandler) recommendMultiCluster() gin.HandlerFunc {
 
 		req := recommender.MultiClusterRecommendationReq{}
 		if err := c.BindJSON(&req); err != nil {
-			logger.Error(emperror.Wrap(err, "failed to bind request body").Error())
-			c.JSON(http.StatusBadRequest, gin.H{
-				"code":    "bad_params",
-				"message": "validation failed",
-				"cause":   err.Error(),
-			})
+			errorresponse.NewErrorResponder(c).Respond(
+				emperror.WrapWith(err, "failed to bind request body", classifier.ValidationErrTag))
+			return
+		}
+
+		if err := NewCloudInfoValidator(r.ciCli).ValidateContinents(req.Continents); err != nil {
+			errorresponse.NewErrorResponder(c).Respond(emperror.With(err, classifier.ValidationErrTag))
 			return
 		}
 
