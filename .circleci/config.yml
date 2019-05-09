@@ -1,5 +1,8 @@
 version: 2.1
 
+orbs:
+    helm: banzaicloud/helm@0.0.3
+
 executors:
     docker:
         docker:
@@ -145,3 +148,20 @@ workflows:
             - unit-tests:
                   requires:
                       - dependencies
+
+    helm-chart:
+        jobs:
+            - helm/lint-chart:
+                  chart-path: charts/telescopes
+                  filters:
+                      tags:
+                          ignore: /.*/
+
+            - helm/publish-chart:
+                  context: helm
+                  chart-path: charts/telescopes
+                  filters:
+                      branches:
+                          ignore: /.*/
+                      tags:
+                          only: /chart\/telescopes\/\d+.\d+.\d+/
