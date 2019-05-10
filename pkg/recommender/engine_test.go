@@ -27,6 +27,22 @@ type dummyProducts struct {
 	TcId string
 }
 
+func (p *dummyProducts) GetContinents() ([]string, error) {
+	panic("implement me")
+}
+
+func (p *dummyProducts) GetRegion(provider string, service string, region string) (string, error) {
+	panic("implement me")
+}
+
+func (p *dummyProducts) GetProvider(provider string) (string, error) {
+	panic("implement me")
+}
+
+func (p *dummyProducts) GetService(provider string, service string) (string, error) {
+	panic("implement me")
+}
+
 func (p *dummyProducts) GetContinentsData(provider, service string) ([]cloudinfo.Continent, error) {
 	panic("implement me")
 }
