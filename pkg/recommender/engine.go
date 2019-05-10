@@ -210,7 +210,10 @@ func (e *Engine) getCheapestNodePoolSet(provider string, req SingleClusterRecomm
 				continue
 			}
 			if req.SumCpu < 0 && req.SumMem < 0 {
-				return nil, emperror.With(fmt.Errorf("there's already enough resources in the cluster. Total resources available: CPU: %v, Mem: %v", desiredCpu-req.SumCpu, desiredMem-req.SumMem), RecommenderErrorTag)
+				return nil, emperror.With(
+					fmt.Errorf("there are enough resources in the clusteralready. "+
+						"Total resources available: CPU: %v, Mem: %v",
+						desiredCpu-req.SumCpu, desiredMem-req.SumMem), RecommenderErrorTag)
 			}
 		}
 
