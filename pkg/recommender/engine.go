@@ -210,13 +210,13 @@ func (e *Engine) getCheapestNodePoolSet(provider string, req SingleClusterRecomm
 				continue
 			}
 			if req.SumCpu < 0 && req.SumMem < 0 {
-				return nil, emperror.With(fmt.Errorf("there's already enough resources in the cluster. Total resources available: CPU: %v, Mem: %v", desiredCpu-req.SumCpu, desiredMem-req.SumMem))
+				return nil, emperror.With(fmt.Errorf("there's already enough resources in the cluster. Total resources available: CPU: %v, Mem: %v", desiredCpu-req.SumCpu, desiredMem-req.SumMem), RecommenderErrorTag)
 			}
 		}
 
 		odVms, spotVms, err := e.vmSelector.RecommendVms(provider, vmsInRange, attr, req, layout)
 		if err != nil {
-			return nil, emperror.Wrap(err, "failed to recommend virtual machines")
+			return nil, emperror.WrapWith(err, "failed to recommend virtual machines", RecommenderErrorTag)
 		}
 
 		if (len(odVms) == 0 && req.OnDemandPct > 0) || (len(spotVms) == 0 && req.OnDemandPct < 100) {
@@ -235,7 +235,7 @@ func (e *Engine) getCheapestNodePoolSet(provider string, req SingleClusterRecomm
 	}
 
 	if len(nodePools) == 0 {
-		e.log.Debug(fmt.Sprintf("could not recommend node pools for request: %v", req))
+		e.log.Debug(fmt.Sprintf("could not recommend node pools for request: %#v", req))
 		return nil, emperror.With(errors.New("could not recommend cluster with the requested resources"), RecommenderErrorTag)
 	}
 
@@ -277,16 +277,20 @@ func (e *Engine) RecommendMultiCluster(req MultiClusterRecommendationReq) (map[s
 	respPerService := make(map[string][]*ClusterRecommendationResp)
 
 	for _, provider := range req.Providers {
+
 		for _, service := range provider.Services {
+
 			regions, err := e.getRegions(provider.Provider, service, req.Continents)
 			if err != nil {
-				return nil, err
+				return nil, emperror.With(err, RecommenderErrorTag)
 			}
 
 			var responses []*ClusterRecommendationResp
 			for _, region := range regions {
+
 				if response, err := e.recommendCluster(provider.Provider, service, region, req); err != nil {
-					return nil, err
+
+					return nil, emperror.With(err, RecommenderErrorTag)
 				} else if response != nil {
 					responses = append(responses, response)
 				}
@@ -301,8 +305,9 @@ func (e *Engine) RecommendMultiCluster(req MultiClusterRecommendationReq) (map[s
 	}
 
 	if len(respPerService) == 0 {
-		return nil, errors.New("failed to recommend clusters")
+		return nil, emperror.With(errors.New("failed to recommend clusters"), RecommenderErrorTag)
 	}
+
 	return respPerService, nil
 }
 
