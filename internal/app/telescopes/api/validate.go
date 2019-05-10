@@ -39,7 +39,7 @@ const (
 )
 
 // ConfigureValidator configures the Gin validator with custom validator functions
-func ConfigureValidator(ciCli *recommender.CloudInfoClient) error {
+func ConfigureValidator() error {
 	v := binding.Validator.Engine().(*validator.Validate)
 
 	if err := v.RegisterValidation("networkPerf", networkPerfValidator()); err != nil {
@@ -89,7 +89,7 @@ type CloudInfoValidator interface {
 }
 
 type pathParamValidator struct {
-	ciCli *recommender.CloudInfoClient
+	ciCli recommender.CloudInfoSource
 }
 
 func (ppV *pathParamValidator) ValidateContinents(continents []string) error {
@@ -184,6 +184,6 @@ func (ppV *pathParamValidator) validateRegion(prv, svc, region string) error {
 	return nil
 }
 
-func NewCloudInfoValidator(ciCli *recommender.CloudInfoClient) CloudInfoValidator {
+func NewCloudInfoValidator(ciCli recommender.CloudInfoSource) CloudInfoValidator {
 	return &pathParamValidator{ciCli}
 }

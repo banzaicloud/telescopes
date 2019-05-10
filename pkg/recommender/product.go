@@ -34,13 +34,25 @@ type CloudInfoSource interface {
 	//GetContinentsData retrieves continents data
 	GetContinentsData(provider, service string) ([]cloudinfo.Continent, error)
 
-	//GetContinentsData retrieves zones
+	//GetZones retrieves zones
 	GetZones(provider, service, region string) ([]string, error)
+
+	//GetContinents retrieves supported continents
+	GetContinents() ([]string, error)
+
+	//GetRegion retrieves the region for the provided arguments, returns error if not found
+	GetRegion(provider string, service string, region string) (string, error)
+
+	//GetProvider retrieves the given provider,returns error if not found
+	GetProvider(provider string) (string, error)
+
+	//GetService  retrieves the given service, returns error if not found
+	GetService(provider string, service string) (string, error)
 }
 
-// CloudInfoClient application struct to retrieve data for the recommender; wraps the generated product info client
+// cloudInfoClient component struct to retrieve data for the recommender; wraps the generated product info client
 // It implements the CloudInfoSource interface, delegates to the embedded generated client
-type CloudInfoClient struct {
+type cloudInfoClient struct {
 	logger logur.Logger
 	*cloudinfo.APIClient
 }
@@ -51,20 +63,20 @@ const (
 )
 
 // NewCloudInfoClient creates a new product info client wrapper instance
-func NewCloudInfoClient(ciUrl string, logger logur.Logger) *CloudInfoClient {
+func NewCloudInfoClient(ciUrl string, logger logur.Logger) CloudInfoSource {
 	apiCli := cloudinfo.NewAPIClient(&cloudinfo.Configuration{
 		BasePath:      ciUrl,
 		DefaultHeader: make(map[string]string),
 		UserAgent:     "Telescopes/go",
 	})
-	return &CloudInfoClient{
+	return &cloudInfoClient{
 		APIClient: apiCli,
 		logger:    logur.WithFields(logger, map[string]interface{}{"cli": cloudInfoClientComponent}),
 	}
 }
 
 // GetProductDetails gets the available product details from the provider in the region
-func (ciCli *CloudInfoClient) GetProductDetails(provider string, service string, region string) ([]VirtualMachine, error) {
+func (ciCli *cloudInfoClient) GetProductDetails(provider string, service string, region string) ([]VirtualMachine, error) {
 	tags := map[string]interface{}{"provider": provider, "service": service, "region": region}
 	ciCli.logger.Info("retrieving product details", tags)
 
@@ -110,7 +122,7 @@ func avg(prices []cloudinfo.ZonePrice) float64 {
 }
 
 // GetProvider validates provider
-func (ciCli *CloudInfoClient) GetProvider(prv string) (string, error) {
+func (ciCli *cloudInfoClient) GetProvider(prv string) (string, error) {
 	tags := map[string]interface{}{"provider": prv}
 	ciCli.logger.Info("retrieving provider", tags)
 
@@ -126,7 +138,7 @@ func (ciCli *CloudInfoClient) GetProvider(prv string) (string, error) {
 }
 
 // GetService validates service
-func (ciCli *CloudInfoClient) GetService(prv string, svc string) (string, error) {
+func (ciCli *cloudInfoClient) GetService(prv string, svc string) (string, error) {
 	tags := map[string]interface{}{"provider": prv, "service": svc}
 	ciCli.logger.Info("retrieving service", tags)
 
@@ -142,7 +154,7 @@ func (ciCli *CloudInfoClient) GetService(prv string, svc string) (string, error)
 }
 
 // GetRegion validates region
-func (ciCli *CloudInfoClient) GetRegion(prv, svc, reg string) (string, error) {
+func (ciCli *cloudInfoClient) GetRegion(prv, svc, reg string) (string, error) {
 	tags := map[string]interface{}{"provider": prv, "service": svc, "region": reg}
 	ciCli.logger.Info("retrieving region", tags)
 
@@ -158,7 +170,7 @@ func (ciCli *CloudInfoClient) GetRegion(prv, svc, reg string) (string, error) {
 }
 
 // GetZones get zones
-func (ciCli *CloudInfoClient) GetZones(provider, service, region string) ([]string, error) {
+func (ciCli *cloudInfoClient) GetZones(provider, service, region string) ([]string, error) {
 	tags := map[string]interface{}{"provider": provider, "service": service, "region": region}
 	ciCli.logger.Info("retrieving zones", tags)
 
@@ -174,7 +186,7 @@ func (ciCli *CloudInfoClient) GetZones(provider, service, region string) ([]stri
 }
 
 // GetRegions gets regions
-func (ciCli *CloudInfoClient) GetRegions(provider, service string) ([]cloudinfo.Region, error) {
+func (ciCli *cloudInfoClient) GetRegions(provider, service string) ([]cloudinfo.Region, error) {
 
 	tags := map[string]interface{}{"provider": provider, "service": service}
 	ciCli.logger.Info("retrieving regions", tags)
@@ -190,7 +202,7 @@ func (ciCli *CloudInfoClient) GetRegions(provider, service string) ([]cloudinfo.
 	return r, nil
 }
 
-func (ciCli *CloudInfoClient) GetContinentsData(provider, service string) ([]cloudinfo.Continent, error) {
+func (ciCli *cloudInfoClient) GetContinentsData(provider, service string) ([]cloudinfo.Continent, error) {
 	tags := map[string]interface{}{"provider": provider, "service": service}
 	ciCli.logger.Info("retrieving continent data", tags)
 
@@ -206,7 +218,7 @@ func (ciCli *CloudInfoClient) GetContinentsData(provider, service string) ([]clo
 }
 
 // GetContinents gets continents
-func (ciCli *CloudInfoClient) GetContinents() ([]string, error) {
+func (ciCli *cloudInfoClient) GetContinents() ([]string, error) {
 	ciCli.logger.Info("retrieving continents")
 	c, _, err := ciCli.ContinentsApi.GetContinents(context.Background())
 
@@ -219,6 +231,7 @@ func (ciCli *CloudInfoClient) GetContinents() ([]string, error) {
 	return c, nil
 }
 
+// discriminateErrCtx adds tags to the error context in order to classify them later
 func discriminateErrCtx(err error) error {
 
 	if _, ok := err.(*runtime.APIError); ok {

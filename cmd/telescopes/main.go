@@ -89,7 +89,7 @@ func main() {
 	ciCli := recommender.NewCloudInfoClient(piUrl.String(), logger)
 
 	// configure the gin validator
-	err = api.ConfigureValidator(ciCli)
+	err = api.ConfigureValidator()
 	emperror.Panic(err)
 
 	vmSelector := vms.NewVmSelector(logger)
