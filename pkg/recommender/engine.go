@@ -211,7 +211,7 @@ func (e *Engine) getCheapestNodePoolSet(provider string, req SingleClusterRecomm
 			}
 			if req.SumCpu < 0 && req.SumMem < 0 {
 				return nil, emperror.With(
-					fmt.Errorf("there are enough resources in the clusteralready. "+
+					fmt.Errorf("there are enough resources in the cluster already. "+
 						"Total resources available: CPU: %v, Mem: %v",
 						desiredCpu-req.SumCpu, desiredMem-req.SumMem), RecommenderErrorTag)
 			}
@@ -308,7 +308,7 @@ func (e *Engine) RecommendMultiCluster(req MultiClusterRecommendationReq) (map[s
 	}
 
 	if len(respPerService) == 0 {
-		return nil, emperror.With(errors.New("failed to recommend clusters"), RecommenderErrorTag)
+		return nil, emperror.With(errors.New("could not recommend clusters with the requested resources"), RecommenderErrorTag)
 	}
 
 	return respPerService, nil
