@@ -1,7 +1,7 @@
 version: 2.1
 
 orbs:
-    helm: banzaicloud/helm@0.0.3
+    helm: banzaicloud/helm@0.0.4
 
 executors:
     docker:
@@ -152,14 +152,14 @@ workflows:
     helm-chart:
         jobs:
             - helm/lint-chart:
-                  chart-path: charts/telescopes
+                  charts-dir: charts
                   filters:
                       tags:
                           ignore: /.*/
 
             - helm/publish-chart:
                   context: helm
-                  chart-path: charts/telescopes
+                  charts-dir: charts
                   filters:
                       branches:
                           ignore: /.*/
