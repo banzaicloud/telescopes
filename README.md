@@ -6,7 +6,7 @@
 
 *Telescopes is a world-class left that offers lots of surfing flexibility and allows entry to a flawless, steady tube section. It's predictable and rarely pinches, is deeper than other reefs and handles the constant traffic of intermediates and experts alike.*
 
-*Telescopes is a cluster instance types and full cluster layout recommender consisting of on-demand and EC2 spot or Google Cloud preemptible instances. Based on predefined resource requirements as CPU, memory, GPU, network, etc it recommends a diverse set of cost optimized node pools.*
+*Telescopes is a cloud instance types and full cluster layout recommender consisting of on-demand and spot/preemptible AWS EC2, Google, Azure, Oracle and Alibaba cloud instances. Based on predefined resource requirements as CPU, memory, GPU, network, etc it recommends a diverse set of cost optimized node pools.*
 
 Telescopes is a core building block of the Pipeline platform. Check out the developer beta:
 <p align="center">
