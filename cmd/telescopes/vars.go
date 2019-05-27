@@ -27,5 +27,6 @@ const (
 	// envPrefix is prepended to environment variables when processing configuration.
 	envPrefix = "telescopes"
 
+	// nolint
 	cfgAppRole = "telescopes-app-role"
 )

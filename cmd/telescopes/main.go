@@ -106,8 +106,8 @@ func main() {
 
 	if !config.App.DevMode {
 		logger.Debug("enable authentication")
-		appRole := viper.GetString(cfgAppRole)
-		routeHandler.EnableAuth(router, appRole, config.App.Vault.TokenSigningKey)
+		//appRole := viper.GetString(cfgAppRole)
+		//routeHandler.EnableAuth(router, appRole, config.App.Vault.TokenSigningKey)
 	}
 
 	// add prometheus metric endpoint

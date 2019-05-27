@@ -20,10 +20,11 @@ import (
 	"strings"
 	"time"
 
-	"github.com/banzaicloud/telescopes/internal/platform/log"
-	"github.com/banzaicloud/telescopes/internal/platform/metrics"
 	"github.com/spf13/pflag"
 	"github.com/spf13/viper"
+
+	"github.com/banzaicloud/telescopes/internal/platform/log"
+	"github.com/banzaicloud/telescopes/internal/platform/metrics"
 )
 
 // configuration holds any kind of configuration that comes from the outside world and
@@ -46,7 +47,9 @@ type configuration struct {
 		Address string
 
 		DevMode bool
-		Vault   struct {
+
+		// nolint: unused
+		Vault struct {
 			TokenSigningKey string
 		}
 	}
@@ -101,7 +104,7 @@ func Configure(v *viper.Viper, p *pflag.FlagSet) {
 	_ = v.BindPFlag("cloudinfo.address", p.Lookup("cloudinfo-address"))
 	_ = v.BindEnv("cloudinfo.address", "CLOUDINFO_ADDRESS")
 
-	//operating mode
+	// operating mode
 	p.Bool("dev-mode", false, "development mode, if true token based authentication is disabled, false by default")
 	_ = v.BindPFlag("app.devmode", p.Lookup("dev-mode"))
 	_ = v.BindEnv("app.devmode", "DEV_MODE")
