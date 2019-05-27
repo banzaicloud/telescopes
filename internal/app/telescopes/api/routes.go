@@ -20,12 +20,13 @@ import (
 
 	"github.com/banzaicloud/bank-vaults/pkg/auth"
 	ginprometheus "github.com/banzaicloud/go-gin-prometheus"
-	"github.com/banzaicloud/telescopes/internal/platform/buildinfo"
-	"github.com/banzaicloud/telescopes/internal/platform/log"
-	"github.com/banzaicloud/telescopes/pkg/recommender"
 	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
 	"github.com/goph/logur"
+
+	"github.com/banzaicloud/telescopes/internal/platform/buildinfo"
+	"github.com/banzaicloud/telescopes/internal/platform/log"
+	"github.com/banzaicloud/telescopes/pkg/recommender"
 )
 
 const (
@@ -51,20 +52,6 @@ func NewRouteHandler(engine recommender.ClusterRecommender, info buildinfo.Build
 	}
 }
 
-func getCorsConfig() cors.Config {
-	config := cors.DefaultConfig()
-	config.AllowAllOrigins = true
-	if !config.AllowAllOrigins {
-		config.AllowOrigins = []string{"http://", "https://"}
-	}
-	config.AllowMethods = []string{http.MethodPut, http.MethodDelete, http.MethodGet, http.MethodPost, http.MethodOptions}
-	config.AllowHeaders = []string{"Origin", "Authorization", "Content-Type"}
-	config.ExposeHeaders = []string{"Content-Length"}
-	config.AllowCredentials = true
-	config.MaxAge = 12
-	return config
-}
-
 // ConfigureRoutes configures the gin engine, defines the rest API for this application
 func (r *RouteHandler) ConfigureRoutes(router *gin.Engine) {
 	r.log.Info("configuring routes")
@@ -77,7 +64,7 @@ func (r *RouteHandler) ConfigureRoutes(router *gin.Engine) {
 
 	router.Use(log.MiddlewareCorrelationId())
 	router.Use(log.Middleware())
-	router.Use(cors.New(getCorsConfig()))
+	router.Use(cors.Default())
 
 	base := router.Group(basePath)
 	{
