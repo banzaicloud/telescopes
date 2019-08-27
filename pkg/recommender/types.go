@@ -54,7 +54,7 @@ type NodePoolRecommender interface {
 }
 
 // SingleClusterRecommendationReq encapsulates the recommendation input data
-// swagger:parameters recommendCluster
+// swagger:model recommendClusterRequest
 type SingleClusterRecommendationReq struct {
 	// Embedded struct
 	ClusterRecommendationReq
@@ -93,7 +93,7 @@ type ClusterRecommendationReq struct {
 }
 
 // MultiClusterRecommendationReq encapsulates the recommendation input data
-// swagger:model recommendMultiCluster
+// swagger:model recommendMultiClusterRequest
 type MultiClusterRecommendationReq struct {
 	Providers  []Provider `json:"providers" binding:"required"`
 	Continents []string   `json:"continents"`
@@ -107,14 +107,13 @@ type MultiClusterRecommendationReq struct {
 	RespPerService int `json:"respPerService" binding:"required"`
 }
 
-// swagger:parameters recommendMultiCluster
 type Provider struct {
 	Provider string   `json:"provider"`
 	Services []string `json:"services"`
 }
 
 // ClusterScaleoutRecommendationReq encapsulates the recommendation input data
-// swagger:parameters recommendClusterScaleOut
+// swagger:model recommendClusterScaleOutRequest
 type ClusterScaleoutRecommendationReq struct {
 	// Total desired number of CPUs in the cluster after the scale out
 	DesiredCpu float64 `json:"desiredCpu" binding:"min=1"`
@@ -156,7 +155,6 @@ func (n *NodePoolDesc) GetVmClass() string {
 }
 
 // ClusterRecommendationResp encapsulates recommendation result data
-// swagger:model RecommendationResponse
 type ClusterRecommendationResp struct {
 	// The cloud provider
 	Provider string `json:"provider"`
