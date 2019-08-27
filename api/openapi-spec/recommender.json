@@ -21,15 +21,7 @@
   "paths": {
     "/recommender/multicloud": {
       "post": {
-        "consumes": [
-          "application/json"
-        ],
-        "produces": [
-          "application/json"
-        ],
-        "schemes": [
-          "http"
-        ],
+        "description": "Provides a recommended set of node pools on a given provider in a specific region.",
         "tags": [
           "recommend"
         ],
@@ -37,26 +29,20 @@
         "operationId": "recommendMultiCluster",
         "parameters": [
           {
-            "type": "string",
-            "x-go-name": "Provider",
-            "name": "provider",
-            "in": "query"
-          },
-          {
-            "type": "array",
-            "items": {
-              "type": "string"
-            },
-            "x-go-name": "Services",
-            "name": "services",
-            "in": "query"
+            "description": "request params",
+            "name": "recommendRequestBody",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/recommendMultiClusterRequest"
+            }
           }
         ],
         "responses": {
           "200": {
-            "description": "RecommendationResponse",
+            "description": "recommendation response",
             "schema": {
-              "$ref": "#/definitions/RecommendationResponse"
+              "$ref": "#/definitions/recommendationResponse"
             }
           }
         }
@@ -64,15 +50,7 @@
     },
     "/recommender/provider/{provider}/service/{service}/region/{region}/cluster": {
       "put": {
-        "consumes": [
-          "application/json"
-        ],
-        "produces": [
-          "application/json"
-        ],
-        "schemes": [
-          "http"
-        ],
+        "description": "Provides a recommendation for a scale-out, based on a current cluster layout on a given provider in a specific region.",
         "tags": [
           "recommend"
         ],
@@ -82,6 +60,7 @@
           {
             "type": "string",
             "x-go-name": "Provider",
+            "description": "provider",
             "name": "provider",
             "in": "path",
             "required": true
@@ -89,6 +68,7 @@
           {
             "type": "string",
             "x-go-name": "Service",
+            "description": "service",
             "name": "service",
             "in": "path",
             "required": true
@@ -96,91 +76,32 @@
           {
             "type": "string",
             "x-go-name": "Region",
+            "description": "region",
             "name": "region",
             "in": "path",
             "required": true
           },
           {
-            "type": "number",
-            "format": "double",
-            "x-go-name": "DesiredCpu",
-            "description": "Total desired number of CPUs in the cluster after the scale out",
-            "name": "desiredCpu",
-            "in": "query"
-          },
-          {
-            "type": "number",
-            "format": "double",
-            "x-go-name": "DesiredMem",
-            "description": "Total desired memory (GB) in the cluster after the scale out",
-            "name": "desiredMem",
-            "in": "query"
-          },
-          {
-            "type": "integer",
-            "format": "int64",
-            "x-go-name": "DesiredGpu",
-            "description": "Total desired number of GPUs in the cluster after the scale out",
-            "name": "desiredGpu",
-            "in": "query"
-          },
-          {
-            "type": "integer",
-            "format": "int64",
-            "x-go-name": "OnDemandPct",
-            "description": "Percentage of regular (on-demand) nodes among the scale out nodes",
-            "name": "onDemandPct",
-            "in": "query"
-          },
-          {
-            "type": "string",
-            "x-go-name": "Zone",
-            "description": "Availability zone to be included in the recommendation",
-            "name": "zone",
-            "in": "query"
-          },
-          {
-            "type": "array",
-            "items": {
-              "type": "string"
-            },
-            "x-go-name": "Excludes",
-            "description": "Excludes is a blacklist - a slice with vm types to be excluded from the recommendation",
-            "name": "excludes",
-            "in": "query"
-          },
-          {
-            "x-go-name": "ActualLayout",
-            "description": "Description of the current cluster layout",
-            "name": "actualLayout",
+            "description": "request params",
+            "name": "recommendRequestBody",
             "in": "body",
+            "required": true,
             "schema": {
-              "type": "array",
-              "items": {
-                "$ref": "#/definitions/NodePoolDesc"
-              }
+              "$ref": "#/definitions/recommendClusterScaleOutRequest"
             }
           }
         ],
         "responses": {
           "200": {
-            "description": "RecommendationResponse",
+            "description": "recommendation response",
             "schema": {
-              "$ref": "#/definitions/RecommendationResponse"
+              "$ref": "#/definitions/recommendationResponse"
             }
           }
         }
       },
       "post": {
-        "consumes": [
-          "application/json"
-        ],
-        "produces": [
-          "application/json"
-        ],
-        "schemes": [
-          "http"
-        ],
+        "description": "Provides a recommended set of node pools on a given provider in a specific region.",
         "tags": [
           "recommend"
         ],
@@ -190,6 +111,7 @@
           {
             "type": "string",
             "x-go-name": "Provider",
+            "description": "provider",
             "name": "provider",
             "in": "path",
             "required": true
@@ -197,6 +119,7 @@
           {
             "type": "string",
             "x-go-name": "Service",
+            "description": "service",
             "name": "service",
             "in": "path",
             "required": true
@@ -204,132 +127,26 @@
           {
             "type": "string",
             "x-go-name": "Region",
+            "description": "region",
             "name": "region",
             "in": "path",
             "required": true
           },
           {
-            "type": "number",
-            "format": "double",
-            "x-go-name": "SumCpu",
-            "description": "Total number of CPUs requested for the cluster",
-            "name": "sumCpu",
-            "in": "query"
-          },
-          {
-            "type": "number",
-            "format": "double",
-            "x-go-name": "SumMem",
-            "description": "Total memory requested for the cluster (GB)",
-            "name": "sumMem",
-            "in": "query"
-          },
-          {
-            "type": "integer",
-            "format": "int64",
-            "x-go-name": "MinNodes",
-            "description": "Minimum number of nodes in the recommended cluster",
-            "name": "minNodes",
-            "in": "query"
-          },
-          {
-            "type": "integer",
-            "format": "int64",
-            "x-go-name": "MaxNodes",
-            "description": "Maximum number of nodes in the recommended cluster",
-            "name": "maxNodes",
-            "in": "query"
-          },
-          {
-            "type": "boolean",
-            "x-go-name": "SameSize",
-            "description": "If true, recommended instance types will have a similar size",
-            "name": "sameSize",
-            "in": "query"
-          },
-          {
-            "type": "integer",
-            "format": "int64",
-            "x-go-name": "OnDemandPct",
-            "description": "Percentage of regular (on-demand) nodes in the recommended cluster",
-            "name": "onDemandPct",
-            "in": "query"
-          },
-          {
-            "type": "integer",
-            "format": "int64",
-            "x-go-name": "SumGpu",
-            "description": "Total number of GPUs requested for the cluster",
-            "name": "sumGpu",
-            "in": "query"
-          },
-          {
-            "type": "boolean",
-            "x-go-name": "AllowBurst",
-            "description": "Are burst instances allowed in recommendation",
-            "name": "allowBurst",
-            "in": "query"
-          },
-          {
-            "type": "array",
-            "items": {
-              "type": "string"
-            },
-            "x-go-name": "NetworkPerf",
-            "description": "NetworkPerf specifies the network performance category",
-            "name": "networkPerf",
-            "in": "query"
-          },
-          {
-            "type": "boolean",
-            "x-go-name": "AllowOlderGen",
-            "description": "AllowOlderGen allow older generations of virtual machines (applies for EC2 only)",
-            "name": "allowOlderGen",
-            "in": "query"
-          },
-          {
-            "type": "array",
-            "items": {
-              "type": "string"
-            },
-            "x-go-name": "Category",
-            "description": "Category specifies the virtual machine category",
-            "name": "category",
-            "in": "query"
-          },
-          {
-            "type": "array",
-            "items": {
-              "type": "string"
-            },
-            "x-go-name": "Excludes",
-            "description": "Excludes is a blacklist - a slice with vm types to be excluded from the recommendation",
-            "name": "excludes",
-            "in": "query"
-          },
-          {
-            "type": "array",
-            "items": {
-              "type": "string"
-            },
-            "x-go-name": "Includes",
-            "description": "Includes is a whitelist - a slice with vm types to be contained in the recommendation",
-            "name": "includes",
-            "in": "query"
-          },
-          {
-            "type": "string",
-            "x-go-name": "Zone",
-            "description": "Availability zone that the cluster should expand to",
-            "name": "zone",
-            "in": "query"
+            "description": "request params",
+            "name": "recommendRequestBody",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/recommendClusterRequest"
+            }
           }
         ],
         "responses": {
           "200": {
-            "description": "RecommendationResponse",
+            "description": "recommendation response",
             "schema": {
-              "$ref": "#/definitions/RecommendationResponse"
+              "$ref": "#/definitions/recommendationResponse"
             }
           }
         }
@@ -337,27 +154,6 @@
     }
   },
   "definitions": {
-    "AttributeResponse": {
-      "description": "AttributeResponse AttributeResponse holds attribute values",
-      "type": "object",
-      "properties": {
-        "attributeName": {
-          "description": "attribute name",
-          "type": "string",
-          "x-go-name": "AttributeName"
-        },
-        "attributeValues": {
-          "description": "attribute values",
-          "type": "array",
-          "items": {
-            "type": "number",
-            "format": "double"
-          },
-          "x-go-name": "AttributeValues"
-        }
-      },
-      "x-go-package": "github.com/banzaicloud/telescopes/vendor/github.com/banzaicloud/cloudinfo/pkg/cloudinfo-client/models"
-    },
     "ClusterRecommendationAccuracy": {
       "description": "ClusterRecommendationAccuracy encapsulates recommendation accuracy",
       "type": "object",
@@ -504,157 +300,51 @@
       },
       "x-go-package": "github.com/banzaicloud/telescopes/pkg/recommender"
     },
-    "ClusterRecommender": {
-      "description": "ClusterRecommender is the main entry point for cluster recommendation",
-      "type": "object",
-      "x-go-package": "github.com/banzaicloud/telescopes/pkg/recommender"
-    },
-    "ClusterScaleoutRecommendationReq": {
-      "description": "ClusterScaleoutRecommendationReq encapsulates the recommendation input data",
+    "ClusterRecommendationResp": {
+      "description": "ClusterRecommendationResp encapsulates recommendation result data",
       "type": "object",
       "properties": {
-        "actualLayout": {
-          "description": "Description of the current cluster layout\nin:body",
+        "accuracy": {
+          "$ref": "#/definitions/ClusterRecommendationAccuracy"
+        },
+        "nodePools": {
+          "description": "Recommended node pools",
           "type": "array",
           "items": {
-            "$ref": "#/definitions/NodePoolDesc"
+            "$ref": "#/definitions/NodePool"
           },
-          "x-go-name": "ActualLayout"
+          "x-go-name": "NodePools"
         },
-        "desiredCpu": {
-          "description": "Total desired number of CPUs in the cluster after the scale out",
-          "type": "number",
-          "format": "double",
-          "x-go-name": "DesiredCpu"
+        "provider": {
+          "description": "The cloud provider",
+          "type": "string",
+          "x-go-name": "Provider"
         },
-        "desiredGpu": {
-          "description": "Total desired number of GPUs in the cluster after the scale out",
-          "type": "integer",
-          "format": "int64",
-          "x-go-name": "DesiredGpu"
+        "region": {
+          "description": "Service's region",
+          "type": "string",
+          "x-go-name": "Region"
         },
-        "desiredMem": {
-          "description": "Total desired memory (GB) in the cluster after the scale out",
-          "type": "number",
-          "format": "double",
-          "x-go-name": "DesiredMem"
-        },
-        "excludes": {
-          "description": "Excludes is a blacklist - a slice with vm types to be excluded from the recommendation",
-          "type": "array",
-          "items": {
-            "type": "string"
-          },
-          "x-go-name": "Excludes"
-        },
-        "onDemandPct": {
-          "description": "Percentage of regular (on-demand) nodes among the scale out nodes",
-          "type": "integer",
-          "format": "int64",
-          "x-go-name": "OnDemandPct"
+        "service": {
+          "description": "Provider's service",
+          "type": "string",
+          "x-go-name": "Service"
         },
         "zone": {
-          "description": "Availability zone to be included in the recommendation",
+          "description": "Availability zone in the recommendation - a multi-zone recommendation means that all node pools should expand to all zones",
           "type": "string",
           "x-go-name": "Zone"
         }
       },
       "x-go-package": "github.com/banzaicloud/telescopes/pkg/recommender"
     },
-    "Continent": {
-      "description": "Continent Continent holds continent and regions of a cloud provider",
+    "ClusterRecommender": {
+      "description": "ClusterRecommender is the main entry point for cluster recommendation",
       "type": "object",
-      "properties": {
-        "name": {
-          "description": "name",
-          "type": "string",
-          "x-go-name": "Name"
-        },
-        "regions": {
-          "description": "regions",
-          "type": "array",
-          "items": {
-            "$ref": "#/definitions/Region"
-          },
-          "x-go-name": "Regions"
-        }
-      },
-      "x-go-package": "github.com/banzaicloud/telescopes/vendor/github.com/banzaicloud/cloudinfo/pkg/cloudinfo-client/models"
+      "x-go-package": "github.com/banzaicloud/telescopes/pkg/recommender"
     },
-    "ContinentsDataResponse": {
-      "description": "ContinentsDataResponse ContinentsDataResponse holds the list of available continents and regions of a cloud provider",
-      "type": "array",
-      "items": {
-        "$ref": "#/definitions/Continent"
-      },
-      "x-go-package": "github.com/banzaicloud/telescopes/vendor/github.com/banzaicloud/cloudinfo/pkg/cloudinfo-client/models"
-    },
-    "ContinentsResponse": {
-      "description": "ContinentsResponse ContinentsResponse holds the list of available continents",
-      "type": "array",
-      "items": {
-        "type": "string"
-      },
-      "x-go-package": "github.com/banzaicloud/telescopes/vendor/github.com/banzaicloud/cloudinfo/pkg/cloudinfo-client/models"
-    },
-    "GetAttributeValuesPathParams": {
-      "description": "GetAttributeValuesPathParams GetAttributeValuesPathParams is a placeholder for the get attribute values route's path parameters",
-      "type": "object",
-      "properties": {
-        "attribute": {
-          "description": "in:path",
-          "type": "string",
-          "x-go-name": "Attribute"
-        },
-        "provider": {
-          "description": "in:path",
-          "type": "string",
-          "x-go-name": "Provider"
-        },
-        "region": {
-          "description": "in:path",
-          "type": "string",
-          "x-go-name": "Region"
-        },
-        "service": {
-          "description": "in:path",
-          "type": "string",
-          "x-go-name": "Service"
-        }
-      },
-      "x-go-package": "github.com/banzaicloud/telescopes/vendor/github.com/banzaicloud/cloudinfo/pkg/cloudinfo-client/models"
-    },
-    "GetImagesQueryParams": {
-      "description": "GetImagesQueryParams GetImagesQueryParams is a placeholder for the get images query parameters",
-      "type": "object",
-      "properties": {
-        "gpu": {
-          "description": "in:query",
-          "type": "string",
-          "x-go-name": "Gpu"
-        },
-        "version": {
-          "description": "in:query",
-          "type": "string",
-          "x-go-name": "Version"
-        }
-      },
-      "x-go-package": "github.com/banzaicloud/telescopes/vendor/github.com/banzaicloud/cloudinfo/pkg/cloudinfo-client/models"
-    },
-    "GetProviderPathParams": {
-      "description": "GetProviderPathParams GetProviderPathParams is a placeholder for the providers related route path parameters",
-      "type": "object",
-      "properties": {
-        "provider": {
-          "description": "in:path",
-          "type": "string",
-          "x-go-name": "Provider"
-        }
-      },
-      "x-go-package": "github.com/banzaicloud/telescopes/vendor/github.com/banzaicloud/cloudinfo/pkg/cloudinfo-client/models"
-    },
-    "GetRegionPathParams": {
-      "description": "GetRegionPathParams GetRegionPathParams is a placeholder for the regions related route path parameters",
+    "GetRecommendationParams": {
+      "description": "GetRecommendationParams is a placeholder for the recommendation route's path parameters",
       "type": "object",
       "properties": {
         "provider": {
@@ -673,111 +363,7 @@
           "x-go-name": "Service"
         }
       },
-      "x-go-package": "github.com/banzaicloud/telescopes/vendor/github.com/banzaicloud/cloudinfo/pkg/cloudinfo-client/models"
-    },
-    "GetRegionResp": {
-      "description": "GetRegionResp GetRegionResp holds the detailed description of a specific region of a cloud provider",
-      "type": "object",
-      "properties": {
-        "id": {
-          "description": "Id",
-          "type": "string",
-          "x-go-name": "ID"
-        },
-        "name": {
-          "description": "name",
-          "type": "string",
-          "x-go-name": "Name"
-        },
-        "zones": {
-          "description": "zones",
-          "type": "array",
-          "items": {
-            "type": "string"
-          },
-          "x-go-name": "Zones"
-        }
-      },
-      "x-go-package": "github.com/banzaicloud/telescopes/vendor/github.com/banzaicloud/cloudinfo/pkg/cloudinfo-client/models"
-    },
-    "GetServicesPathParams": {
-      "description": "GetServicesPathParams GetServicesPathParams is a placeholder for the services related route path parameters",
-      "type": "object",
-      "properties": {
-        "provider": {
-          "description": "in:path",
-          "type": "string",
-          "x-go-name": "Provider"
-        },
-        "service": {
-          "description": "in:path",
-          "type": "string",
-          "x-go-name": "Service"
-        }
-      },
-      "x-go-package": "github.com/banzaicloud/telescopes/vendor/github.com/banzaicloud/cloudinfo/pkg/cloudinfo-client/models"
-    },
-    "Image": {
-      "description": "Image Image represents an image",
-      "type": "object",
-      "properties": {
-        "gpu": {
-          "description": "gpu available",
-          "type": "boolean",
-          "x-go-name": "GpuAvailable"
-        },
-        "name": {
-          "description": "name",
-          "type": "string",
-          "x-go-name": "Name"
-        },
-        "version": {
-          "description": "version",
-          "type": "string",
-          "x-go-name": "Version"
-        }
-      },
-      "x-go-package": "github.com/banzaicloud/telescopes/vendor/github.com/banzaicloud/cloudinfo/pkg/cloudinfo-client/models"
-    },
-    "ImagesResponse": {
-      "description": "ImagesResponse ImagesResponse holds the list of available images",
-      "type": "object",
-      "properties": {
-        "images": {
-          "description": "images",
-          "type": "array",
-          "items": {
-            "$ref": "#/definitions/Image"
-          },
-          "x-go-name": "Images"
-        }
-      },
-      "x-go-package": "github.com/banzaicloud/telescopes/vendor/github.com/banzaicloud/cloudinfo/pkg/cloudinfo-client/models"
-    },
-    "LocationVersion": {
-      "description": "LocationVersion LocationVersion struct for displaying version information per location",
-      "type": "object",
-      "properties": {
-        "default": {
-          "description": "default",
-          "type": "string",
-          "x-go-name": "Default"
-        },
-        "location": {
-          "description": "location",
-          "type": "string",
-          "x-go-name": "Location"
-        },
-        "versions": {
-          "description": "versions",
-          "type": "array",
-          "items": {
-            "type": "string"
-          },
-          "x-go-name": "Versions"
-        }
-      },
-      "x-go-package": "github.com/banzaicloud/telescopes/vendor/github.com/banzaicloud/cloudinfo/pkg/cloudinfo-client/models"
+      "x-go-package": "github.com/banzaicloud/telescopes/internal/app/telescopes/api"
     },
     "NodePool": {
       "description": "NodePool represents a set of instances with a specific vm type",
@@ -831,82 +417,89 @@
       "type": "object",
       "x-go-package": "github.com/banzaicloud/telescopes/pkg/recommender"
     },
-    "ProductDetails": {
-      "description": "ProductDetails ProductDetails extended view of the virtual machine details",
+    "Provider": {
       "type": "object",
       "properties": {
-        "attributes": {
-          "description": "attributes",
-          "type": "object",
-          "additionalProperties": {
+        "provider": {
+          "type": "string",
+          "x-go-name": "Provider"
+        },
+        "services": {
+          "type": "array",
+          "items": {
             "type": "string"
           },
-          "x-go-name": "Attributes"
+          "x-go-name": "Services"
+        }
+      },
+      "x-go-package": "github.com/banzaicloud/telescopes/pkg/recommender"
+    },
+    "VirtualMachine": {
+      "description": "VirtualMachine describes an instance type",
+      "type": "object",
+      "properties": {
+        "avgPrice": {
+          "description": "Average price of the instance (differs from on demand price in case of spot or preemptible instances)",
+          "type": "number",
+          "format": "double",
+          "x-go-name": "AvgPrice"
         },
         "burst": {
-          "description": "Burst this is derived for now",
+          "description": "Burst signals a burst type instance",
           "type": "boolean",
           "x-go-name": "Burst"
         },
         "category": {
-          "description": "category",
+          "description": "Instance type category",
           "type": "string",
           "x-go-name": "Category"
         },
         "cpusPerVm": {
-          "description": "cpus",
+          "description": "Number of CPUs in the instance type",
           "type": "number",
           "format": "double",
           "x-go-name": "Cpus"
         },
         "currentGen": {
-          "description": "CurrentGen signals whether the instance type generation is the current one. Only applies for amazon",
+          "description": "CurrentGen the vm is of current generation",
           "type": "boolean",
           "x-go-name": "CurrentGen"
         },
         "gpusPerVm": {
-          "description": "gpus",
+          "description": "Number of GPUs in the instance type",
           "type": "number",
           "format": "double",
           "x-go-name": "Gpus"
         },
         "memPerVm": {
-          "description": "mem",
+          "description": "Available memory in the instance type (GB)",
           "type": "number",
           "format": "double",
           "x-go-name": "Mem"
         },
-        "ntwPerf": {
-          "description": "ntw perf",
+        "networkPerf": {
+          "description": "NetworkPerf holds the network performance",
           "type": "string",
-          "x-go-name": "NtwPerf"
+          "x-go-name": "NetworkPerf"
         },
-        "ntwPerfCategory": {
-          "description": "ntw perf cat",
+        "networkPerfCategory": {
+          "description": "NetworkPerfCat holds the network performance category",
           "type": "string",
-          "x-go-name": "NtwPerfCat"
+          "x-go-name": "NetworkPerfCat"
         },
         "onDemandPrice": {
-          "description": "on demand price",
+          "description": "Regular price of the instance type",
           "type": "number",
           "format": "double",
           "x-go-name": "OnDemandPrice"
         },
-        "spotPrice": {
-          "description": "spot price",
-          "type": "array",
-          "items": {
-            "$ref": "#/definitions/ZonePrice"
-          },
-          "x-go-name": "SpotPrice"
-        },
         "type": {
-          "description": "type",
+          "description": "Instance type",
           "type": "string",
           "x-go-name": "Type"
         },
         "zones": {
-          "description": "zones",
+          "description": "Zones",
           "type": "array",
           "items": {
             "type": "string"
@@ -914,182 +507,13 @@
           "x-go-name": "Zones"
         }
       },
-      "x-go-package": "github.com/banzaicloud/telescopes/vendor/github.com/banzaicloud/cloudinfo/pkg/cloudinfo-client/models"
-    },
-    "ProductDetailsResponse": {
-      "description": "ProductDetailsResponse ProductDetailsResponse Api object to be mapped to product info response",
-      "type": "object",
-      "properties": {
-        "products": {
-          "description": "Products represents a slice of products for a given provider (VMs with attributes and process)",
-          "type": "array",
-          "items": {
-            "$ref": "#/definitions/ProductDetails"
-          },
-          "x-go-name": "Products"
-        },
-        "scrapingTime": {
-          "description": "ScrapingTime represents scraping time for a given provider in milliseconds",
-          "type": "string",
-          "x-go-name": "ScrapingTime"
-        }
-      },
-      "x-go-package": "github.com/banzaicloud/telescopes/vendor/github.com/banzaicloud/cloudinfo/pkg/cloudinfo-client/models"
-    },
-    "Provider": {
-      "description": "Provider Provider represents a cloud provider",
-      "type": "object",
-      "properties": {
-        "provider": {
-          "description": "provider",
-          "type": "string",
-          "x-go-name": "Provider"
-        },
-        "services": {
-          "description": "services",
-          "type": "array",
-          "items": {
-            "type": "string",
-            "$ref": "#/definitions/Service"
-          },
-          "x-go-name": "Services"
-        }
-      },
-      "x-go-package": "github.com/banzaicloud/telescopes/vendor/github.com/banzaicloud/cloudinfo/pkg/cloudinfo-client/models"
-    },
-    "ProviderResponse": {
-      "description": "ProviderResponse ProviderResponse is the response used for the requested provider",
-      "type": "object",
-      "properties": {
-        "provider": {
-          "$ref": "#/definitions/Provider"
-        }
-      },
-      "x-go-package": "github.com/banzaicloud/telescopes/vendor/github.com/banzaicloud/cloudinfo/pkg/cloudinfo-client/models"
-    },
-    "ProvidersResponse": {
-      "description": "ProvidersResponse ProvidersResponse is the response used for the supported providers",
-      "type": "object",
-      "properties": {
-        "providers": {
-          "description": "providers",
-          "type": "array",
-          "items": {
-            "$ref": "#/definitions/Provider"
-          },
-          "x-go-name": "Providers"
-        }
-      },
-      "x-go-package": "github.com/banzaicloud/telescopes/vendor/github.com/banzaicloud/cloudinfo/pkg/cloudinfo-client/models"
-    },
-    "RecommendationResponse": {
-      "description": "ClusterRecommendationResp encapsulates recommendation result data",
-      "type": "object",
-      "properties": {
-        "accuracy": {
-          "$ref": "#/definitions/ClusterRecommendationAccuracy"
-        },
-        "nodePools": {
-          "description": "Recommended node pools",
-          "type": "array",
-          "items": {
-            "$ref": "#/definitions/NodePool"
-          },
-          "x-go-name": "NodePools"
-        },
-        "provider": {
-          "description": "The cloud provider",
-          "type": "string",
-          "x-go-name": "Provider"
-        },
-        "region": {
-          "description": "Service's region",
-          "type": "string",
-          "x-go-name": "Region"
-        },
-        "service": {
-          "description": "Provider's service",
-          "type": "string",
-          "x-go-name": "Service"
-        },
-        "zone": {
-          "description": "Availability zone in the recommendation - a multi-zone recommendation means that all node pools should expand to all zones",
-          "type": "string",
-          "x-go-name": "Zone"
-        }
-      },
-      "x-go-name": "ClusterRecommendationResp",
       "x-go-package": "github.com/banzaicloud/telescopes/pkg/recommender"
     },
-    "Region": {
-      "description": "Region Region hold the id and name of a cloud provider region",
+    "VmRecommender": {
       "type": "object",
-      "properties": {
-        "id": {
-          "description": "Id",
-          "type": "string",
-          "x-go-name": "ID"
-        },
-        "name": {
-          "description": "name",
-          "type": "string",
-          "x-go-name": "Name"
-        }
-      },
-      "x-go-package": "github.com/banzaicloud/telescopes/vendor/github.com/banzaicloud/cloudinfo/pkg/cloudinfo-client/models"
+      "x-go-package": "github.com/banzaicloud/telescopes/pkg/recommender"
     },
-    "RegionsResponse": {
-      "description": "RegionsResponse RegionsResponse holds the list of available regions of a cloud provider",
-      "type": "array",
-      "items": {
-        "$ref": "#/definitions/Region"
-      },
-      "x-go-package": "github.com/banzaicloud/telescopes/vendor/github.com/banzaicloud/cloudinfo/pkg/cloudinfo-client/models"
-    },
-    "Service": {
-      "description": "it's intended to implement the ServiceDescriber interface",
-      "type": "object",
-      "title": "Service Service represents a service supported by a given provider.",
-      "properties": {
-        "isStatic": {
-          "description": "is static",
-          "type": "boolean",
-          "x-go-name": "IsStatic"
-        },
-        "service": {
-          "description": "service",
-          "type": "string",
-          "x-go-name": "Service"
-        }
-      },
-      "x-go-package": "github.com/banzaicloud/telescopes/vendor/github.com/banzaicloud/cloudinfo/pkg/cloudinfo-client/models"
-    },
-    "ServiceResponse": {
-      "description": "ServiceResponse ServiceResponse holds the list of available services",
-      "type": "object",
-      "properties": {
-        "service": {
-          "$ref": "#/definitions/Service"
-        }
-      },
-      "x-go-package": "github.com/banzaicloud/telescopes/vendor/github.com/banzaicloud/cloudinfo/pkg/cloudinfo-client/models"
-    },
-    "ServicesResponse": {
-      "description": "ServicesResponse ServicesResponse holds the list of available services",
-      "type": "object",
-      "properties": {
-        "services": {
-          "description": "services",
-          "type": "array",
-          "items": {
-            "$ref": "#/definitions/Service"
-          },
-          "x-go-name": "Services"
-        }
-      },
-      "x-go-package": "github.com/banzaicloud/telescopes/vendor/github.com/banzaicloud/cloudinfo/pkg/cloudinfo-client/models"
-    },
-    "SingleClusterRecommendationReq": {
+    "recommendClusterRequest": {
       "description": "SingleClusterRecommendationReq encapsulates the recommendation input data",
       "type": "object",
       "properties": {
@@ -1182,121 +606,63 @@
           "x-go-name": "Zone"
         }
       },
+      "x-go-name": "SingleClusterRecommendationReq",
       "x-go-package": "github.com/banzaicloud/telescopes/pkg/recommender"
     },
-    "VersionsResponse": {
-      "description": "VersionsResponse VersionsResponse holds the list of available versions",
+    "recommendClusterScaleOutRequest": {
+      "description": "ClusterScaleoutRecommendationReq encapsulates the recommendation input data",
       "type": "object",
       "properties": {
-        "versions": {
-          "description": "versions",
+        "actualLayout": {
+          "description": "Description of the current cluster layout\nin:body",
           "type": "array",
           "items": {
-            "$ref": "#/definitions/LocationVersion"
+            "$ref": "#/definitions/NodePoolDesc"
           },
-          "x-go-name": "Versions"
-        }
-      },
-      "x-go-package": "github.com/banzaicloud/telescopes/vendor/github.com/banzaicloud/cloudinfo/pkg/cloudinfo-client/models"
-    },
-    "VirtualMachine": {
-      "description": "VirtualMachine describes an instance type",
-      "type": "object",
-      "properties": {
-        "avgPrice": {
-          "description": "Average price of the instance (differs from on demand price in case of spot or preemptible instances)",
+          "x-go-name": "ActualLayout"
+        },
+        "desiredCpu": {
+          "description": "Total desired number of CPUs in the cluster after the scale out",
           "type": "number",
           "format": "double",
-          "x-go-name": "AvgPrice"
+          "x-go-name": "DesiredCpu"
         },
-        "burst": {
-          "description": "Burst signals a burst type instance",
-          "type": "boolean",
-          "x-go-name": "Burst"
+        "desiredGpu": {
+          "description": "Total desired number of GPUs in the cluster after the scale out",
+          "type": "integer",
+          "format": "int64",
+          "x-go-name": "DesiredGpu"
         },
-        "category": {
-          "description": "Instance type category",
-          "type": "string",
-          "x-go-name": "Category"
-        },
-        "cpusPerVm": {
-          "description": "Number of CPUs in the instance type",
+        "desiredMem": {
+          "description": "Total desired memory (GB) in the cluster after the scale out",
           "type": "number",
           "format": "double",
-          "x-go-name": "Cpus"
+          "x-go-name": "DesiredMem"
         },
-        "currentGen": {
-          "description": "CurrentGen the vm is of current generation",
-          "type": "boolean",
-          "x-go-name": "CurrentGen"
-        },
-        "gpusPerVm": {
-          "description": "Number of GPUs in the instance type",
-          "type": "number",
-          "format": "double",
-          "x-go-name": "Gpus"
-        },
-        "memPerVm": {
-          "description": "Available memory in the instance type (GB)",
-          "type": "number",
-          "format": "double",
-          "x-go-name": "Mem"
-        },
-        "networkPerf": {
-          "description": "NetworkPerf holds the network performance",
-          "type": "string",
-          "x-go-name": "NetworkPerf"
-        },
-        "networkPerfCategory": {
-          "description": "NetworkPerfCat holds the network performance category",
-          "type": "string",
-          "x-go-name": "NetworkPerfCat"
-        },
-        "onDemandPrice": {
-          "description": "Regular price of the instance type",
-          "type": "number",
-          "format": "double",
-          "x-go-name": "OnDemandPrice"
-        },
-        "type": {
-          "description": "Instance type",
-          "type": "string",
-          "x-go-name": "Type"
-        },
-        "zones": {
-          "description": "Zones",
+        "excludes": {
+          "description": "Excludes is a blacklist - a slice with vm types to be excluded from the recommendation",
           "type": "array",
           "items": {
             "type": "string"
           },
-          "x-go-name": "Zones"
-        }
-      },
-      "x-go-package": "github.com/banzaicloud/telescopes/pkg/recommender"
-    },
-    "VmRecommender": {
-      "type": "object",
-      "x-go-package": "github.com/banzaicloud/telescopes/pkg/recommender"
-    },
-    "ZonePrice": {
-      "description": "ZonePrice ZonePrice struct for displaying price information per zone",
-      "type": "object",
-      "properties": {
-        "price": {
-          "description": "price",
-          "type": "number",
-          "format": "double",
-          "x-go-name": "Price"
+          "x-go-name": "Excludes"
+        },
+        "onDemandPct": {
+          "description": "Percentage of regular (on-demand) nodes among the scale out nodes",
+          "type": "integer",
+          "format": "int64",
+          "x-go-name": "OnDemandPct"
         },
         "zone": {
-          "description": "zone",
+          "description": "Availability zone to be included in the recommendation",
           "type": "string",
           "x-go-name": "Zone"
         }
       },
-      "x-go-package": "github.com/banzaicloud/telescopes/vendor/github.com/banzaicloud/cloudinfo/pkg/cloudinfo-client/models"
+      "x-go-name": "ClusterScaleoutRecommendationReq",
+      "x-go-package": "github.com/banzaicloud/telescopes/pkg/recommender"
     },
-    "recommendMultiCluster": {
+    "recommendMultiClusterRequest": {
       "description": "MultiClusterRecommendationReq encapsulates the recommendation input data",
       "type": "object",
       "properties": {
@@ -1418,6 +784,45 @@
       },
       "x-go-name": "MultiClusterRecommendationReq",
       "x-go-package": "github.com/banzaicloud/telescopes/pkg/recommender"
+    },
+    "recommendationResponse": {
+      "description": "RecommendationResponse encapsulates the recommendation response",
+      "type": "object",
+      "properties": {
+        "accuracy": {
+          "$ref": "#/definitions/ClusterRecommendationAccuracy"
+        },
+        "nodePools": {
+          "description": "Recommended node pools",
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/NodePool"
+          },
+          "x-go-name": "NodePools"
+        },
+        "provider": {
+          "description": "The cloud provider",
+          "type": "string",
+          "x-go-name": "Provider"
+        },
+        "region": {
+          "description": "Service's region",
+          "type": "string",
+          "x-go-name": "Region"
+        },
+        "service": {
+          "description": "Provider's service",
+          "type": "string",
+          "x-go-name": "Service"
+        },
+        "zone": {
+          "description": "Availability zone in the recommendation - a multi-zone recommendation means that all node pools should expand to all zones",
+          "type": "string",
+          "x-go-name": "Zone"
+        }
+      },
+      "x-go-name": "RecommendationResponse",
+      "x-go-package": "github.com/banzaicloud/telescopes/internal/app/telescopes/api"
     }
   }
 }

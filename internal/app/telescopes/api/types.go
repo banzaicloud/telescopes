@@ -30,6 +30,7 @@ type GetRecommendationParams struct {
 }
 
 // RecommendationResponse encapsulates the recommendation response
+// swagger:model recommendationResponse
 type RecommendationResponse struct {
 	recommender.ClusterRecommendationResp
 }
