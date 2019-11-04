@@ -2,6 +2,8 @@ version: 2.1
 
 orbs:
     helm: banzaicloud/helm@0.0.3
+    docker: circleci/docker@0.5.14
+
 
 executors:
     docker:
@@ -32,6 +34,34 @@ commands:
                         - gomod-v1-{{ .Branch }}
                         - gomod-v1-master
                         - gomod-v1
+
+    docker-publish-latest:
+        parameters:
+            registry:
+                default: docker.io
+                description: Name of registry to use, defaults to docker.io
+                type: string
+            image:
+                description: Name of image to tag as latest
+                type: string
+            tag:
+                default: $CIRCLE_TAG
+                description: Image tag, defaults to the value of $CIRCLE_TAG
+                type: string
+            version_pattern:
+                default: '^[0-9]+\.[0-9]+\.[0-9]+$'
+                description: Publish latest only for tags matching this pattern
+                type: string
+        steps:
+            - run:
+                name: Publish latest docker image
+                command: |
+                    if echo "<<parameters.tag>>" | grep -Eq '<<parameters.version_pattern>>'; then
+                      docker tag <<parameters.image>>:<<parameters.tag>> <<parameters.registry>>/<<parameters.image>>:latest
+                      docker push <<parameters.registry>>/<<parameters.image>>:latest
+                    else
+                      echo 'Unstable version. Skip publishing latest.'
+                    fi
 
 jobs:
     dependencies:
@@ -148,6 +178,41 @@ workflows:
             - unit-tests:
                   requires:
                       - dependencies
+            - docker/publish:
+                  name: Build docker image
+                  deploy: false
+                  image: banzaicloud/telescopes
+                  tag: $CIRCLE_BRANCH
+                  filters:
+                      branches:
+                          ignore: master
+            - docker/publish:
+                  name: Publish master docker image
+                  context: dockerhub
+                  deploy: true
+                  image: banzaicloud/telescopes
+                  tag: master
+                  requires:
+                      - build
+                      - static-checks
+                      - unit-tests
+                  filters:
+                      branches:
+                          only: master
+            - docker/publish:
+                  name: Publish tagged & latest docker image
+                  context: dockerhub
+                  image: banzaicloud/telescopes
+                  tag: $CIRCLE_TAG
+                  filters:
+                      tags:
+                          only: /^[0-9]+\.[0-9]+\.[0-9]+(?:-(?:dev|rc)\.[0-9]+)?$/
+                      branches:
+                          ignore: /.*/
+                  after_build:
+                      - docker-publish-latest:
+                          image: banzaicloud/telescopes
+                          tag: $CIRCLE_TAG
 
     helm-chart:
         jobs:
