@@ -1,3 +1,4 @@
+apiVersion: v2
 name: telescopes
 home: https://banzaicloud.com
 sources:
