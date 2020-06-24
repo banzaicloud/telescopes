@@ -154,6 +154,22 @@ func (e *Engine) recommendMaster(provider, service string, req SingleClusterReco
 			}
 		}
 		return masterNodePool, nil
+
+	case "gke":
+		var masterNodePool *NodePool
+		for _, instance := range allProducts {
+			if instance.Type == "GKE Control Plane" {
+				masterNodePool = &NodePool{
+					VmType:   instance,
+					SumNodes: 1,
+					VmClass:  Regular,
+					Role:     Master,
+				}
+				break
+			}
+		}
+		return masterNodePool, nil
+
 	default:
 		e.log.Debug("service does not require master recommendation", map[string]interface{}{"provider": provider, "service": service})
 		return nil, nil
