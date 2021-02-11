@@ -8,13 +8,6 @@
 
 *Telescopes is a cloud instance types and full cluster layout recommender consisting of on-demand and spot/preemptible AWS EC2, Google, Azure, Oracle and Alibaba cloud instances. Based on predefined resource requirements as CPU, memory, GPU, network, etc it recommends a diverse set of cost optimized node pools.*
 
-Telescopes is a core building block of the Pipeline platform. Check out the developer beta:
-<p align="center">
-  <a href="https://beta.banzaicloud.io">
-  <img src="https://camo.githubusercontent.com/a487fb3128bcd1ef9fc1bf97ead8d6d6a442049a/68747470733a2f2f62616e7a6169636c6f75642e636f6d2f696d672f7472795f706970656c696e655f627574746f6e2e737667">
-  </a>
-</p>
-
 # Telescopes
 
 The `Banzai Cloud Telescopes` is a cluster recommender application; its main purpose is to recommend cluster instance types and full cluster layouts consisting EC2 spot or Google Cloud preemptible instances. The application operates on cloud provider product information retrieved from the [Cloudinfo](https://github.com/banzaicloud/cloudinfo) application.
