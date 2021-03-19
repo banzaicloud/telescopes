@@ -158,6 +158,18 @@
       "description": "ClusterRecommendationAccuracy encapsulates recommendation accuracy",
       "type": "object",
       "properties": {
+        "allocatableCpu": {
+          "description": "Number of recommended allocatable cpus",
+          "type": "number",
+          "format": "double",
+          "x-go-name": "RecAllocatableCpu"
+        },
+        "allocatableMemory": {
+          "description": "Number of recommended allocatable memory",
+          "type": "number",
+          "format": "double",
+          "x-go-name": "RecAllocatableMem"
+        },
         "cpu": {
           "description": "Number of recommended cpus",
           "type": "number",
@@ -254,6 +266,18 @@
           "format": "int64",
           "x-go-name": "MaxNodes"
         },
+        "minCpu": {
+          "description": "Max of CPUs requested by any Pod in the the cluster",
+          "type": "number",
+          "format": "double",
+          "x-go-name": "MinCpu"
+        },
+        "minMem": {
+          "description": "Max of Memory requested by any Pod in the the cluster (GB)",
+          "type": "number",
+          "format": "double",
+          "x-go-name": "MinMem"
+        },
         "minNodes": {
           "description": "Minimum number of nodes in the recommended cluster",
           "type": "integer",
@@ -338,33 +362,6 @@
       },
       "x-go-package": "github.com/banzaicloud/telescopes/pkg/recommender"
     },
-    "ClusterRecommender": {
-      "description": "ClusterRecommender is the main entry point for cluster recommendation",
-      "type": "object",
-      "x-go-package": "github.com/banzaicloud/telescopes/pkg/recommender"
-    },
-    "GetRecommendationParams": {
-      "description": "GetRecommendationParams is a placeholder for the recommendation route's path parameters",
-      "type": "object",
-      "properties": {
-        "provider": {
-          "description": "in:path",
-          "type": "string",
-          "x-go-name": "Provider"
-        },
-        "region": {
-          "description": "in:path",
-          "type": "string",
-          "x-go-name": "Region"
-        },
-        "service": {
-          "description": "in:path",
-          "type": "string",
-          "x-go-name": "Service"
-        }
-      },
-      "x-go-package": "github.com/banzaicloud/telescopes/internal/app/telescopes/api"
-    },
     "NodePool": {
       "description": "NodePool represents a set of instances with a specific vm type",
       "type": "object",
@@ -413,10 +410,6 @@
       },
       "x-go-package": "github.com/banzaicloud/telescopes/pkg/recommender"
     },
-    "NodePoolRecommender": {
-      "type": "object",
-      "x-go-package": "github.com/banzaicloud/telescopes/pkg/recommender"
-    },
     "Provider": {
       "type": "object",
       "properties": {
@@ -438,6 +431,18 @@
       "description": "VirtualMachine describes an instance type",
       "type": "object",
       "properties": {
+        "allocatableCpusPerVm": {
+          "description": "Number of allocatable CPUs in the instance type",
+          "type": "number",
+          "format": "double",
+          "x-go-name": "AllocatableCpus"
+        },
+        "allocatableMemPerVm": {
+          "description": "Allocatable memory in the instance type (GB)",
+          "type": "number",
+          "format": "double",
+          "x-go-name": "AllocatableMem"
+        },
         "avgPrice": {
           "description": "Average price of the instance (differs from on demand price in case of spot or preemptible instances)",
           "type": "number",
@@ -472,7 +477,7 @@
           "x-go-name": "Gpus"
         },
         "memPerVm": {
-          "description": "Available memory in the instance type (GB)",
+          "description": "Memory capacity in the instance type (GB)",
           "type": "number",
           "format": "double",
           "x-go-name": "Mem"
@@ -507,10 +512,6 @@
           "x-go-name": "Zones"
         }
       },
-      "x-go-package": "github.com/banzaicloud/telescopes/pkg/recommender"
-    },
-    "VmRecommender": {
-      "type": "object",
       "x-go-package": "github.com/banzaicloud/telescopes/pkg/recommender"
     },
     "recommendClusterRequest": {
@@ -556,6 +557,18 @@
           "type": "integer",
           "format": "int64",
           "x-go-name": "MaxNodes"
+        },
+        "minCpu": {
+          "description": "Max of CPUs requested by any Pod in the the cluster",
+          "type": "number",
+          "format": "double",
+          "x-go-name": "MinCpu"
+        },
+        "minMem": {
+          "description": "Max of Memory requested by any Pod in the the cluster (GB)",
+          "type": "number",
+          "format": "double",
+          "x-go-name": "MinMem"
         },
         "minNodes": {
           "description": "Minimum number of nodes in the recommended cluster",
@@ -724,6 +737,18 @@
           "type": "integer",
           "format": "int64",
           "x-go-name": "MaxNodes"
+        },
+        "minCpu": {
+          "description": "Max of CPUs requested by any Pod in the the cluster",
+          "type": "number",
+          "format": "double",
+          "x-go-name": "MinCpu"
+        },
+        "minMem": {
+          "description": "Max of Memory requested by any Pod in the the cluster (GB)",
+          "type": "number",
+          "format": "double",
+          "x-go-name": "MinMem"
         },
         "minNodes": {
           "description": "Minimum number of nodes in the recommended cluster",

@@ -171,7 +171,6 @@ func TestVmSelector_recommendAttrValues(t *testing.T) {
 		attribute string
 		check     func([]float64, error)
 	}{
-
 		{
 			name: "successfully get recommended attribute values",
 			request: recommender.SingleClusterRecommendationReq{

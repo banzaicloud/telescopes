@@ -56,6 +56,10 @@ type SingleClusterRecommendationReq struct {
 
 	// Availability zone that the cluster should expand to
 	Zone string `json:"zone,omitempty"`
+
+	//TODO(utsav): Add nodes per zone, total recommended nodes should be multiple of 'nodesPerZone'
+	// Number of nodes per zone.
+	NodesPerZone int64 `json:"nodesPerZone,omitempty"`
 }
 
 // Validate validates this single cluster recommendation req

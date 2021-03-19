@@ -99,6 +99,7 @@ func (s *vmSelector) FindVmsWithAttrValues(attr string,
 	)
 
 	if layoutDesc == nil {
+		// get all integers (vCPU / Memory) which are between [min(resourceRequest, attr), max(resourceRequest, attr)]
 		values, err = s.recommendAttrValues(allProducts, attr, req)
 		if err != nil {
 			return nil, emperror.Wrap(err, "failed to recommend attribute values")
@@ -113,11 +114,11 @@ func (s *vmSelector) FindVmsWithAttrValues(attr string,
 			for _, v := range values {
 				switch attr {
 				case recommender.Cpu:
-					if p.Cpus == v {
+					if p.AllocatableCpus == v {
 						included = true
 					}
 				case recommender.Memory:
-					if p.Mem == v {
+					if p.AllocatableMem == v {
 						included = true
 					}
 				default:
@@ -131,6 +132,7 @@ func (s *vmSelector) FindVmsWithAttrValues(attr string,
 	}
 
 	s.log.Debug("found vms", map[string]interface{}{attr: values, "vms": vms})
+	// all vms whose vm.Cpus/vm.Mem is between the allowed range i.e., [min(resourceRequest, attr), max(resourceRequest, attr)]
 	return vms, nil
 }
 
@@ -143,9 +145,9 @@ func (s *vmSelector) recommendAttrValues(allProducts []recommender.VirtualMachin
 	for _, vm := range allProducts {
 		switch attr {
 		case recommender.Cpu:
-			valueSet[vm.Cpus] = ""
+			valueSet[vm.AllocatableCpus] = ""
 		case recommender.Memory:
-			valueSet[vm.Mem] = ""
+			valueSet[vm.AllocatableMem] = ""
 		}
 	}
 	for attr := range valueSet {
@@ -159,6 +161,18 @@ func (s *vmSelector) recommendAttrValues(allProducts []recommender.VirtualMachin
 	}
 
 	return values, nil
+}
+
+func (s *vmSelector) recommendVmsWithMinResource(products []recommender.VirtualMachine, attr string, req recommender.SingleClusterRecommendationReq) []recommender.VirtualMachine {
+	var vms []recommender.VirtualMachine
+
+	for _, p := range products {
+		if p.GetAllocatableAttrValue(attr) >= minValuePerVm(req, attr) {
+			vms = append(vms, p)
+		}
+	}
+
+	return vms
 }
 
 // maxValuePerVm calculates the maximum value per node for the given attribute
@@ -177,8 +191,14 @@ func maxValuePerVm(req recommender.SingleClusterRecommendationReq, attr string) 
 func minValuePerVm(req recommender.SingleClusterRecommendationReq, attr string) float64 {
 	switch attr {
 	case recommender.Cpu:
+		if req.MinCpu != nil {
+			return *req.MinCpu
+		}
 		return req.SumCpu / float64(req.MaxNodes)
 	case recommender.Memory:
+		if req.MinMem != nil {
+			return *req.MinMem
+		}
 		return req.SumMem / float64(req.MaxNodes)
 	default:
 		return 0

@@ -51,7 +51,7 @@ deps: deps-swagger
 	go get ./...
 
 swagger:
-	swagger generate spec -m -b ./cmd/telescopes -o $(SWAGGER_REC_TMP_FILE)
+	swagger generate spec -m -w ./cmd/telescopes -o $(SWAGGER_REC_TMP_FILE)
 	swagger2openapi -y $(SWAGGER_REC_TMP_FILE) > $(SWAGGER_REC_FILE)
 
 generate-client:

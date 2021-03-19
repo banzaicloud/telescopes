@@ -79,11 +79,8 @@ func main() {
 	// Create logger (first thing after configuration loading)
 	logger := log.NewLogger(config.Log)
 
-	// Provide some basic context to all log lines
-	logger = log.WithFields(logger, map[string]interface{}{"environment": config.Environment, "application": appName})
-
 	logger.Info("initializing the application",
-		map[string]interface{}{"version": version, "commit_hash": commitHash, "build_date": buildDate})
+		map[string]interface{}{"version": version, "commit_hash": commitHash, "build_date": buildDate, "cloudInfoAddress": config.Cloudinfo.Address, "environment": config.Environment})
 
 	piUrl := parseCloudInfoAddress(config.Cloudinfo.Address)
 	ciCli := recommender.NewCloudInfoClient(piUrl.String(), logger)
