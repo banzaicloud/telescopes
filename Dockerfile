@@ -1,6 +1,6 @@
 # build stage
 FROM golang:1.12.3-alpine AS builder
-ENV GOFLAGS="-mod=readonly"
+ENV GOFLAGS="-mod=mod"
 
 RUN apk add --update --no-cache ca-certificates make git curl mercurial bzr
 
