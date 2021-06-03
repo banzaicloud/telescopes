@@ -57,11 +57,11 @@ func (s *nodePoolSelector) RecommendNodePools(attr string, req recommender.Singl
 		// find cheapest onDemand instance from the list - based on price per attribute
 		selectedOnDemand := odVms[0]
 		for _, vm := range odVms {
-			if vm.OnDemandPrice/vm.GetAttrValue(attr) < selectedOnDemand.OnDemandPrice/selectedOnDemand.GetAttrValue(attr) {
+			if vm.OnDemandPrice/vm.GetAllocatableAttrValue(attr) < selectedOnDemand.OnDemandPrice/selectedOnDemand.GetAllocatableAttrValue(attr) {
 				selectedOnDemand = vm
 			}
 		}
-		odNodesToAdd = int(math.Ceil(sumOnDemandValue / selectedOnDemand.GetAttrValue(attr)))
+		odNodesToAdd = int(math.Ceil(sumOnDemandValue / selectedOnDemand.GetAllocatableAttrValue(attr)))
 		if layout == nil {
 			odNps = append(odNps, recommender.NodePool{
 				SumNodes: odNodesToAdd,
@@ -76,7 +76,7 @@ func (s *nodePoolSelector) RecommendNodePools(attr string, req recommender.Singl
 				}
 			}
 		}
-		actualOnDemandResources = selectedOnDemand.GetAttrValue(attr) * float64(odNodesToAdd)
+		actualOnDemandResources = selectedOnDemand.GetAllocatableAttrValue(attr) * float64(odNodesToAdd)
 	}
 
 	spotNps := make([]recommender.NodePool, 0)

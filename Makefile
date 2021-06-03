@@ -11,7 +11,7 @@ BUILD_DIR ?= build
 VERSION ?= $(shell git describe --tags --exact-match 2>/dev/null || git symbolic-ref -q --short HEAD)
 COMMIT_HASH ?= $(shell git rev-parse --short HEAD 2>/dev/null)
 BUILD_DATE ?= $(shell date +%FT%T%z)
-LDFLAGS += -X main.version=${VERSION} -X main.commitHash=${COMMIT_HASH} -X main.buildDate=${BUILD_DATE}
+LDFLAGS := -X main.version=${VERSION} -X main.commitHash=${COMMIT_HASH} -X main.buildDate=${BUILD_DATE}
 export CGO_ENABLED ?= 0
 ifeq (${VERBOSE}, 1)
 	GOARGS += -v
@@ -51,7 +51,7 @@ deps: deps-swagger
 	go get ./...
 
 swagger:
-	swagger generate spec -m -b ./cmd/telescopes -o $(SWAGGER_REC_TMP_FILE)
+	swagger generate spec -m -w ./cmd/telescopes -o $(SWAGGER_REC_TMP_FILE)
 	swagger2openapi -y $(SWAGGER_REC_TMP_FILE) > $(SWAGGER_REC_FILE)
 
 generate-client:

@@ -2,7 +2,6 @@
   <configuration default="false" name="Debug" type="GoApplicationRunConfiguration" factoryName="Go Application">
     <module name="telescopes" />
     <working_directory value="$PROJECT_DIR$/" />
-    <go_parameters value="-i" />
     <parameters value="--dev-mode --cloudinfo-address=https://beta.banzaicloud.io/cloudinfo/api/v1 --log-format=logfmt --log-level=debug" />
     <kind value="PACKAGE" />
     <filePath value="$PROJECT_DIR$/" />

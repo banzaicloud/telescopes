@@ -2,12 +2,11 @@
   <configuration default="false" name="telescopes" type="GoApplicationRunConfiguration" factoryName="Go Application">
     <module name="telescopes" />
     <working_directory value="$PROJECT_DIR$/" />
-    <go_parameters value="-i" />
-    <parameters value="--log-level=debug --dev-mode=true --listen-address=:9095 --cloudinfo-address=https://alpha.dev.banzaicloud.com/cloudinfo/api/v1" />
+    <parameters value="--log-level=debug --dev-mode=true --cloudinfo-address=https://alpha.dev.banzaicloud.com/cloudinfo/api/v1" />
     <kind value="DIRECTORY" />
-    <filePath value="$PROJECT_DIR$/" />
     <package value="github.com/banzaicloud/telescopes" />
     <directory value="$PROJECT_DIR$/cmd/telescopes" />
+    <filePath value="$PROJECT_DIR$/" />
     <method v="2" />
   </configuration>
 </component>

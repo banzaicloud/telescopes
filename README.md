@@ -17,6 +17,8 @@ The `Banzai Cloud Telescopes` is a cluster recommender application; its main pur
 
 ## Quick start
 
+Blog on Recommender [banzaicloud.com](https://banzaicloud.com/docs/pipeline/features/recommender/) | [PDF](docs/Cluster_recommendation_Banzai_Cloud.pdf)  
+
 Building the project is as simple as running a `make build` command. The result is a statically linked executable binary in the `./build` directory.
 
 ```

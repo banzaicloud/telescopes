@@ -15,6 +15,7 @@
 package recommender
 
 import (
+	"fmt"
 	"testing"
 
 	"github.com/banzaicloud/telescopes/.gen/cloudinfo"
@@ -268,6 +269,62 @@ func TestEngine_findCheapestNodePoolSet(t *testing.T) {
 		t.Run(test.name, func(t *testing.T) {
 			engine := NewEngine(logur.NewTestLogger(), nil, test.vms, test.np)
 			test.check(engine.findCheapestNodePoolSet(test.nodePools))
+		})
+	}
+}
+
+func TestEngine_populateAllocatableResourceValues(t *testing.T) {
+	tests := []struct {
+		name     string
+		service  string
+		provider string
+		vms      []VirtualMachine
+		check    func(vm []VirtualMachine, err error)
+	}{
+		{
+			name:    "test for service GKE",
+			service: "gke",
+			vms: []VirtualMachine{
+				{
+					Cpus: 16,
+					Mem:  64,
+					Type: "c2-standard-16",
+				},
+				{
+					Cpus: 2,
+					Mem:  8,
+					Type: "e2-standard-2",
+				},
+				{
+					Cpus: 96,
+					Mem:  1433.6,
+					Type: "m1-megamem-96",
+				},
+				{
+					Cpus: 1,
+					Mem:  3.75,
+					Type: "n1-standard-1",
+				},
+			},
+			check: func(vms []VirtualMachine, err error) {
+				assert.Nil(t, err, "the error should be nil")
+				for _, vm := range vms {
+					assert.Less(t, vm.AllocatableCpus, vm.Cpus, fmt.Sprintf("%v:AllocatableCpus less than Capacity", vm.Type))
+					assert.Less(t, vm.AllocatableMem, vm.Mem, fmt.Sprintf("%v:AllocatableMem less than Capacity", vm.Type))
+					assert.Greater(t, vm.AllocatableCpus, 0.0, fmt.Sprintf("%v:AllocatableCpus greater than zero", vm.Type))
+					assert.Greater(t, vm.AllocatableMem, 0.0, fmt.Sprintf("%v:AllocatableMem greater than zero", vm.Type))
+				}
+			},
+		},
+	}
+
+	for _, test := range tests {
+		test := test
+		t.Run(test.name, func(t *testing.T) {
+			engine := NewEngine(logur.NewTestLogger(), nil, nil, nil)
+
+			err := engine.populateAllocatableResourceValues(test.provider, test.service, &test.vms)
+			test.check(test.vms, err)
 		})
 	}
 }

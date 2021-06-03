@@ -14,6 +14,10 @@
 
 package recommender
 
+import (
+	"math"
+)
+
 const (
 	// vm types - regular and ondemand means the same, they are both accepted on the API
 	Regular  = "regular"
@@ -71,7 +75,11 @@ type ClusterRecommendationReq struct {
 	// Total number of CPUs requested for the cluster
 	SumCpu float64 `json:"sumCpu" binding:"min=1"`
 	// Total memory requested for the cluster (GB)
-	SumMem float64 `json:"sumMem" binding:"min=1"`
+	SumMem float64 `json:"sumMem" binding:"min=0"`
+	// Max of CPUs requested by any Pod in the the cluster
+	MinCpu *float64 `json:"minCpu,omitempty"`
+	// Max of Memory requested by any Pod in the the cluster (GB)
+	MinMem *float64 `json:"minMem,omitempty"`
 	// Minimum number of nodes in the recommended cluster
 	MinNodes int `json:"minNodes,omitempty" binding:"min=1,ltefield=MaxNodes"`
 	// Maximum number of nodes in the recommended cluster
@@ -199,12 +207,21 @@ func (n NodePool) GetSum(attr string) float64 {
 	return float64(n.SumNodes) * n.VmType.GetAttrValue(attr)
 }
 
+// GetAllocSum gets the total value for the given attribute per pool
+func (n NodePool) GetAllocSum(attr string) float64 {
+	return float64(n.SumNodes) * n.VmType.GetAllocatableAttrValue(attr)
+}
+
 // ClusterRecommendationAccuracy encapsulates recommendation accuracy
 type ClusterRecommendationAccuracy struct {
 	// The summarised amount of memory in the recommended cluster
 	RecMem float64 `json:"memory"`
 	// Number of recommended cpus
 	RecCpu float64 `json:"cpu"`
+	// Number of recommended allocatable memory
+	RecAllocatableMem float64 `json:"allocatableMemory"`
+	// Number of recommended allocatable cpus
+	RecAllocatableCpu float64 `json:"allocatableCpu"`
 	// Number of recommended nodes
 	RecNodes int `json:"nodes"`
 	// Availability zone in the recommendation
@@ -233,8 +250,12 @@ type VirtualMachine struct {
 	OnDemandPrice float64 `json:"onDemandPrice"`
 	// Number of CPUs in the instance type
 	Cpus float64 `json:"cpusPerVm"`
-	// Available memory in the instance type (GB)
+	// Number of allocatable CPUs in the instance type
+	AllocatableCpus float64 `json:"allocatableCpusPerVm"`
+	// Memory capacity in the instance type (GB)
 	Mem float64 `json:"memPerVm"`
+	// Allocatable memory in the instance type (GB)
+	AllocatableMem float64 `json:"allocatableMemPerVm"`
 	// Number of GPUs in the instance type
 	Gpus float64 `json:"gpusPerVm"`
 	// Burst signals a burst type instance
@@ -259,6 +280,92 @@ func (v *VirtualMachine) GetAttrValue(attr string) float64 {
 		return v.Cpus
 	case Memory:
 		return v.Mem
+	default:
+		return 0
+	}
+}
+
+func (v *VirtualMachine) GetAllocatableAttrValue(attr string) float64 {
+	switch attr {
+	case Cpu:
+		return v.AllocatableCpus
+	case Memory:
+		return v.AllocatableMem
+	default:
+		return 0
+	}
+}
+
+func (v *VirtualMachine) ComputeAllocatableAttrValueForGKE(attr string) float64 {
+	//the resources used by kube-system pods, the amount of which varies with each Kubernetes release. These system
+	//pods generally occupy an additional 0.4 vCPU and 400 MiB memory on each node (values are approximate).
+	//ref https://cloud.google.com/kubernetes-engine/docs/concepts/cluster-architecture
+
+	//GKE reserves approximately 1.5 times more resources on Windows Server nodes, so the allocatable values are lower
+	//than the Linux values.
+	//below calculations are based on linux instances
+	switch attr {
+	case Cpu:
+		var reservedCpus float64
+		kubeSystemOverhead := 0.4
+
+		// 6% of the first core
+		if v.Cpus > 0.0 {
+			reservedCpus += 0.06 * math.Min(v.Cpus, 1.0)
+		}
+
+		// 1% of the next core (up to 2 cores)
+		if v.Cpus > 1.0 {
+			reservedCpus += 0.01 * math.Min(v.Cpus-1.0, 1.0)
+		}
+
+		// 0.5% of the next 2 cores (up to 4 cores)
+		if v.Cpus > 2.0 {
+			reservedCpus += 0.005 * math.Min(v.Cpus-2.0, 2.0)
+		}
+
+		// 0.25% of any cores above 4 cores
+		if v.Cpus > 4.0 {
+			reservedCpus += 0.0025 * math.Min(v.Cpus-4.0, math.MaxFloat64)
+		}
+
+		return v.Cpus - reservedCpus - kubeSystemOverhead
+	case Memory:
+		var reservedMemory float64
+		kubeSystemOverhead := 400.0 / 1024.0
+		evictionThreshold := 100.0 / 1024.0
+
+		//255 MiB of memory for machines with less than 1 GB of memory
+		if v.Mem < 1.0 {
+			reservedMemory += 255.0 / 1024.0
+		}
+
+		//25% of the first 4GB of memory
+		if v.Mem >= 1.0 {
+			reservedMemory += 0.25 * math.Min(v.Mem, 4.0)
+		}
+
+		//20% of the next 4GB of memory (up to 8GB)
+		if v.Mem > 4.0 {
+			reservedMemory += 0.20 * math.Min(v.Mem-4.0, 4.0)
+		}
+
+		//10% of the next 8GB of memory (up to 16GB)
+		if v.Mem > 8.0 {
+			reservedMemory += 0.10 * math.Min(v.Mem-8.0, 8.0)
+		}
+
+		//6% of the next 112GB of memory (up to 128GB)
+		if v.Mem > 16.0 {
+			reservedMemory += 0.06 * math.Min(v.Mem-16.0, 112.0)
+		}
+
+		//2% of any memory above 128GB
+		if v.Mem > 128.0 {
+			reservedMemory += 0.02 * math.Min(v.Mem-128.0, math.MaxFloat64)
+		}
+
+		return v.Mem - reservedMemory - evictionThreshold - kubeSystemOverhead
 	default:
 		return 0
 	}

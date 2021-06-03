@@ -52,6 +52,11 @@ func (e *Engine) RecommendCluster(provider string, service string, region string
 		return nil, err
 	}
 
+	err = e.populateAllocatableResourceValues(provider, service, &allProducts)
+	if err != nil {
+		return nil, err
+	}
+
 	if req.OnDemandPct != 100 {
 		availableSpotPrice := false
 		for _, vm := range allProducts {
@@ -89,6 +94,20 @@ func (e *Engine) RecommendCluster(provider string, service string, region string
 		NodePools: cheapestNodePoolSet,
 		Accuracy:  accuracy,
 	}, nil
+}
+
+func (e *Engine) populateAllocatableResourceValues(provider string, service string, allProducts *[]VirtualMachine) error {
+	for i, vm := range *allProducts {
+		switch service {
+		case "gke":
+			(*allProducts)[i].AllocatableCpus = vm.ComputeAllocatableAttrValueForGKE(Cpu)
+			(*allProducts)[i].AllocatableMem = vm.ComputeAllocatableAttrValueForGKE(Memory)
+		default:
+			(*allProducts)[i].AllocatableCpus = vm.Cpus
+			(*allProducts)[i].AllocatableMem = vm.Mem
+		}
+	}
+	return nil
 }
 
 func (e *Engine) recommendMaster(provider, service string, req SingleClusterRecommendationReq, allProducts []VirtualMachine, layoutDesc []NodePoolDesc) (*NodePool, error) {
@@ -155,6 +174,7 @@ func (e *Engine) recommendMaster(provider, service string, req SingleClusterReco
 		}
 		return masterNodePool, nil
 
+	//This is useless there aren't any instance with type "GKE Control Plane", probably Control Plane is now managed by Kubernetes
 	case "gke":
 		var masterNodePool *NodePool
 		for _, instance := range allProducts {
@@ -168,6 +188,7 @@ func (e *Engine) recommendMaster(provider, service string, req SingleClusterReco
 				break
 			}
 		}
+		// masterNodePool == null always
 		return masterNodePool, nil
 
 	default:
@@ -213,6 +234,7 @@ func (e *Engine) getCheapestNodePoolSet(provider string, req SingleClusterRecomm
 	nodePools := make(map[string][]NodePool, 2)
 
 	for _, attr := range attributes {
+		// vms between [min, max] of workload request
 		vmsInRange, err := e.vmSelector.FindVmsWithAttrValues(attr, req, layoutDesc, allProducts)
 		if err != nil {
 			return nil, emperror.With(err, RecommenderErrorTag, "vms")
@@ -435,9 +457,15 @@ func findResponseSum(zone string, nodePoolSet []NodePool) ClusterRecommendationA
 	var sumWorkerPrice float64
 	var sumMasterPrice float64
 	var sumTotalPrice float64
+	var sumAllocatableCpu float64
+	var sumAllocatableMemory float64
+
 	for _, nodePool := range nodePoolSet {
 		sumCpus += nodePool.GetSum(Cpu)
 		sumMem += nodePool.GetSum(Memory)
+		sumAllocatableCpu += nodePool.GetAllocSum(Cpu)
+		sumAllocatableMemory += nodePool.GetAllocSum(Memory)
+
 		switch nodePool.Role {
 		case Worker:
 			sumWorkerNodes += nodePool.SumNodes
@@ -458,21 +486,23 @@ func findResponseSum(zone string, nodePoolSet []NodePool) ClusterRecommendationA
 	}
 
 	return ClusterRecommendationAccuracy{
-		RecCpu:          sumCpus,
-		RecMem:          sumMem,
-		RecNodes:        sumWorkerNodes,
-		RecZone:         zone,
-		RecRegularPrice: sumRegularPrice,
-		RecRegularNodes: sumRegularNodes,
-		RecSpotPrice:    sumSpotPrice,
-		RecSpotNodes:    sumSpotNodes,
-		RecWorkerPrice:  sumWorkerPrice,
-		RecMasterPrice:  sumMasterPrice,
-		RecTotalPrice:   sumTotalPrice,
+		RecCpu:            sumCpus,
+		RecMem:            sumMem,
+		RecAllocatableCpu: sumAllocatableCpu,
+		RecAllocatableMem: sumAllocatableMemory,
+		RecNodes:          sumWorkerNodes,
+		RecZone:           zone,
+		RecRegularPrice:   sumRegularPrice,
+		RecRegularNodes:   sumRegularNodes,
+		RecSpotPrice:      sumSpotPrice,
+		RecSpotNodes:      sumSpotNodes,
+		RecWorkerPrice:    sumWorkerPrice,
+		RecMasterPrice:    sumMasterPrice,
+		RecTotalPrice:     sumTotalPrice,
 	}
 }
 
-// findCheapestNodePoolSet looks up the "cheapest" node pool set from the provided map
+// findCheapestNodePoolSet looks up the "cheapest" node pool from set of only 2 nodePools cpu and memory wise.
 func (e *Engine) findCheapestNodePoolSet(nodePoolSets map[string][]NodePool) []NodePool {
 	e.log.Info("finding cheapest pool set...")
 	var cheapestNpSet []NodePool
@@ -489,7 +519,7 @@ func (e *Engine) findCheapestNodePoolSet(nodePoolSets map[string][]NodePool) []N
 			sumMem += np.GetSum(Memory)
 		}
 		e.log.Debug("checking node pool",
-			map[string]interface{}{"attribute": attr, "cpu": sumCpus, "memory": sumMem, "price": sumPrice})
+			map[string]interface{}{"attribute": attr, "cpu": sumCpus, "memory": sumMem, "price": sumPrice, "nodePools": nodePools})
 
 		if bestPrice == 0 || bestPrice > sumPrice {
 			e.log.Debug("cheaper node pool set is found", map[string]interface{}{"price": sumPrice})

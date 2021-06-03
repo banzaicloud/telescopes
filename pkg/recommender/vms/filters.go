@@ -61,6 +61,7 @@ func (s *vmSelector) filtersForAttr(attr string, provider string, req recommende
 	// attribute specific filters
 	switch attr {
 	case recommender.Cpu:
+		// nNodes * vm.Mem >= req.SumMem
 		filters = append(filters, s.minMemRatioFilter)
 	case recommender.Memory:
 		filters = append(filters, s.minCpuRatioFilter)
@@ -93,7 +94,7 @@ func (s *vmSelector) zonesFilter(vm recommender.VirtualMachine, req recommender.
 
 func (s *vmSelector) minMemRatioFilter(vm recommender.VirtualMachine, req recommender.SingleClusterRecommendationReq) bool {
 	minMemToCpuRatio := req.SumMem / req.SumCpu
-	return minMemToCpuRatio <= vm.Mem/vm.Cpus
+	return minMemToCpuRatio <= vm.GetAllocatableAttrValue(recommender.Memory)/vm.GetAllocatableAttrValue(recommender.Cpu)
 }
 
 func (s *vmSelector) burstFilter(vm recommender.VirtualMachine, req recommender.SingleClusterRecommendationReq) bool {
@@ -102,7 +103,7 @@ func (s *vmSelector) burstFilter(vm recommender.VirtualMachine, req recommender.
 
 func (s *vmSelector) minCpuRatioFilter(vm recommender.VirtualMachine, req recommender.SingleClusterRecommendationReq) bool {
 	minCpuToMemRatio := req.SumCpu / req.SumMem
-	return minCpuToMemRatio <= vm.Cpus/vm.Mem
+	return minCpuToMemRatio <= vm.GetAllocatableAttrValue(recommender.Cpu)/vm.GetAllocatableAttrValue(recommender.Memory)
 }
 
 func (s *vmSelector) ntwPerformanceFilter(vm recommender.VirtualMachine, req recommender.SingleClusterRecommendationReq) bool {
