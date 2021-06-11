@@ -471,13 +471,12 @@ func findResponseSum(zone string, nodePoolSet []NodePool) ClusterRecommendationA
 			sumWorkerNodes += nodePool.SumNodes
 			sumWorkerPrice += nodePool.PoolPrice()
 
-			if nodePool.VmClass == Regular {
-				sumRegularPrice += nodePool.PoolPrice()
-				sumRegularNodes += nodePool.SumNodes
-			} else {
-				sumSpotPrice += nodePool.PoolPrice()
-				sumSpotNodes += nodePool.SumNodes
-			}
+			sumRegularPrice += nodePool.PoolPriceByClass(Regular)
+			sumRegularNodes += nodePool.SumNodes
+
+			sumSpotPrice += nodePool.PoolPriceByClass(Spot)
+			sumSpotNodes += nodePool.SumNodes
+
 		case Master:
 			sumMasterPrice += nodePool.PoolPrice()
 		}

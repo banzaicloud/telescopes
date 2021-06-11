@@ -84,8 +84,198 @@ This endpoint returns a recommended cluster layout on a specific provider in a s
 
 `includes`: includes is a whitelist - a list with vm types to be contained in the recommendation
 
+## Cloud Providers  
 
+*Each for request*
+```
+{
+    "sumCpu": 2.0895927540000003,
+    "sumMem": 6.07066850643605,
+    "sumGpu": 0,
+    "minNodes": 3,
+    "maxNodes": 3,
+    "allowBurst": true,
+    "sameSize": false,
+    "onDemandPct": 100
+}
+```
 
+### Google - GKE
+*Sample Response*
+```
+{
+    "provider": "google",
+    "service": "gke",
+    "region": "us-west1",
+    "nodePools": [
+        {
+            "vm": {
+                "avgPrice": 0.02,
+                "onDemandPrice": 0.0949995,
+                "cpusPerVm": 2,
+                "allocatableCpusPerVm": 1.5299999999999998,
+                "memPerVm": 7.5,
+                "allocatableMemPerVm": 5.31171875,
+                "gpusPerVm": 0,
+                "burst": false,
+                "currentGen": false,
+                "zones": [
+                    "us-west1-b",
+                    "us-west1-c",
+                    "us-west1-a"
+                ],
+                "category": "General purpose",
+                "type": "n1-standard-2",
+                "networkPerf": "4 Gbit/s",
+                "networkPerfCategory": "medium"
+            },
+            "sumNodes": 2,
+            "vmClass": "regular",
+            "role": "worker"
+        }
+    ],
+    "accuracy": {
+        "memory": 15,
+        "cpu": 4,
+        "allocatableMemory": 10.6234375,
+        "allocatableCpu": 3.0599999999999996,
+        "nodes": 2,
+        "regularPrice": 0.189999,
+        "regularNodes": 2,
+        "spotPrice": 0,
+        "spotNodes": 0,
+        "workerPrice": 0.189999,
+        "masterPrice": 0,
+        "totalPrice": 0.189999
+    }
+}
+```
+* Google manages control plane, and we do not have to explicitly provision master nodes, i.e., there are only worker nodes, and you pay only for them. The response will always be a single node pool if `onDemand=100%`  
+
+### Amazon - EKS
+*Sample Response*
+```
+{
+    "provider": "amazon",
+    "service": "eks",
+    "region": "ap-south-1",
+    "nodePools": [
+        {
+            "vm": {
+                "avgPrice": 0.0146,
+                "onDemandPrice": 0.0253,
+                "cpusPerVm": 1,
+                "allocatableCpusPerVm": 1,
+                "memPerVm": 4,
+                "allocatableMemPerVm": 4,
+                "gpusPerVm": 0,
+                "burst": false,
+                "currentGen": true,
+                "zones": null,
+                "category": "General purpose",
+                "type": "m6g.medium",
+                "networkPerf": "Up to 10 Gigabit",
+                "networkPerfCategory": "high"
+            },
+            "sumNodes": 3,
+            "vmClass": "regular",
+            "role": "worker"
+        },
+        {
+            "vm": {
+                "avgPrice": 0,
+                "onDemandPrice": 0.1,
+                "cpusPerVm": 0,
+                "allocatableCpusPerVm": 0,
+                "memPerVm": 0,
+                "allocatableMemPerVm": 0,
+                "gpusPerVm": 0,
+                "burst": false,
+                "currentGen": false,
+                "zones": null,
+                "category": "",
+                "type": "EKS Control Plane",
+                "networkPerf": "",
+                "networkPerfCategory": ""
+            },
+            "sumNodes": 1,
+            "vmClass": "regular",
+            "role": "master"
+        }
+    ],
+    "accuracy": {
+        "memory": 12,
+        "cpu": 3,
+        "allocatableMemory": 12,
+        "allocatableCpu": 3,
+        "nodes": 3,
+        "regularPrice": 0.0759,
+        "regularNodes": 3,
+        "spotPrice": 0,
+        "spotNodes": 0,
+        "workerPrice": 0.0759,
+        "masterPrice": 0.1,
+        "totalPrice": 0.1759
+    }
+}
+```
+* It will always suggest 1 master node which doesn't have any allocatable resource. It's like some fixed pay.  
+* There isn't any spot price associated with the master node. They are always onDemand.
+* In addition to master node there will be worker nodePool just like GKE. Which will have spot price associated with it.  
+
+### Azure - AKS  
+*Sample Response*  
+```
+{
+    "provider": "azure",
+    "service": "aks",
+    "region": "westus2",
+    "nodePools": [
+        {
+            "vm": {
+                "avgPrice": 0.011,
+                "onDemandPrice": 0.057,
+                "cpusPerVm": 1,
+                "allocatableCpusPerVm": 1,
+                "memPerVm": 3.5,
+                "allocatableMemPerVm": 3.5,
+                "gpusPerVm": 0,
+                "burst": false,
+                "currentGen": false,
+                "zones": [
+                    "3",
+                    "1",
+                    "2"
+                ],
+                "category": "General purpose",
+                "type": "Standard_D1_v2",
+                "networkPerf": "1 Gbit/s",
+                "networkPerfCategory": "low"
+            },
+            "sumNodes": 3,
+            "vmClass": "regular",
+            "role": "worker"
+        }
+    ],
+    "accuracy": {
+        "memory": 10.5,
+        "cpu": 3,
+        "allocatableMemory": 10.5,
+        "allocatableCpu": 3,
+        "nodes": 3,
+        "regularPrice": 0.171,
+        "regularNodes": 3,
+        "spotPrice": 0,
+        "spotNodes": 0,
+        "workerPrice": 0.171,
+        "masterPrice": 0,
+        "totalPrice": 0.171
+    }
+}
+```
+* Just like GKE, there are only worker nodes, workerPrice == totalPrice  
+
+---
 **`cURL` example**
 
 ```
