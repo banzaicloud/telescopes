@@ -202,6 +202,18 @@ func (n *NodePool) PoolPrice() float64 {
 	return sum
 }
 
+//PoolPriceByClass calculates the price of the pool by class
+func (n *NodePool) PoolPriceByClass(vmClass string) float64 {
+	var sum = float64(0)
+	switch vmClass {
+	case Regular:
+		sum = float64(n.SumNodes) * n.VmType.OnDemandPrice
+	case Spot:
+		sum = float64(n.SumNodes) * n.VmType.AvgPrice
+	}
+	return sum
+}
+
 // GetSum gets the total value for the given attribute per pool
 func (n NodePool) GetSum(attr string) float64 {
 	return float64(n.SumNodes) * n.VmType.GetAttrValue(attr)
