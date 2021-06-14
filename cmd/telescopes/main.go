@@ -50,6 +50,7 @@ var (
 	version    string
 	commitHash string
 	buildDate  string
+	branch     string
 )
 
 func main() {
@@ -93,7 +94,7 @@ func main() {
 	nodePoolSelector := nodepools.NewNodePoolSelector(logger)
 	engine := recommender.NewEngine(logger, ciCli, vmSelector, nodePoolSelector)
 
-	buildInfo := buildinfo.New(version, commitHash, buildDate)
+	buildInfo := buildinfo.New(version, commitHash, buildDate, branch)
 	routeHandler := api.NewRouteHandler(engine, buildInfo, ciCli, logger)
 
 	// new default gin engine (recovery, logger middleware)
