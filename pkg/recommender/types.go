@@ -73,7 +73,7 @@ type SingleClusterRecommendationReq struct {
 // ClusterRecommendationReq encapsulates the recommendation input data
 type ClusterRecommendationReq struct {
 	// Total number of CPUs requested for the cluster
-	SumCpu float64 `json:"sumCpu" binding:"min=1"`
+	SumCpu float64 `json:"sumCpu" binding:"min=0"`
 	// Total memory requested for the cluster (GB)
 	SumMem float64 `json:"sumMem" binding:"min=0"`
 	// Max of CPUs requested by any Pod in the the cluster
