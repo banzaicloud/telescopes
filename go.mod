@@ -34,7 +34,8 @@ require (
 	github.com/spf13/afero v1.2.0 // indirect
 	github.com/spf13/pflag v1.0.3
 	github.com/spf13/viper v1.3.2
-	github.com/stretchr/testify v1.3.0
+	github.com/stretchr/objx v0.3.0 // indirect
+	github.com/stretchr/testify v1.7.0
 	github.com/tmc/grpc-websocket-proxy v0.0.0-20190109142713-0ad062ec5ee5 // indirect
 	github.com/ugorji/go/codec v0.0.0-20190204201341-e444a5086c43 // indirect
 	golang.org/x/net v0.0.0-20190424112056-4829fb13d2c6
@@ -42,4 +43,5 @@ require (
 	google.golang.org/genproto v0.0.0-20190123001331-8819c946db44 // indirect
 	google.golang.org/grpc v1.18.0 // indirect
 	gopkg.in/go-playground/validator.v8 v8.18.2
+	gopkg.in/yaml.v3 v3.0.0-20210107192922-496545a6307b // indirect
 )

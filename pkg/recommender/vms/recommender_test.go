@@ -30,6 +30,8 @@ func productDetails() []recommender.VirtualMachine {
 			OnDemandPrice: 0.023,
 			Cpus:          1,
 			Mem:           2,
+			AllocatableCpus: 1,
+			AllocatableMem: 2,
 			AvgPrice:      0.0069,
 		},
 		{
@@ -38,6 +40,8 @@ func productDetails() []recommender.VirtualMachine {
 			OnDemandPrice: 0.096,
 			Cpus:          2,
 			Mem:           4,
+			AllocatableCpus: 2,
+			AllocatableMem: 4,
 			AvgPrice:      0.018,
 		},
 		{
@@ -46,6 +50,8 @@ func productDetails() []recommender.VirtualMachine {
 			OnDemandPrice: 0.046,
 			Cpus:          2,
 			Mem:           4,
+			AllocatableCpus: 2,
+			AllocatableMem: 4,
 			AvgPrice:      0.014,
 		},
 		{
@@ -54,6 +60,8 @@ func productDetails() []recommender.VirtualMachine {
 			OnDemandPrice: 0.096,
 			Cpus:          2,
 			Mem:           8,
+			AllocatableCpus: 2,
+			AllocatableMem: 8,
 			AvgPrice:      0.02,
 		},
 		{
@@ -62,6 +70,8 @@ func productDetails() []recommender.VirtualMachine {
 			OnDemandPrice: 0.17,
 			Cpus:          4,
 			Mem:           8,
+			AllocatableCpus: 4,
+			AllocatableMem: 8,
 			AvgPrice:      0.037,
 		},
 		{
@@ -70,6 +80,8 @@ func productDetails() []recommender.VirtualMachine {
 			OnDemandPrice: 0.186,
 			Cpus:          4,
 			Mem:           16,
+			AllocatableCpus: 4,
+			AllocatableMem: 16,
 			AvgPrice:      0.056,
 		},
 		{
@@ -78,6 +90,8 @@ func productDetails() []recommender.VirtualMachine {
 			OnDemandPrice: 0.34,
 			Cpus:          8,
 			Mem:           16,
+			AllocatableCpus: 8,
+			AllocatableMem: 16,
 			AvgPrice:      0.097,
 		},
 		{
@@ -86,6 +100,8 @@ func productDetails() []recommender.VirtualMachine {
 			OnDemandPrice: 0.68,
 			Cpus:          17,
 			Mem:           32,
+			AllocatableCpus: 17,
+			AllocatableMem: 32,
 			AvgPrice:      0.171,
 		},
 		{
@@ -94,6 +110,8 @@ func productDetails() []recommender.VirtualMachine {
 			OnDemandPrice: 0.91,
 			Cpus:          16,
 			Mem:           64,
+			AllocatableCpus: 16,
+			AllocatableMem: 64,
 			AvgPrice:      0.157,
 		},
 		{
@@ -102,6 +120,8 @@ func productDetails() []recommender.VirtualMachine {
 			OnDemandPrice: 1.872,
 			Cpus:          32,
 			Mem:           128,
+			AllocatableCpus: 32,
+			AllocatableMem: 128,
 			AvgPrice:      0.66,
 		},
 	}
@@ -113,18 +133,24 @@ func TestVmSelector_RecommendVms(t *testing.T) {
 			Type:          "n1-standard-2",
 			Cpus:          2,
 			Mem:           7.5,
+			AllocatableCpus:          2,
+			AllocatableMem:           7.5,
 			OnDemandPrice: 0.0949995,
 		},
 		{
 			Type:          "n1-highcpu-4",
 			Cpus:          2,
 			Mem:           7.5,
+			AllocatableCpus: 2,
+			AllocatableMem: 7.5,
 			OnDemandPrice: 0.0949995,
 		},
 		{
 			Type:          "n1-highmem-4",
 			Cpus:          2,
 			Mem:           7.5,
+			AllocatableCpus: 2,
+			AllocatableMem: 7.5,
 			OnDemandPrice: 0.0949995,
 		},
 	}

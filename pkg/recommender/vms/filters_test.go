@@ -46,7 +46,7 @@ func TestVmSelector_filtersApply(t *testing.T) {
 				},
 			},
 			// ratio = Cpus/Mem = 1
-			vm:       recommender.VirtualMachine{Cpus: 4, Mem: 4, Burst: true, CurrentGen: true},
+			vm:       recommender.VirtualMachine{Cpus: 4, Mem: 4, Burst: true, CurrentGen: true, AllocatableMem: 4, AllocatableCpus: 4},
 			attr:     recommender.Memory,
 			provider: "amazon",
 			check: func(filtersApply bool) {
@@ -64,7 +64,7 @@ func TestVmSelector_filtersApply(t *testing.T) {
 				},
 			},
 			// ratio = Cpus/Mem = 1
-			vm:       recommender.VirtualMachine{Cpus: 4, Mem: 4, Burst: true, CurrentGen: true},
+			vm:       recommender.VirtualMachine{Cpus: 4, Mem: 4, Burst: true, CurrentGen: true, AllocatableCpus: 4, AllocatableMem: 4},
 			attr:     recommender.Cpu,
 			provider: "amazon",
 			check: func(filtersApply bool) {
@@ -82,7 +82,7 @@ func TestVmSelector_filtersApply(t *testing.T) {
 				},
 			},
 			// ratio = Mem/Cpus = 1
-			vm:       recommender.VirtualMachine{Mem: 20, Cpus: 4, Burst: true, CurrentGen: true},
+			vm:       recommender.VirtualMachine{Mem: 20, Cpus: 4, Burst: true, CurrentGen: true, AllocatableMem: 20, AllocatableCpus: 4},
 			attr:     recommender.Cpu,
 			provider: "amazon",
 			check: func(filtersApply bool) {
@@ -100,7 +100,7 @@ func TestVmSelector_filtersApply(t *testing.T) {
 				},
 			},
 			// ratio = Mem/Cpus = 1
-			vm:       recommender.VirtualMachine{Mem: 20, Cpus: 4, Burst: true, CurrentGen: true},
+			vm:       recommender.VirtualMachine{Mem: 20, Cpus: 4, Burst: true, CurrentGen: true, AllocatableMem: 20, AllocatableCpus: 4},
 			attr:     recommender.Memory,
 			provider: "amazon",
 			check: func(filtersApply bool) {
@@ -136,7 +136,7 @@ func TestVmSelector_minCpuRatioFilter(t *testing.T) {
 				},
 			},
 			// ratio = Cpus/Mem = 1
-			vm:   recommender.VirtualMachine{Cpus: 4, Mem: 4},
+			vm:   recommender.VirtualMachine{Cpus: 4, Mem: 4, AllocatableCpus: 4, AllocatableMem: 4},
 			attr: recommender.Cpu,
 			check: func(filterApplies bool) {
 				assert.Equal(t, true, filterApplies, "vm should pass the minCpuRatioFilter")
@@ -186,7 +186,7 @@ func TestVmSelector_minMemRatioFilter(t *testing.T) {
 				},
 			},
 			// ratio = Mem/Cpus = 4
-			vm:   recommender.VirtualMachine{Mem: 16, Cpus: 4},
+			vm:   recommender.VirtualMachine{Mem: 16, Cpus: 4, AllocatableMem: 16, AllocatableCpus: 4},
 			attr: recommender.Cpu,
 			check: func(filterApplies bool) {
 				assert.Equal(t, true, filterApplies, "vm should pass the minMemRatioFilter")
