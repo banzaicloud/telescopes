@@ -122,7 +122,7 @@ func (s *vmSelector) categoryFilter(vm recommender.VirtualMachine, req recommend
 	return s.contains(req.Category, vm.Category)
 }
 
-// excludeTypeFilter checks for the vm type in the request' exclude list, the filter  passes if the type is not excluded
+// excludeTypeFilter checks for the vm type in the request' exclude list, the filter passes if the type is not excluded
 func (s *vmSelector) excludeTypeFilter(vm recommender.VirtualMachine, req recommender.SingleClusterRecommendationReq) bool {
 	if s.contains(req.ExcludeTypes, vm.Type) {
 		s.log.Debug("the vm type is blacklisted", map[string]interface{}{"type": vm.Type})
@@ -149,7 +149,7 @@ func (s *vmSelector) includeSeriesFilter(vm recommender.VirtualMachine, req reco
 	return false
 }
 
-// excludeSeriesFilter checks whether the vm type is in the exclude list; the filter passes if the series is in the list
+// excludeSeriesFilter checks whether the vm type is in the exclude list; the filter passes if the series is not excluded
 func (s *vmSelector) excludeSeriesFilter(vm recommender.VirtualMachine, req recommender.SingleClusterRecommendationReq) bool {
 	if s.contains(req.ExcludeSeries, vm.Series) {
 		s.log.Debug("the vm series is blacklisted", map[string]interface{}{"series": vm.Series})
