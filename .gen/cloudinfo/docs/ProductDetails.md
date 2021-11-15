@@ -13,6 +13,7 @@ Name | Type | Description | Notes
 **NtwPerf** | **string** |  | [optional] 
 **NtwPerfCategory** | **string** |  | [optional] 
 **OnDemandPrice** | **float64** |  | [optional] 
+**Series** | **string** |  | [optional] 
 **SpotPrice** | [**[]ZonePrice**](ZonePrice.md) |  | [optional] 
 **Type** | **string** |  | [optional] 
 **Zones** | **[]string** |  | [optional] 

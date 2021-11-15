@@ -3,7 +3,7 @@
  *
  * The product info application uses the cloud provider APIs to asynchronously fetch and parse instance type attributes and prices, while storing the results in an in memory cache and making it available as structured data through a REST API.
  *
- * API version: 0.5.0
+ * API version: 0.6.0
  * Contact: info@banzaicloud.com
  */
 
@@ -39,7 +39,7 @@ var (
 	xmlCheck  = regexp.MustCompile("(?i:[application|text]/xml)")
 )
 
-// APIClient manages communication with the Product Info. API v0.5.0
+// APIClient manages communication with the Product Info. API v0.6.0
 // In most cases there should be only one, shared, APIClient.
 type APIClient struct {
 	cfg    *Configuration
