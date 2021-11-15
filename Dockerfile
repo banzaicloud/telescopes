@@ -2,7 +2,7 @@
 FROM golang:1.16-alpine3.13 AS builder
 ENV GOFLAGS="-mod=readonly"
 
-RUN apk add --update --no-cache ca-certificates make git curl mercurial bzr
+RUN apk add --update --no-cache ca-certificates make git curl mercurial
 
 RUN mkdir -p /build
 WORKDIR /build
