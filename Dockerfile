@@ -1,5 +1,5 @@
 # build stage
-FROM golang:1.12.3-alpine AS builder
+FROM golang:1.16-alpine3.13 AS builder
 ENV GOFLAGS="-mod=readonly"
 
 RUN apk add --update --no-cache ca-certificates make git curl mercurial bzr
@@ -13,7 +13,7 @@ RUN go mod download
 COPY . /build
 RUN BINARY_NAME=telescopes make build-release
 
-FROM alpine:3.9.3
+FROM alpine:3.14.0
 
 RUN apk add --update --no-cache ca-certificates tzdata bash curl
 
