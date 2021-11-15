@@ -3,7 +3,7 @@
  *
  * The product info application uses the cloud provider APIs to asynchronously fetch and parse instance type attributes and prices, while storing the results in an in memory cache and making it available as structured data through a REST API.
  *
- * API version: 0.5.0
+ * API version: 0.6.0
  * Contact: info@banzaicloud.com
  */
 
@@ -11,9 +11,15 @@
 
 package cloudinfo
 
+import (
+	"time"
+)
+
 // Image represents an image
 type Image struct {
-	Gpu     bool   `json:"gpu,omitempty"`
-	Name    string `json:"name,omitempty"`
-	Version string `json:"version,omitempty"`
+	CreationDate time.Time         `json:"creationDate,omitempty"`
+	Gpu          bool              `json:"gpu,omitempty"`
+	Name         string            `json:"name,omitempty"`
+	Tags         map[string]string `json:"tags,omitempty"`
+	Version      string            `json:"version,omitempty"`
 }

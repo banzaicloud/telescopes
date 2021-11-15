@@ -3,7 +3,7 @@
  *
  * The product info application uses the cloud provider APIs to asynchronously fetch and parse instance type attributes and prices, while storing the results in an in memory cache and making it available as structured data through a REST API.
  *
- * API version: 0.5.0
+ * API version: 0.6.0
  * Contact: info@banzaicloud.com
  */
 
@@ -37,22 +37,28 @@ ImagesApiService Provides a list of available images on a given provider in a sp
  * @param optional nil or *GetImagesOpts - Optional Parameters:
  * @param "Gpu" (optional.String) -
  * @param "Version" (optional.String) -
-@return ImagesResponse
+ * @param "Os" (optional.String) -
+ * @param "PkeVersion" (optional.String) -
+ * @param "LatestOnly" (optional.String) -
+@return []Image
 */
 
 type GetImagesOpts struct {
-	Gpu     optional.String
-	Version optional.String
+	Gpu        optional.String
+	Version    optional.String
+	Os         optional.String
+	PkeVersion optional.String
+	LatestOnly optional.String
 }
 
-func (a *ImagesApiService) GetImages(ctx context.Context, provider string, service string, region string, localVarOptionals *GetImagesOpts) (ImagesResponse, *http.Response, error) {
+func (a *ImagesApiService) GetImages(ctx context.Context, provider string, service string, region string, localVarOptionals *GetImagesOpts) ([]Image, *http.Response, error) {
 	var (
 		localVarHttpMethod   = strings.ToUpper("Get")
 		localVarPostBody     interface{}
 		localVarFormFileName string
 		localVarFileName     string
 		localVarFileBytes    []byte
-		localVarReturnValue  ImagesResponse
+		localVarReturnValue  []Image
 	)
 
 	// create path and map variables
@@ -70,6 +76,15 @@ func (a *ImagesApiService) GetImages(ctx context.Context, provider string, servi
 	}
 	if localVarOptionals != nil && localVarOptionals.Version.IsSet() {
 		localVarQueryParams.Add("version", parameterToString(localVarOptionals.Version.Value(), ""))
+	}
+	if localVarOptionals != nil && localVarOptionals.Os.IsSet() {
+		localVarQueryParams.Add("os", parameterToString(localVarOptionals.Os.Value(), ""))
+	}
+	if localVarOptionals != nil && localVarOptionals.PkeVersion.IsSet() {
+		localVarQueryParams.Add("pkeVersion", parameterToString(localVarOptionals.PkeVersion.Value(), ""))
+	}
+	if localVarOptionals != nil && localVarOptionals.LatestOnly.IsSet() {
+		localVarQueryParams.Add("latestOnly", parameterToString(localVarOptionals.LatestOnly.Value(), ""))
 	}
 	// to determine the Content-Type header
 	localVarHttpContentTypes := []string{}
@@ -110,7 +125,7 @@ func (a *ImagesApiService) GetImages(ctx context.Context, provider string, servi
 			error: localVarHttpResponse.Status,
 		}
 		if localVarHttpResponse.StatusCode == 200 {
-			var v ImagesResponse
+			var v []Image
 			err = a.client.decode(&v, localVarBody, localVarHttpResponse.Header.Get("Content-Type"))
 			if err != nil {
 				newErr.error = err.Error()
