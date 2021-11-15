@@ -498,6 +498,11 @@
           "format": "double",
           "x-go-name": "OnDemandPrice"
         },
+        "series": {
+          "description": "Instance type series/family",
+          "type": "string",
+          "x-go-name": "Series"
+        },
         "type": {
           "description": "Instance type",
           "type": "string",
@@ -515,7 +520,7 @@
       "x-go-package": "github.com/banzaicloud/telescopes/pkg/recommender"
     },
     "recommendClusterRequest": {
-      "description": "SingleClusterRecommendationReq encapsulates the recommendation input data",
+      "description": "SingleClusterRecommendationReq encapsulates the recommendation input data, the filters applied is in the order IncludeSeries -\u003e ExcludeSeries -\u003e",
       "type": "object",
       "properties": {
         "allowBurst": {
@@ -536,21 +541,37 @@
           },
           "x-go-name": "Category"
         },
-        "excludes": {
-          "description": "Excludes is a blacklist - a slice with vm types to be excluded from the recommendation",
+        "excludeSeries": {
+          "description": "ExcludeSeries is a blacklist - a group of vm of particular series/families to be excluded from the recommendation",
           "type": "array",
           "items": {
             "type": "string"
           },
-          "x-go-name": "Excludes"
+          "x-go-name": "ExcludeSeries"
         },
-        "includes": {
-          "description": "Includes is a whitelist - a slice with vm types to be contained in the recommendation",
+        "excludeTypes": {
+          "description": "ExcludeTypes is a blacklist - a slice with vm types to be excluded from the recommendation",
           "type": "array",
           "items": {
             "type": "string"
           },
-          "x-go-name": "Includes"
+          "x-go-name": "ExcludeTypes"
+        },
+        "includeSeries": {
+          "description": "IncludeSeries is a whitelist - a group of vm of particular series/families to be contained in the recommendation",
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "x-go-name": "IncludeSeries"
+        },
+        "includeTypes": {
+          "description": "IncludeTypes is a whitelist - a slice with vm types to be contained in the recommendation",
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "x-go-name": "IncludeTypes"
         },
         "maxNodes": {
           "description": "Maximum number of nodes in the recommended cluster",

@@ -57,15 +57,19 @@ type NodePoolRecommender interface {
 	RecommendNodePools(attr string, req SingleClusterRecommendationReq, layout []NodePool, odVms []VirtualMachine, spotVms []VirtualMachine) []NodePool
 }
 
-// SingleClusterRecommendationReq encapsulates the recommendation input data
+// SingleClusterRecommendationReq encapsulates the recommendation input data, the filters applied is in the order IncludeSeries -> ExcludeSeries ->
 // swagger:model recommendClusterRequest
 type SingleClusterRecommendationReq struct {
 	// Embedded struct
 	ClusterRecommendationReq
-	// Excludes is a blacklist - a slice with vm types to be excluded from the recommendation
-	Excludes []string `json:"excludes,omitempty"`
-	// Includes is a whitelist - a slice with vm types to be contained in the recommendation
-	Includes []string `json:"includes,omitempty"`
+	// IncludeSeries is a whitelist - a group of vm of particular series/families to be contained in the recommendation
+	IncludeSeries []string `json:"includeSeries,omitempty"`
+	// ExcludeSeries is a blacklist - a group of vm of particular series/families to be excluded from the recommendation
+	ExcludeSeries []string `json:"excludeSeries,omitempty"`
+	// IncludeTypes is a whitelist - a slice with vm types to be contained in the recommendation
+	IncludeTypes []string `json:"includeTypes,omitempty"`
+	// ExcludeTypes is a blacklist - a slice with vm types to be excluded from the recommendation
+	ExcludeTypes []string `json:"excludeTypes,omitempty"`
 	// Availability zone that the cluster should expand to
 	Zone string `json:"zone,omitempty"`
 }
@@ -278,6 +282,8 @@ type VirtualMachine struct {
 	Zones []string `json:"zones"`
 	// Instance type category
 	Category string `json:"category"`
+	// Instance type series/family
+	Series string `json:"series"`
 	// Instance type
 	Type string `json:"type"`
 	// NetworkPerf holds the network performance

@@ -242,7 +242,7 @@ func TestVmSelector_burstFilter(t *testing.T) {
 	}
 }
 
-func TestVmSelector_excludesFilter(t *testing.T) {
+func TestVmSelector_excludeTypesFilter(t *testing.T) {
 	tests := []struct {
 		name  string
 		vm    recommender.VirtualMachine
@@ -265,7 +265,7 @@ func TestVmSelector_excludesFilter(t *testing.T) {
 				Type: "vm-type",
 			},
 			req: recommender.SingleClusterRecommendationReq{
-				Excludes: []string{},
+				ExcludeTypes: []string{},
 			},
 			check: func(res bool) {
 				assert.True(t, res, "all vms should pass")
@@ -277,7 +277,7 @@ func TestVmSelector_excludesFilter(t *testing.T) {
 				Type: "blacklisted-type",
 			},
 			req: recommender.SingleClusterRecommendationReq{
-				Excludes: []string{"blacklisted-type", "other type"},
+				ExcludeTypes: []string{"blacklisted-type", "other type"},
 			},
 			check: func(res bool) {
 				assert.False(t, res, "the filter should fail")
@@ -289,7 +289,7 @@ func TestVmSelector_excludesFilter(t *testing.T) {
 				Type: "not-blacklisted-type",
 			},
 			req: recommender.SingleClusterRecommendationReq{
-				Excludes: []string{"blacklisted-type", "other type"},
+				ExcludeTypes: []string{"blacklisted-type", "other type"},
 			},
 			check: func(res bool) {
 				assert.True(t, res, "the filter should fail")
@@ -300,12 +300,12 @@ func TestVmSelector_excludesFilter(t *testing.T) {
 		test := test // scopelint
 		t.Run(test.name, func(t *testing.T) {
 			selector := NewVmSelector(logur.NewTestLogger())
-			test.check(selector.excludesFilter(test.vm, test.req))
+			test.check(selector.excludeTypeFilter(test.vm, test.req))
 		})
 	}
 }
 
-func TestVmSelector_includesFilter(t *testing.T) {
+func TestVmSelector_includeTypesFilter(t *testing.T) {
 	tests := []struct {
 		name  string
 		vm    recommender.VirtualMachine
@@ -318,7 +318,7 @@ func TestVmSelector_includesFilter(t *testing.T) {
 				Type: "whitelisted-type",
 			},
 			req: recommender.SingleClusterRecommendationReq{
-				Includes: []string{"whitelisted-type", "other type"},
+				IncludeTypes: []string{"whitelisted-type", "other type"},
 			},
 			check: func(res bool) {
 				assert.True(t, res, "the filter should pass")
@@ -330,7 +330,7 @@ func TestVmSelector_includesFilter(t *testing.T) {
 				Type: "not-blacklisted-type",
 			},
 			req: recommender.SingleClusterRecommendationReq{
-				Includes: []string{"blacklisted-type", "other type"},
+				IncludeTypes: []string{"blacklisted-type", "other type"},
 			},
 			check: func(res bool) {
 				assert.False(t, res, "the filter should fail")
@@ -341,7 +341,89 @@ func TestVmSelector_includesFilter(t *testing.T) {
 		test := test // scopelint
 		t.Run(test.name, func(t *testing.T) {
 			selector := NewVmSelector(logur.NewTestLogger())
-			test.check(selector.includesFilter(test.vm, test.req))
+			test.check(selector.includeTypeFilter(test.vm, test.req))
+		})
+	}
+}
+
+func TestVmSelector_includeSeriesFilter(t *testing.T) {
+	tests := []struct {
+		name  string
+		vm    recommender.VirtualMachine
+		req   recommender.SingleClusterRecommendationReq
+		check func(res bool)
+	}{
+		{
+			name: "vm whitelisted",
+			vm: recommender.VirtualMachine{
+				Series: "whitelisted-type",
+			},
+			req: recommender.SingleClusterRecommendationReq{
+				IncludeSeries: []string{"whitelisted-type", "other type"},
+			},
+			check: func(res bool) {
+				assert.True(t, res, "the filter should pass")
+			},
+		},
+		{
+			name: "vm not whitelisted",
+			vm: recommender.VirtualMachine{
+				Type: "not-blacklisted-type",
+			},
+			req: recommender.SingleClusterRecommendationReq{
+				IncludeSeries: []string{"blacklisted-type", "other type"},
+			},
+			check: func(res bool) {
+				assert.False(t, res, "the filter should fail")
+			},
+		},
+	}
+	for _, test := range tests {
+		test := test // scopelint
+		t.Run(test.name, func(t *testing.T) {
+			selector := NewVmSelector(logur.NewTestLogger())
+			test.check(selector.includeSeriesFilter(test.vm, test.req))
+		})
+	}
+}
+
+func TestVmSelector_excludeSeriesFilter(t *testing.T) {
+	tests := []struct {
+		name  string
+		vm    recommender.VirtualMachine
+		req   recommender.SingleClusterRecommendationReq
+		check func(res bool)
+	}{
+		{
+			name: "vm whitelisted",
+			vm: recommender.VirtualMachine{
+				Series: "whitelisted-type",
+			},
+			req: recommender.SingleClusterRecommendationReq{
+				ExcludeSeries: []string{"whitelisted-type", "other type"},
+			},
+			check: func(res bool) {
+				assert.True(t, res, "the filter should pass")
+			},
+		},
+		{
+			name: "vm not whitelisted",
+			vm: recommender.VirtualMachine{
+				Type: "not-blacklisted-type",
+			},
+			req: recommender.SingleClusterRecommendationReq{
+				ExcludeSeries: []string{"blacklisted-type", "other type"},
+			},
+			check: func(res bool) {
+				assert.False(t, res, "the filter should fail")
+			},
+		},
+	}
+	for _, test := range tests {
+		test := test // scopelint
+		t.Run(test.name, func(t *testing.T) {
+			selector := NewVmSelector(logur.NewTestLogger())
+			test.check(selector.excludeSeriesFilter(test.vm, test.req))
 		})
 	}
 }

@@ -26,12 +26,20 @@ type vmFilter func(vm recommender.VirtualMachine, req recommender.SingleClusterR
 func (s *vmSelector) filtersForAttr(attr string, provider string, req recommender.SingleClusterRecommendationReq) ([]vmFilter, error) {
 	var filters []vmFilter
 	// generic filters - not depending on providers and attributes
-	if len(req.Includes) != 0 {
-		filters = append(filters, s.includesFilter)
+	if len(req.IncludeSeries) != 0 {
+		filters = append(filters, s.includeSeriesFilter)
 	}
 
-	if len(req.Excludes) != 0 {
-		filters = append(filters, s.excludesFilter)
+	if len(req.ExcludeSeries) != 0 {
+		filters = append(filters, s.excludeSeriesFilter)
+	}
+
+	if len(req.IncludeTypes) != 0 {
+		filters = append(filters, s.includeTypeFilter)
+	}
+
+	if len(req.ExcludeTypes) != 0 {
+		filters = append(filters, s.excludeTypeFilter)
 	}
 
 	if len(req.Category) != 0 {
@@ -114,19 +122,37 @@ func (s *vmSelector) categoryFilter(vm recommender.VirtualMachine, req recommend
 	return s.contains(req.Category, vm.Category)
 }
 
-// excludeFilter checks for the vm type in the request' exclude list, the filter  passes if the type is not excluded
-func (s *vmSelector) excludesFilter(vm recommender.VirtualMachine, req recommender.SingleClusterRecommendationReq) bool {
-	if s.contains(req.Excludes, vm.Type) {
+// excludeTypeFilter checks for the vm type in the request' exclude list, the filter  passes if the type is not excluded
+func (s *vmSelector) excludeTypeFilter(vm recommender.VirtualMachine, req recommender.SingleClusterRecommendationReq) bool {
+	if s.contains(req.ExcludeTypes, vm.Type) {
 		s.log.Debug("the vm type is blacklisted", map[string]interface{}{"type": vm.Type})
 		return false
 	}
 	return true
 }
 
-// includesFilter checks whether the vm type is in the includes list; the filter passes if the type is in the list
-func (s *vmSelector) includesFilter(vm recommender.VirtualMachine, req recommender.SingleClusterRecommendationReq) bool {
-	if s.contains(req.Includes, vm.Type) {
+// includeTypeFilter checks whether the vm type is in the includes list; the filter passes if the type is in the list
+func (s *vmSelector) includeTypeFilter(vm recommender.VirtualMachine, req recommender.SingleClusterRecommendationReq) bool {
+	if s.contains(req.IncludeTypes, vm.Type) {
 		s.log.Debug("the vm type is whitelisted", map[string]interface{}{"type": vm.Type})
+		return true
+	}
+	return false
+}
+
+// includeSeriesFilter checks whether the vm type is in the includes list; the filter passes if the series is in the list
+func (s *vmSelector) includeSeriesFilter(vm recommender.VirtualMachine, req recommender.SingleClusterRecommendationReq) bool {
+	if s.contains(req.IncludeSeries, vm.Series) {
+		s.log.Debug("the vm series is whitelisted", map[string]interface{}{"series": vm.Series})
+		return true
+	}
+	return false
+}
+
+// excludeSeriesFilter checks whether the vm type is in the exclude list; the filter passes if the series is in the list
+func (s *vmSelector) excludeSeriesFilter(vm recommender.VirtualMachine, req recommender.SingleClusterRecommendationReq) bool {
+	if s.contains(req.ExcludeSeries, vm.Series) {
+		s.log.Debug("the vm series is blacklisted", map[string]interface{}{"series": vm.Series})
 		return true
 	}
 	return false

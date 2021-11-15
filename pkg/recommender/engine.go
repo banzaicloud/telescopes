@@ -120,7 +120,7 @@ func (e *Engine) recommendMaster(provider, service string, req SingleClusterReco
 	case "pke":
 		switch provider {
 		case "amazon":
-			req.Includes = []string{
+			req.IncludeTypes = []string{
 				"c5.large",
 				"c5.xlarge",
 				"c5.2xlarge",
@@ -133,7 +133,7 @@ func (e *Engine) recommendMaster(provider, service string, req SingleClusterReco
 				"c4.8xlarge",
 			}
 		case "azure":
-			req.Includes = []string{
+			req.IncludeTypes = []string{
 				"Standard_DS2",
 				"Standard_DS2_v2",
 				"Standard_D2s_v3",
@@ -206,8 +206,8 @@ func (e *Engine) masterNodeRecommendation(provider string, req SingleClusterReco
 			MaxNodes:    1,
 			OnDemandPct: 100,
 		},
-		Zone:     req.Zone,
-		Includes: req.Includes,
+		Zone:         req.Zone,
+		IncludeTypes: req.IncludeTypes,
 	}
 
 	cheapestMaster, err := e.getCheapestNodePoolSet(provider, request, nil, allProducts)
@@ -305,9 +305,9 @@ func (e *Engine) RecommendClusterScaleOut(provider string, service string, regio
 			SumMem:        req.DesiredMem,
 			SumGpu:        req.DesiredGpu,
 		},
-		Includes: includes,
-		Excludes: req.Excludes,
-		Zone:     req.Zone,
+		IncludeTypes: includes,
+		ExcludeTypes: req.Excludes,
+		Zone:         req.Zone,
 	}
 
 	return e.RecommendCluster(provider, service, region, clReq, req.ActualLayout)
@@ -366,8 +366,8 @@ func (e *Engine) recommendCluster(provider, service, region string, req MultiClu
 		for _, zone := range zones {
 			request := SingleClusterRecommendationReq{
 				ClusterRecommendationReq: req.ClusterRecommendationReq,
-				Excludes:                 req.Excludes[provider][service],
-				Includes:                 req.Includes[provider][service],
+				ExcludeTypes:             req.Excludes[provider][service],
+				IncludeTypes:             req.Includes[provider][service],
 				Zone:                     zone,
 			}
 			zoneResp, err := e.RecommendCluster(provider, service, region, request, nil)
@@ -382,8 +382,8 @@ func (e *Engine) recommendCluster(provider, service, region string, req MultiClu
 	} else {
 		request := SingleClusterRecommendationReq{
 			ClusterRecommendationReq: req.ClusterRecommendationReq,
-			Excludes:                 req.Excludes[provider][service],
-			Includes:                 req.Includes[provider][service],
+			ExcludeTypes:             req.Excludes[provider][service],
+			IncludeTypes:             req.Includes[provider][service],
 		}
 
 		response, err = e.RecommendCluster(provider, service, region, request, nil)
