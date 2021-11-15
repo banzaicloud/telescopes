@@ -92,7 +92,7 @@ func (ciCli *cloudInfoClient) GetProductDetails(provider string, service string,
 	for _, p := range allProducts.Products {
 		vms = append(vms, VirtualMachine{
 			Category:       p.Category,
-			Series: 		p.Series,
+			Series:         p.Series,
 			Type:           p.Type,
 			OnDemandPrice:  p.OnDemandPrice,
 			AvgPrice:       avg(p.SpotPrice),
