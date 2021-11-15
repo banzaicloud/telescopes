@@ -49,6 +49,7 @@ func (bi BuildInfo) Context() []interface{} {
 		"version", bi.Version,
 		"commit_hash", bi.CommitHash,
 		"build_date", bi.BuildDate,
+		"branch", bi.Branch,
 		"go_version", bi.GoVersion,
 		"os", bi.Os,
 		"arch", bi.Arch,

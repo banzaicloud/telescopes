@@ -13,6 +13,6 @@ package cloudinfo
 
 // Continent holds continent and regions of a cloud provider
 type Continent struct {
-	Name string `json:"name,omitempty"`
+	Name    string   `json:"name,omitempty"`
 	Regions []Region `json:"regions,omitempty"`
 }

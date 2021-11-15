@@ -13,7 +13,7 @@ package cloudinfo
 
 // LocationVersion struct for displaying version information per location
 type LocationVersion struct {
-	Default string `json:"default,omitempty"`
-	Location string `json:"location,omitempty"`
+	Default  string   `json:"default,omitempty"`
+	Location string   `json:"location,omitempty"`
 	Versions []string `json:"versions,omitempty"`
 }

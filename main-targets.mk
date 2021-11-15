@@ -94,8 +94,12 @@ bin/golangci-lint-${GOLANGCI_VERSION}:
 	@mv bin/golangci-lint $@
 
 .PHONY: lint
-lint: bin/golangci-lint ## Run linter
+lint: bin/golangci-lint ## Check lint violations
 	bin/golangci-lint run
+
+.PHONY: fix
+fix: bin/golangci-lint ## Fix lint violations
+	bin/golangci-lint run --fix
 
 bin/licensei: bin/licensei-${LICENSEI_VERSION}
 	@ln -sf licensei-${LICENSEI_VERSION} bin/licensei
@@ -114,7 +118,7 @@ license-cache: bin/licensei ## Generate license cache
 	bin/licensei cache
 
 .PHONY: fmt
-fmt:
+fmt: ## Fix go fmt
 	@gofmt -s -w ${GOFILES_NOVENDOR}
 
 bin/misspell: bin/misspell-${MISSPELL_VERSION}
