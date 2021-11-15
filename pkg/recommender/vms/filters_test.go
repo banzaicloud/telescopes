@@ -356,10 +356,10 @@ func TestVmSelector_includeSeriesFilter(t *testing.T) {
 		{
 			name: "vm whitelisted",
 			vm: recommender.VirtualMachine{
-				Series: "whitelisted-type",
+				Series: "whitelisted-series",
 			},
 			req: recommender.SingleClusterRecommendationReq{
-				IncludeSeries: []string{"whitelisted-type", "other type"},
+				IncludeSeries: []string{"whitelisted-series", "other type"},
 			},
 			check: func(res bool) {
 				assert.True(t, res, "the filter should pass")
@@ -368,10 +368,10 @@ func TestVmSelector_includeSeriesFilter(t *testing.T) {
 		{
 			name: "vm not whitelisted",
 			vm: recommender.VirtualMachine{
-				Type: "not-blacklisted-type",
+				Series: "other-type",
 			},
 			req: recommender.SingleClusterRecommendationReq{
-				IncludeSeries: []string{"blacklisted-type", "other type"},
+				IncludeSeries: []string{"whitelisted-series"},
 			},
 			check: func(res bool) {
 				assert.False(t, res, "the filter should fail")
@@ -395,27 +395,49 @@ func TestVmSelector_excludeSeriesFilter(t *testing.T) {
 		check func(res bool)
 	}{
 		{
-			name: "vm whitelisted",
+			name: "nil blacklist",
 			vm: recommender.VirtualMachine{
-				Series: "whitelisted-type",
+				Series: "vm-series",
 			},
-			req: recommender.SingleClusterRecommendationReq{
-				ExcludeSeries: []string{"whitelisted-type", "other type"},
-			},
+			req: recommender.SingleClusterRecommendationReq{},
 			check: func(res bool) {
-				assert.True(t, res, "the filter should pass")
+				assert.True(t, res, "all vms should pass")
 			},
 		},
 		{
-			name: "vm not whitelisted",
+			name: "empty blacklist",
 			vm: recommender.VirtualMachine{
-				Type: "not-blacklisted-type",
+				Series: "vm-series",
 			},
 			req: recommender.SingleClusterRecommendationReq{
-				ExcludeSeries: []string{"blacklisted-type", "other type"},
+				ExcludeSeries: []string{},
+			},
+			check: func(res bool) {
+				assert.True(t, res, "all vms should pass")
+			},
+		},
+		{
+			name: "vm blacklisted",
+			vm: recommender.VirtualMachine{
+				Series: "blacklisted-series",
+			},
+			req: recommender.SingleClusterRecommendationReq{
+				ExcludeSeries: []string{"blacklisted-series", "other-series"},
 			},
 			check: func(res bool) {
 				assert.False(t, res, "the filter should fail")
+			},
+		},
+		{
+			name: "vm not blacklisted",
+			vm: recommender.VirtualMachine{
+				Series: "not-blacklisted-series",
+			},
+			req: recommender.SingleClusterRecommendationReq{
+				ExcludeSeries: []string{"blacklisted-series", "other-series"},
+			},
+			check: func(res bool) {
+				assert.True(t, res, "the filter should fail")
 			},
 		},
 	}

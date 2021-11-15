@@ -153,9 +153,9 @@ func (s *vmSelector) includeSeriesFilter(vm recommender.VirtualMachine, req reco
 func (s *vmSelector) excludeSeriesFilter(vm recommender.VirtualMachine, req recommender.SingleClusterRecommendationReq) bool {
 	if s.contains(req.ExcludeSeries, vm.Series) {
 		s.log.Debug("the vm series is blacklisted", map[string]interface{}{"series": vm.Series})
-		return true
+		return false
 	}
-	return false
+	return true
 }
 
 // filterSpots selects vm-s that potentially can be part of "spot" node pools
