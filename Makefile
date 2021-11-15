@@ -6,9 +6,14 @@ BUILD_PACKAGE ?= ./cmd/telescopes
 BINARY_NAME ?= telescopes
 DOCKER_IMAGE = banzaicloud/telescopes
 
+# Docker Push configuration
+GCR_HOST ?= us.gcr.io
+GCR_PROJECT_ID ?= platform-205701
+GCR_IMAGE_REPOSITORY ?= harness/banzai-telescopes
+
 # Build variables
 BUILD_DIR ?= build
-VERSION ?= $(shell cat version | grep 'version=' | sed -e 's: *version=::g' | tr -d '\r\n')
+VERSION ?= $(shell git symbolic-ref -q --short HEAD | sed 's/[^a-zA-Z0-9]/-/g')
 COMMIT_HASH ?= $(shell git rev-parse --short HEAD 2>/dev/null)
 BUILD_DATE ?= $(shell date +%FT%T%z)
 BRANCH ?= $(shell git symbolic-ref -q --short HEAD)
@@ -22,6 +27,7 @@ CLOUDINFO_VERSION = 0.5.0
 
 # Docker variables
 DOCKER_TAG ?= ${VERSION}
+GCR_IMAGE_LOCATION = ${GCR_HOST}/${GCR_PROJECT_ID}/${GCR_IMAGE_REPOSITORY}:${DOCKER_TAG}
 
 GOTESTSUM_VERSION = 0.3.4
 GOLANGCI_VERSION = 1.16.0

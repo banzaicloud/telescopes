@@ -40,6 +40,11 @@ ifeq (${DOCKER_LATEST}, 1)
 	docker tag ${DOCKER_IMAGE}:${DOCKER_TAG} ${DOCKER_IMAGE}:latest
 endif
 
+.PHONY: docker-push
+docker-push: ## Push Docker image to GCR
+	docker tag ${DOCKER_IMAGE}:${DOCKER_TAG} ${GCR_IMAGE_LOCATION}
+	docker push ${GCR_IMAGE_LOCATION}
+
 .PHONY: docker-debug
 docker-debug: ## Build a Docker image with remote debugging capabilities
 ifneq (${DOCKER_PREBUILT}, 1)
