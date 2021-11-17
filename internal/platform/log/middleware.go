@@ -17,9 +17,10 @@ package log
 import (
 	"time"
 
+	"github.com/goph/logur"
+
 	"github.com/gin-gonic/gin"
 	"github.com/gofrs/uuid"
-	"github.com/sirupsen/logrus"
 )
 
 // ContextKey is the key the retrieved (or generated) correlation ID is stored under in the gin Context.
@@ -71,7 +72,7 @@ func (m *middleware) Handle(ctx *gin.Context) {
 }
 
 // Middleware returns a gin compatible handler.
-func Middleware(notlogged ...string) gin.HandlerFunc {
+func Middleware(log logur.Logger, notlogged ...string) gin.HandlerFunc {
 	var skip map[string]struct{}
 
 	if length := len(notlogged); length > 0 {
@@ -101,7 +102,7 @@ func Middleware(notlogged ...string) gin.HandlerFunc {
 				path = path + "?" + raw
 			}
 
-			fields := logrus.Fields{
+			fields := logur.Fields{
 				"status":  c.Writer.Status(),
 				"method":  c.Request.Method,
 				"path":    path,
@@ -116,13 +117,11 @@ func Middleware(notlogged ...string) gin.HandlerFunc {
 				fields["pipeline-instance"] = pid
 			}
 
-			entry := logrus.WithFields(fields)
-
 			if len(c.Errors) > 0 {
 				// Append error field if this is an erroneous request.
-				entry.Error(c.Errors.String())
+				log.Error(c.Errors.String())
 			} else {
-				entry.Info()
+				log.Info("handler", fields)
 			}
 		}
 	}

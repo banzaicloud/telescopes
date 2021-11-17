@@ -15,7 +15,9 @@
 package log
 
 import (
+	"net/http"
 	"os"
+	"time"
 
 	"github.com/gin-gonic/gin"
 	"github.com/goph/logur"
@@ -70,4 +72,67 @@ func WithFieldsForHandlers(ctx *gin.Context, logger logur.Logger, fields map[str
 	fields[correlationIdField] = cid
 
 	return logur.WithFields(logger, fields)
+}
+
+func GinLogger(logger logur.Logger, notlogged ...string) gin.HandlerFunc {
+
+	var skip map[string]struct{}
+
+	if length := len(notlogged); length > 0 {
+		skip = make(map[string]struct{}, length)
+
+		for _, path := range notlogged {
+			skip[path] = struct{}{}
+		}
+	}
+
+	return func(c *gin.Context) {
+		// Start timer
+		start := time.Now()
+		path := c.Request.URL.Path
+		raw := c.Request.URL.RawQuery
+
+		// Process request
+		c.Next()
+
+		// Log only when path is not being skipped
+		if _, ok := skip[path]; !ok {
+			// Stop timer
+			end := time.Now()
+			latency := end.Sub(start)
+
+			statusCode := c.Writer.Status()
+			comment := c.Errors.ByType(gin.ErrorTypePrivate).String()
+
+			if raw != "" {
+				path = path + "?" + raw
+			}
+
+			timeFormat := "02/Jan/2006:15:04:05 -0700"
+
+			entry := logur.WithFields(logger, map[string]interface{}{
+				"statusCode": statusCode,
+				"latency":    latency, // time to process
+				"clientIP":   c.ClientIP(),
+				"method":     c.Request.Method,
+				"path":       path,
+				"comment":    comment,
+				"time":       time.Now().Format(timeFormat),
+			})
+
+			if len(c.Errors) > 0 {
+				entry.Error(c.Errors.ByType(gin.ErrorTypePrivate).String())
+			} else {
+				msg := "ginLogger"
+
+				if statusCode >= http.StatusInternalServerError {
+					entry.Error(msg)
+				} else if statusCode >= http.StatusBadRequest {
+					entry.Warn(msg)
+				} else {
+					entry.Info(msg)
+				}
+			}
+		}
+	}
 }
