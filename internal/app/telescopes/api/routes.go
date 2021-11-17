@@ -67,7 +67,7 @@ func (r *RouteHandler) ConfigureRoutes(router *gin.Engine) {
 	corsConfig.AllowHeaders = append(corsConfig.AllowHeaders, "Banzai-Cloud-Pipeline-UUID")
 
 	router.Use(log.MiddlewareCorrelationId())
-	router.Use(log.Middleware(r.log))
+	router.Use(log.GinMiddlewareLogger(r.log))
 	router.Use(cors.New(corsConfig))
 
 	base := router.Group(basePath)

@@ -15,6 +15,7 @@
 package log
 
 import (
+	"net/http"
 	"time"
 
 	"github.com/goph/logur"
@@ -71,8 +72,9 @@ func (m *middleware) Handle(ctx *gin.Context) {
 	ctx.Next()
 }
 
-// Middleware returns a gin compatible handler.
-func Middleware(log logur.Logger, notlogged ...string) gin.HandlerFunc {
+// GinMiddlewareLogger returns a gin compatible logur logger handler
+func GinMiddlewareLogger(logger logur.Logger, notlogged ...string) gin.HandlerFunc {
+
 	var skip map[string]struct{}
 
 	if length := len(notlogged); length > 0 {
@@ -84,29 +86,34 @@ func Middleware(log logur.Logger, notlogged ...string) gin.HandlerFunc {
 	}
 
 	return func(c *gin.Context) {
-		// start timer
+		// Start timer
 		start := time.Now()
-
-		// prevent middlewares from faking the request path
 		path := c.Request.URL.Path
 		raw := c.Request.URL.RawQuery
 
+		// Process request
 		c.Next()
 
 		// Log only when path is not being skipped
 		if _, ok := skip[path]; !ok {
+			// Stop timer
 			end := time.Now()
 			latency := end.Sub(start)
+
+			statusCode := c.Writer.Status()
+			comment := c.Errors.ByType(gin.ErrorTypePrivate).String()
 
 			if raw != "" {
 				path = path + "?" + raw
 			}
 
 			fields := logur.Fields{
-				"status":  c.Writer.Status(),
-				"method":  c.Request.Method,
-				"path":    path,
-				"latency": latency,
+				"latency":    latency,
+				"statusCode": statusCode,
+				"clientIP":   c.ClientIP(),
+				"method":     c.Request.Method,
+				"path":       path,
+				"comment":    comment,
 			}
 
 			if cid := c.GetString(ContextKey); cid != "" {
@@ -117,11 +124,20 @@ func Middleware(log logur.Logger, notlogged ...string) gin.HandlerFunc {
 				fields["pipeline-instance"] = pid
 			}
 
+			entry := logur.WithFields(logger, fields)
+
 			if len(c.Errors) > 0 {
-				// Append error field if this is an erroneous request.
-				log.Error(c.Errors.String())
+				entry.Error(c.Errors.ByType(gin.ErrorTypePrivate).String())
 			} else {
-				log.Info("handler", fields)
+				msg := "ginLogger"
+
+				if statusCode >= http.StatusInternalServerError {
+					entry.Error(msg)
+				} else if statusCode >= http.StatusBadRequest {
+					entry.Warn(msg)
+				} else {
+					entry.Info(msg)
+				}
 			}
 		}
 	}

@@ -97,9 +97,9 @@ func main() {
 	buildInfo := buildinfo.New(version, commitHash, buildDate, branch)
 	routeHandler := api.NewRouteHandler(engine, buildInfo, ciCli, logger)
 
-	// new gin engine (recovery, logger middleware) with adapted logger
+	// new gin engine (recovery middleware)
 	router := gin.New()
-	router.Use(log.GinLogger(logger), gin.Recovery())
+	router.Use(gin.Recovery())
 
 	// enable authentication if not dev-mode
 
