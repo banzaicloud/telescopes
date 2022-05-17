@@ -155,7 +155,7 @@ func (s *vmSelector) recommendAttrValues(allProducts []recommender.VirtualMachin
 	}
 
 	s.log.Debug("selecting attributes", map[string]interface{}{"attribute": attr, "values": allValues})
-	values, err := AttributeValues(allValues).SelectAttributeValues(minValuePerVm(req, attr), maxValuePerVm(req, attr))
+	values, err := AttributeValues(allValues).SelectAttributeValues(minValuePerVm(req, attr), 2*maxValuePerVm(req, attr))
 	if err != nil {
 		return nil, emperror.With(err, recommender.RecommenderErrorTag, "attributes")
 	}

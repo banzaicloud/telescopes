@@ -66,15 +66,17 @@ func (s *vmSelector) filtersForAttr(attr string, provider string, req recommende
 		}
 	}
 
-	// attribute specific filters
-	switch attr {
-	case recommender.Cpu:
-		// nNodes * vm.Mem >= req.SumMem
-		filters = append(filters, s.minMemRatioFilter)
-	case recommender.Memory:
-		filters = append(filters, s.minCpuRatioFilter)
-	default:
-		return nil, emperror.With(errors.New("unsupported attribute"), "attribute", attr)
+	// attribute specific filters, if IncludeSeries or IncludeTypes are not present in the request
+	if len(req.IncludeSeries) == 0 && len(req.IncludeTypes) == 0 {
+		switch attr {
+		case recommender.Cpu:
+			// nNodes * vm.Mem >= req.SumMem
+			filters = append(filters, s.minMemRatioFilter)
+		case recommender.Memory:
+			filters = append(filters, s.minCpuRatioFilter)
+		default:
+			return nil, emperror.With(errors.New("unsupported attribute"), "attribute", attr)
+		}
 	}
 
 	s.log.Debug("filters are successfully registered", map[string]interface{}{"numberOfFilters": len(filters)})
