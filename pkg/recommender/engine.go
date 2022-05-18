@@ -346,7 +346,7 @@ func (e *Engine) RecommendMultiCluster(req MultiClusterRecommendationReq) (map[s
 	}
 
 	if len(respPerService) == 0 {
-		return nil, emperror.With(errors.New("No node pool could be recommended with the specified tuning parameters"), RecommenderErrorTag)
+		return nil, emperror.With(errors.New("No node pools could be recommended with the specified tuning parameters"), RecommenderErrorTag)
 	}
 
 	return respPerService, nil
