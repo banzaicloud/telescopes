@@ -276,8 +276,8 @@ func (e *Engine) getCheapestNodePoolSet(provider string, req SingleClusterRecomm
 	}
 
 	if len(nodePools) == 0 {
-		e.log.Debug(fmt.Sprintf("could not recommend node pools for request: %#v", req))
-		return nil, emperror.With(errors.New("could not recommend cluster with the requested resources"), RecommenderErrorTag)
+		e.log.Debug(fmt.Sprintf("No node pool could be recommended with the specified tuning parameters: %#v", req))
+		return nil, emperror.With(errors.New("No node pool could be recommended with the specified tuning parameters"), RecommenderErrorTag)
 	}
 
 	return e.findCheapestNodePoolSet(nodePools), nil
@@ -346,7 +346,7 @@ func (e *Engine) RecommendMultiCluster(req MultiClusterRecommendationReq) (map[s
 	}
 
 	if len(respPerService) == 0 {
-		return nil, emperror.With(errors.New("could not recommend clusters with the requested resources"), RecommenderErrorTag)
+		return nil, emperror.With(errors.New("No node pools could be recommended with the specified tuning parameters"), RecommenderErrorTag)
 	}
 
 	return respPerService, nil
@@ -372,7 +372,7 @@ func (e *Engine) recommendCluster(provider, service, region string, req MultiClu
 			}
 			zoneResp, err := e.RecommendCluster(provider, service, region, request, nil)
 			if err != nil {
-				e.log.Warn("could not recommend cluster")
+				e.log.Warn("No node pool could be recommended with the specified tuning parameters")
 				continue
 			}
 			if response == nil || zoneResp.Accuracy.RecTotalPrice < response.Accuracy.RecTotalPrice {
@@ -388,7 +388,7 @@ func (e *Engine) recommendCluster(provider, service, region string, req MultiClu
 
 		response, err = e.RecommendCluster(provider, service, region, request, nil)
 		if err != nil {
-			e.log.Warn("could not recommend cluster")
+			e.log.Warn("No node pool could be recommended with the specified tuning parameters")
 		}
 	}
 	return response, nil
