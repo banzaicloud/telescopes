@@ -56,6 +56,8 @@ import (
 //       "$ref": "#/definitions/recommendationResponse"
 func (r *RouteHandler) recommendCluster() gin.HandlerFunc {
 	return func(c *gin.Context) {
+		c.Header("Content-Type", "application/json; charset=utf-8")
+
 		pathParams := GetRecommendationParams{}
 
 		if err := mapstructure.Decode(getPathParamMap(c), &pathParams); err != nil {
@@ -121,6 +123,8 @@ func (r *RouteHandler) recommendCluster() gin.HandlerFunc {
 //       "$ref": "#/definitions/recommendationResponse"
 func (r *RouteHandler) recommendClusterScaleOut() gin.HandlerFunc {
 	return func(c *gin.Context) {
+		c.Header("Content-Type", "application/json; charset=utf-8")
+
 		pathParams := GetRecommendationParams{}
 
 		if err := mapstructure.Decode(getPathParamMap(c), &pathParams); err != nil {
@@ -173,6 +177,7 @@ func (r *RouteHandler) recommendClusterScaleOut() gin.HandlerFunc {
 //       "$ref": "#/definitions/recommendationResponse"
 func (r *RouteHandler) recommendMultiCluster() gin.HandlerFunc {
 	return func(c *gin.Context) {
+		c.Header("Content-Type", "application/json; charset=utf-8")
 
 		logger := log.WithFieldsForHandlers(c, r.log, map[string]interface{}{})
 
