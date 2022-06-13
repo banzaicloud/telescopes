@@ -105,6 +105,10 @@ func (v *dummyVms) FindVmsWithAttrValues(attr string, req SingleClusterRecommend
 	return nil, nil
 }
 
+func (v *dummyVms) FilterVmsBasedOnReqParams(attr string, req SingleClusterRecommendationReq, odVms []VirtualMachine, spotVms []VirtualMachine) ([]VirtualMachine, []VirtualMachine) {
+	return nil, nil
+}
+
 type dummyNodePools struct {
 	// test case id to drive the behaviour
 	TcId string

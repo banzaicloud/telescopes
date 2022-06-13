@@ -51,6 +51,8 @@ type VmRecommender interface {
 	RecommendVms(provider string, vms []VirtualMachine, attr string, req SingleClusterRecommendationReq, layout []NodePool) ([]VirtualMachine, []VirtualMachine, error)
 
 	FindVmsWithAttrValues(attr string, req SingleClusterRecommendationReq, layoutDesc []NodePoolDesc, allProducts []VirtualMachine) ([]VirtualMachine, error)
+
+	FilterVmsBasedOnReqParams(attr string, req SingleClusterRecommendationReq, odVms []VirtualMachine, spotVms []VirtualMachine) ([]VirtualMachine, []VirtualMachine)
 }
 
 type NodePoolRecommender interface {

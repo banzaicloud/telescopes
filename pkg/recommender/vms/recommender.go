@@ -136,6 +136,40 @@ func (s *vmSelector) FindVmsWithAttrValues(attr string,
 	return vms, nil
 }
 
+func (s *vmSelector) FilterVmsBasedOnReqParams(attr string, req recommender.SingleClusterRecommendationReq, odVms []recommender.VirtualMachine, spotVms []recommender.VirtualMachine) ([]recommender.VirtualMachine, []recommender.VirtualMachine) {
+	var filteredOdVms, filteredSpotVms []recommender.VirtualMachine = odVms, spotVms
+	if attr == recommender.Cpu {
+		if req.MinMem != nil {
+			filteredOdVms, filteredSpotVms = s.FilterVmsBasedOnMinMemory(req, odVms), s.FilterVmsBasedOnMinMemory(req, spotVms)
+		}
+	} else if attr == recommender.Memory {
+		if req.MinCpu != nil {
+			filteredOdVms, filteredSpotVms = s.FilterVmsBasedOnMinCpu(req, odVms), s.FilterVmsBasedOnMinCpu(req, spotVms)
+		}
+	}
+	return filteredOdVms, filteredSpotVms
+}
+
+func (s *vmSelector) FilterVmsBasedOnMinMemory(req recommender.SingleClusterRecommendationReq, vms []recommender.VirtualMachine) ([]recommender.VirtualMachine) {
+	var filteredVms []recommender.VirtualMachine
+	for _, vm := range vms {
+		if vm.AllocatableMem >= *req.MinMem {
+			filteredVms = append(filteredVms, vm)
+		}
+	}
+	return filteredVms
+}
+
+func (s *vmSelector) FilterVmsBasedOnMinCpu(req recommender.SingleClusterRecommendationReq, vms []recommender.VirtualMachine) ([]recommender.VirtualMachine) {
+	var filteredVms []recommender.VirtualMachine
+	for _, vm := range vms {
+		if vm.AllocatableCpus >= *req.MinCpu {
+			filteredVms = append(filteredVms, vm)
+		}
+	}
+	return filteredVms
+}
+
 // recommendAttrValues selects the attribute values allowed to participate in the recommendation process
 func (s *vmSelector) recommendAttrValues(allProducts []recommender.VirtualMachine, attr string, req recommender.SingleClusterRecommendationReq) ([]float64, error) {
 
