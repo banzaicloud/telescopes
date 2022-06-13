@@ -260,6 +260,9 @@ func (e *Engine) getCheapestNodePoolSet(provider string, req SingleClusterRecomm
 			return nil, emperror.WrapWith(err, "failed to recommend virtual machines", RecommenderErrorTag)
 		}
 
+		// Filtering recommended Vms based on request parameters (minCpu and minMem)
+		odVms, spotVms = e.vmSelector.FilterVmsBasedOnReqParams(attr, req, odVms, spotVms)
+
 		if (len(odVms) == 0 && req.OnDemandPct > 0) || (len(spotVms) == 0 && req.OnDemandPct < 100) {
 			e.log.Debug("no vms with the requested resources found", map[string]interface{}{"attribute": attr})
 			// skip the nodepool creation, go to the next attr
