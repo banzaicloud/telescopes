@@ -17,9 +17,9 @@ RUN BINARY_NAME=telescopes make build-release
 # FROM us.gcr.io/platform-205701/ubi/ubi-go:latest
 FROM us.gcr.io/platform-205701/ubi/ubi-base:latest
 USER root
-RUN microdnf install yum
+# RUN microdnf install yum
 # RUN apk add --update --no-cache ca-certificates tzdata bash curl
-RUN yum install -y ca-certificates tzdata
+# RUN yum install -y ca-certificates tzdata
 
 COPY --from=builder /build/build/release/telescopes /bin
 
