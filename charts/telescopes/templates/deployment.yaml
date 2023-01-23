@@ -1,5 +1,9 @@
-{{- $url := splitList "/" (index  .Values.ingress.hosts 0) }}
-{{- $basePath := (rest $url | join "/") }}
+{{- $basePath := "" -}}
+{{- with (first .Values.ingress.hosts )}}
+  {{- with (first .paths) }}
+    {{- $basePath = .path }}
+  {{- end }}
+{{- end }}
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -39,7 +43,7 @@ spec:
         env:
         {{- if .Values.ingress.hosts }}
         - name: TELESCOPES_BASEPATH
-          value: /{{ $basePath }}
+          value: {{ $basePath }}
         {{- end }}
         command:
         - "/bin/sh"
