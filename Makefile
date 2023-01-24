@@ -29,7 +29,7 @@ JQ_VERSION = 1.5
 LICENSEI_VERSION = 0.1.0
 OPENAPI_GENERATOR_VERSION = PR1869
 
-GOLANG_VERSION = 1.12
+GOLANG_VERSION = 1.16
 
 GOFILES_NOVENDOR = $(shell find . -type f -name '*.go' -not -path "./vendor/*" -not -path "./client/*")
 
