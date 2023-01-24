@@ -42,7 +42,8 @@ func NewRecommendClusterScaleOutOK() *RecommendClusterScaleOutOK {
 	return &RecommendClusterScaleOutOK{}
 }
 
-/*RecommendClusterScaleOutOK handles this case with default header values.
+/*
+RecommendClusterScaleOutOK handles this case with default header values.
 
 RecommendationResponse
 */

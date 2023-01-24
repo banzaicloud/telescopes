@@ -74,7 +74,7 @@ func (av AttributeValues) SelectAttributeValues(min float64, max float64) ([]flo
 	if len(selectedValues) == 0 {
 		// there are no values between the two limits
 		if rIdx == -1 {
-			//there are no values higher than max, return the closest less value
+			// there are no values higher than max, return the closest less value
 			// this covers the case when the [min, max] interval is out of range of the value set
 			// the left index is either 0 or len(av)-1 in the above case
 			return []float64{av[lIdx]}, nil

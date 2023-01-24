@@ -57,7 +57,7 @@ func Test_avgSpotNodeCount(t *testing.T) {
 		},
 	}
 	for _, test := range tests {
-		test := test //pin - scopelint
+		test := test // pin - scopelint
 		t.Run(test.name, func(t *testing.T) {
 			test.check(avgSpotNodeCount(test.minNodes, test.maxNodes, test.odNodes))
 		})

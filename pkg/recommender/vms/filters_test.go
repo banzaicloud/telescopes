@@ -381,7 +381,6 @@ func TestVmSelector_filterSpots(t *testing.T) {
 }
 
 func TestVmSelector_ntwPerformanceFilter(t *testing.T) {
-
 	var (
 		ntwLow  = "low"
 		ntwHigh = "high"

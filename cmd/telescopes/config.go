@@ -61,7 +61,6 @@ type configuration struct {
 
 // Configure configures some defaults in the Viper instance.
 func Configure(v *viper.Viper, p *pflag.FlagSet) {
-
 	// Viper settings
 	v.AddConfigPath(".")
 	v.AddConfigPath(fmt.Sprintf("$%s_CONFIG_DIR/", strings.ToUpper(envPrefix)))
@@ -126,5 +125,4 @@ func Configure(v *viper.Viper, p *pflag.FlagSet) {
 	_ = v.BindEnv("metrics.address", "METRICS_ADDRESS")
 
 	p.Init(friendlyAppName, pflag.ExitOnError)
-
 }

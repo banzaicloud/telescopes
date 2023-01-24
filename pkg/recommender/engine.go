@@ -243,8 +243,10 @@ func (e *Engine) getCheapestNodePoolSet(provider string, req SingleClusterRecomm
 			// skip the nodepool creation, go to the next attr
 			continue
 		}
-		e.log.Debug("recommended vms", map[string]interface{}{"attribute": attr,
-			"odVmsCount": len(odVms), "odVmsValues": odVms, "spotVmsCount": len(spotVms), "spotVmsValues": spotVms})
+		e.log.Debug("recommended vms", map[string]interface{}{
+			"attribute":  attr,
+			"odVmsCount": len(odVms), "odVmsValues": odVms, "spotVmsCount": len(spotVms), "spotVmsValues": spotVms,
+		})
 
 		nps := e.nodePoolSelector.RecommendNodePools(attr, req, layout, odVms, spotVms)
 
@@ -296,7 +298,6 @@ func (e *Engine) RecommendMultiCluster(req MultiClusterRecommendationReq) (map[s
 	respPerService := make(map[string][]*ClusterRecommendationResp)
 
 	for _, provider := range req.Providers {
-
 		for _, service := range provider.Services {
 
 			regions, err := e.getRegions(provider.Provider, service, req.Continents)
@@ -306,9 +307,7 @@ func (e *Engine) RecommendMultiCluster(req MultiClusterRecommendationReq) (map[s
 
 			var responses []*ClusterRecommendationResp
 			for _, region := range regions {
-
 				if response, err := e.recommendCluster(provider.Provider, service, region, req); err != nil {
-
 					return nil, emperror.With(err, RecommenderErrorTag)
 				} else if response != nil {
 					responses = append(responses, response)
@@ -394,7 +393,7 @@ func (e *Engine) getRegions(provider, service string, continents []string) ([]st
 func (e *Engine) getLimitedResponses(responses []*ClusterRecommendationResp, respPerService int) []*ClusterRecommendationResp {
 	sort.Sort(ByPricePerService(responses))
 	if len(responses) > respPerService {
-		var limit = 0
+		limit := 0
 		for i := range responses {
 			if responses[respPerService-1].Accuracy.RecTotalPrice < responses[i].Accuracy.RecTotalPrice {
 				limit = i

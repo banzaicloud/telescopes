@@ -31,29 +31,31 @@ import (
 // summary: Provides a recommended set of node pools on a given provider in a specific region.
 // description: Provides a recommended set of node pools on a given provider in a specific region.
 // parameters:
-// - name: provider
-//   in: path
-//   description: provider
-//   required: true
-// - name: service
-//   in: path
-//   description: service
-//   required: true
-// - name: region
-//   in: path
-//   description: region
-//   required: true
-// - name: recommendRequestBody
-//   in: body
-//   description: request params
-//   schema:
-//     "$ref": "#/definitions/recommendClusterRequest"
-//   required: true
-// responses:
-//   "200":
-//     description: recommendation response
+//   - name: provider
+//     in: path
+//     description: provider
+//     required: true
+//   - name: service
+//     in: path
+//     description: service
+//     required: true
+//   - name: region
+//     in: path
+//     description: region
+//     required: true
+//   - name: recommendRequestBody
+//     in: body
+//     description: request params
 //     schema:
-//       "$ref": "#/definitions/recommendationResponse"
+//     "$ref": "#/definitions/recommendClusterRequest"
+//     required: true
+//
+// responses:
+//
+//	"200":
+//	  description: recommendation response
+//	  schema:
+//	    "$ref": "#/definitions/recommendationResponse"
 func (r *RouteHandler) recommendCluster() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		pathParams := GetRecommendationParams{}
@@ -96,29 +98,31 @@ func (r *RouteHandler) recommendCluster() gin.HandlerFunc {
 // summary: Provides a recommendation for a scale-out, based on a current cluster layout on a given provider in a specific region.
 // description: Provides a recommendation for a scale-out, based on a current cluster layout on a given provider in a specific region.
 // parameters:
-// - name: provider
-//   in: path
-//   description: provider
-//   required: true
-// - name: service
-//   in: path
-//   description: service
-//   required: true
-// - name: region
-//   in: path
-//   description: region
-//   required: true
-// - name: recommendRequestBody
-//   in: body
-//   description: request params
-//   schema:
-//     "$ref": "#/definitions/recommendClusterScaleOutRequest"
-//   required: true
-// responses:
-//   "200":
-//     description: recommendation response
+//   - name: provider
+//     in: path
+//     description: provider
+//     required: true
+//   - name: service
+//     in: path
+//     description: service
+//     required: true
+//   - name: region
+//     in: path
+//     description: region
+//     required: true
+//   - name: recommendRequestBody
+//     in: body
+//     description: request params
 //     schema:
-//       "$ref": "#/definitions/recommendationResponse"
+//     "$ref": "#/definitions/recommendClusterScaleOutRequest"
+//     required: true
+//
+// responses:
+//
+//	"200":
+//	  description: recommendation response
+//	  schema:
+//	    "$ref": "#/definitions/recommendationResponse"
 func (r *RouteHandler) recommendClusterScaleOut() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		pathParams := GetRecommendationParams{}
@@ -160,20 +164,21 @@ func (r *RouteHandler) recommendClusterScaleOut() gin.HandlerFunc {
 // summary: Provides a recommended set of node pools on a given provider in a specific region.
 // description: Provides a recommended set of node pools on a given provider in a specific region.
 // parameters:
-// - name: recommendRequestBody
-//   in: body
-//   description: request params
-//   schema:
-//     "$ref": "#/definitions/recommendMultiClusterRequest"
-//   required: true
-// responses:
-//   "200":
-//     description: recommendation response
+//   - name: recommendRequestBody
+//     in: body
+//     description: request params
 //     schema:
-//       "$ref": "#/definitions/recommendationResponse"
+//     "$ref": "#/definitions/recommendMultiClusterRequest"
+//     required: true
+//
+// responses:
+//
+//	"200":
+//	  description: recommendation response
+//	  schema:
+//	    "$ref": "#/definitions/recommendationResponse"
 func (r *RouteHandler) recommendMultiCluster() gin.HandlerFunc {
 	return func(c *gin.Context) {
-
 		logger := log.WithFieldsForHandlers(c, r.log, map[string]interface{}{})
 
 		logger.Info("recommend cluster setup")

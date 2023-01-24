@@ -38,7 +38,8 @@ func (s *vmSelector) RecommendVms(provider string,
 	vms []recommender.VirtualMachine,
 	attr string,
 	req recommender.SingleClusterRecommendationReq,
-	layout []recommender.NodePool) ([]recommender.VirtualMachine, []recommender.VirtualMachine, error) {
+	layout []recommender.NodePool,
+) ([]recommender.VirtualMachine, []recommender.VirtualMachine, error) {
 	s.log.Info("recommending virtual machines", map[string]interface{}{"attribute": attr})
 
 	vmFilters, err := s.filtersForAttr(attr, provider, req)
@@ -91,7 +92,8 @@ func (s *vmSelector) RecommendVms(provider string,
 func (s *vmSelector) FindVmsWithAttrValues(attr string,
 	req recommender.SingleClusterRecommendationReq,
 	layoutDesc []recommender.NodePoolDesc,
-	allProducts []recommender.VirtualMachine) ([]recommender.VirtualMachine, error) {
+	allProducts []recommender.VirtualMachine,
+) ([]recommender.VirtualMachine, error) {
 	var (
 		vms    []recommender.VirtualMachine
 		values []float64
@@ -136,7 +138,6 @@ func (s *vmSelector) FindVmsWithAttrValues(attr string,
 
 // recommendAttrValues selects the attribute values allowed to participate in the recommendation process
 func (s *vmSelector) recommendAttrValues(allProducts []recommender.VirtualMachine, attr string, req recommender.SingleClusterRecommendationReq) ([]float64, error) {
-
 	allValues := make([]float64, 0)
 	valueSet := make(map[float64]interface{})
 

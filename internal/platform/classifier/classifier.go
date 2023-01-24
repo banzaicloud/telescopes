@@ -37,8 +37,7 @@ type Classifier interface {
 }
 
 // errClassifier type implementing the Classifier interface
-type errClassifier struct {
-}
+type errClassifier struct{}
 
 // NewErrorClassifier returns a reference to a classifier instance
 func NewErrorClassifier() Classifier {
@@ -73,12 +72,10 @@ func (erc *errClassifier) Classify(inErr interface{}) (interface{}, error) {
 	}
 
 	return problem, nil
-
 }
 
 // classifyApiError assembles data to be sent in the response to the caller when the error originates from the cloud info service
 func (erc *errClassifier) classifyApiError(e *runtime.APIError, ctx []interface{}) *problems.ProblemWrapper {
-
 	var (
 		httpCode int
 		details  = "unknown failure"
@@ -112,7 +109,7 @@ func (erc *errClassifier) classifyApiError(e *runtime.APIError, ctx []interface{
 }
 
 func (erc *errClassifier) classifyUrlError(e *url.Error, ctx []interface{}) *problems.ProblemWrapper {
-	var problem = problems.NewUnknownProblem(e)
+	problem := problems.NewUnknownProblem(e)
 
 	if hasLabel(ctx, cloudInfoCliErrTag) {
 		problem = problems.NewRecommendationProblem(http.StatusInternalServerError, "failed to connect to the cloud info service")
@@ -122,7 +119,7 @@ func (erc *errClassifier) classifyUrlError(e *url.Error, ctx []interface{}) *pro
 }
 
 func (erc *errClassifier) classifyGenericError(e error, ctx []interface{}) *problems.ProblemWrapper {
-	var problem = problems.NewUnknownProblem(e)
+	problem := problems.NewUnknownProblem(e)
 
 	if hasLabel(ctx, recommenderErrorTag) {
 		problem = problems.NewRecommendationProblem(http.StatusBadRequest, e.Error())

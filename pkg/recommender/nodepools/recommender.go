@@ -37,15 +37,16 @@ func NewNodePoolSelector(log logur.Logger) *nodePoolSelector {
 func (s *nodePoolSelector) RecommendNodePools(attr string, req recommender.SingleClusterRecommendationReq,
 	layout []recommender.NodePool,
 	odVms []recommender.VirtualMachine,
-	spotVms []recommender.VirtualMachine) []recommender.NodePool {
+	spotVms []recommender.VirtualMachine,
+) []recommender.NodePool {
 	s.log.Debug(fmt.Sprintf("requested sum for attribute [%s]: [%f]", attr, sum(req, attr)))
-	var sumOnDemandValue = sum(req, attr) * float64(req.OnDemandPct) / 100
+	sumOnDemandValue := sum(req, attr) * float64(req.OnDemandPct) / 100
 	s.log.Debug(fmt.Sprintf("on demand sum value for attr [%s]: [%f]", attr, sumOnDemandValue))
 
 	// recommend on-demands
 	odNps := make([]recommender.NodePool, 0)
 
-	//TODO: validate if there's no on-demand in layout but we want to add ondemands
+	// TODO: validate if there's no on-demand in layout but we want to add ondemands
 	for _, np := range layout {
 		if np.VmClass == recommender.Regular {
 			odNps = append(odNps, np)
@@ -83,7 +84,7 @@ func (s *nodePoolSelector) RecommendNodePools(attr string, req recommender.Singl
 
 	if req.OnDemandPct != 100 {
 		// recalculate required spot resources by taking actual on-demand resources into account
-		var sumSpotValue = sum(req, attr) - actualOnDemandResources
+		sumSpotValue := sum(req, attr) - actualOnDemandResources
 		s.log.Debug(fmt.Sprintf("spot sum value for attr [%s]: [%f]", attr, sumSpotValue))
 
 		// recommend spot pools
@@ -277,7 +278,6 @@ func findM(n int, spotVms []recommender.VirtualMachine) int {
 		return int(math.Min(math.Ceil(float64(n)*1.5), float64(len(spotVms))))
 	}
 	return int(math.Min(3, float64(len(spotVms))))
-
 }
 
 func avgSpotNodeCount(minNodes, maxNodes, odNodes int) int {

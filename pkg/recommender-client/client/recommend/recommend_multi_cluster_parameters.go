@@ -58,7 +58,8 @@ func NewRecommendMultiClusterParamsWithHTTPClient(client *http.Client) *Recommen
 	}
 }
 
-/*RecommendMultiClusterParams contains all the parameters to send to the API endpoint
+/*
+RecommendMultiClusterParams contains all the parameters to send to the API endpoint
 for the recommend multi cluster operation typically these are written to a http.Request
 */
 type RecommendMultiClusterParams struct {
