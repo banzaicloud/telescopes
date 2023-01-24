@@ -156,7 +156,7 @@ func TestVmSelector_RecommendVms(t *testing.T) {
 		},
 	}
 	for _, test := range tests {
-		test := test //scopelint
+		test := test // scopelint
 		t.Run(test.name, func(t *testing.T) {
 			selector := NewVmSelector(logur.NewTestLogger())
 			test.check(selector.RecommendVms("google", vms, test.attribute, test.request, nil))
@@ -171,7 +171,6 @@ func TestVmSelector_recommendAttrValues(t *testing.T) {
 		attribute string
 		check     func([]float64, error)
 	}{
-
 		{
 			name: "successfully get recommended attribute values",
 			request: recommender.SingleClusterRecommendationReq{
@@ -187,7 +186,6 @@ func TestVmSelector_recommendAttrValues(t *testing.T) {
 				assert.Nil(t, err, "should not get error when recommending attributes")
 				assert.Equal(t, 2, len(values), "recommended number of values is not as expected")
 				assert.Equal(t, float64(16), values[0], "recommended number of values is not as expected")
-
 			},
 		},
 	}

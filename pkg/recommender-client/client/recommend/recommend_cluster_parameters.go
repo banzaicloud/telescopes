@@ -58,7 +58,8 @@ func NewRecommendClusterParamsWithHTTPClient(client *http.Client) *RecommendClus
 	}
 }
 
-/*RecommendClusterParams contains all the parameters to send to the API endpoint
+/*
+RecommendClusterParams contains all the parameters to send to the API endpoint
 for the recommend cluster operation typically these are written to a http.Request
 */
 type RecommendClusterParams struct {

@@ -50,14 +50,12 @@ func Test_processFlags(t *testing.T) {
 			// mock the input
 			setupInputs(test.args, nil)
 			test.check(v.GetString("log-level"))
-
 		})
 	}
 }
 
 // setupInputs mocks out the command line argument list
 func setupInputs(args []string, file *os.File) {
-
 	// This trick allows command line flags to be be set in unit tests.
 	// See https://github.com/VonC/gogitolite/commit/f656a9858cb7e948213db9564a9120097252b429
 	a := os.Args[1:]

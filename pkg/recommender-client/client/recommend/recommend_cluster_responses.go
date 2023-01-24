@@ -42,7 +42,8 @@ func NewRecommendClusterOK() *RecommendClusterOK {
 	return &RecommendClusterOK{}
 }
 
-/*RecommendClusterOK handles this case with default header values.
+/*
+RecommendClusterOK handles this case with default header values.
 
 RecommendationResponse
 */

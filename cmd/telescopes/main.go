@@ -17,11 +17,11 @@
 // This project can be used to recommend instance type groups on different cloud providers consisting of regular and spot/preemptible instances.
 // The main goal is to provide and continuously manage a cost-effective but still stable cluster layout that's built up from a diverse set of regular and spot instances.
 //
-//     Schemes: http, https
-//     BasePath: /api/v1
-//     Version: 0.0.1
-//     License: Apache 2.0 http://www.apache.org/licenses/LICENSE-2.0.html
-//     Contact: Banzai Cloud<info@banzaicloud.com>
+//	Schemes: http, https
+//	BasePath: /api/v1
+//	Version: 0.0.1
+//	License: Apache 2.0 http://www.apache.org/licenses/LICENSE-2.0.html
+//	Contact: Banzai Cloud<info@banzaicloud.com>
 //
 // swagger:meta
 package main
@@ -53,7 +53,6 @@ var (
 )
 
 func main() {
-
 	// read configuration (commandline, env etc)
 	Configure(viper.GetViper(), pflag.CommandLine)
 
@@ -106,8 +105,8 @@ func main() {
 
 	if !config.App.DevMode {
 		logger.Debug("enable authentication")
-		//appRole := viper.GetString(cfgAppRole)
-		//routeHandler.EnableAuth(router, appRole, config.App.Vault.TokenSigningKey)
+		// appRole := viper.GetString(cfgAppRole)
+		// routeHandler.EnableAuth(router, appRole, config.App.Vault.TokenSigningKey)
 	}
 
 	// add prometheus metric endpoint

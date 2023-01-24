@@ -55,8 +55,8 @@ func ConfigureValidator() error {
 // networkPerfValidator validates the network performance in the recommendation request.
 func networkPerfValidator() validator.Func {
 	return func(v *validator.Validate, topStruct reflect.Value, currentStruct reflect.Value, field reflect.Value,
-		fieldtype reflect.Type, fieldKind reflect.Kind, param string) bool {
-
+		fieldtype reflect.Type, fieldKind reflect.Kind, param string,
+	) bool {
 		for _, n := range []string{ntwLow, ntwMedium, ntwHigh, ntwExtra} {
 			if field.String() == n {
 				return true
@@ -69,7 +69,8 @@ func networkPerfValidator() validator.Func {
 // categoryValidator validates the category in the recommendation request.
 func categoryValidator() validator.Func {
 	return func(v *validator.Validate, topStruct reflect.Value, currentStruct reflect.Value, field reflect.Value,
-		fieldtype reflect.Type, fieldKind reflect.Kind, param string) bool {
+		fieldtype reflect.Type, fieldKind reflect.Kind, param string,
+	) bool {
 		for _, c := range []string{categoryCompute, categoryGeneral, categoryGpu, categoryMemory, categoryStorage} {
 			if field.String() == c {
 				return true
@@ -93,10 +94,8 @@ type pathParamValidator struct {
 }
 
 func (ppV *pathParamValidator) ValidateContinents(continents []string) error {
-
 	ciContinents, err := ppV.ciCli.GetContinents()
 	if err != nil {
-
 		return err
 	}
 
@@ -106,12 +105,9 @@ func (ppV *pathParamValidator) ValidateContinents(continents []string) error {
 	)
 
 	for _, continent := range continents {
-
 		found = false
 		for _, ciContinent := range ciContinents {
-
 			if continent == ciContinent {
-
 				found = true
 				continue
 			}
@@ -123,7 +119,6 @@ func (ppV *pathParamValidator) ValidateContinents(continents []string) error {
 	}
 
 	if len(notfound) > 0 {
-
 		return errors.Errorf("unsupported continent(s) %s", notfound)
 	}
 
@@ -132,7 +127,6 @@ func (ppV *pathParamValidator) ValidateContinents(continents []string) error {
 
 // Validate validates path parameters against the connected cloud info service
 func (ppV *pathParamValidator) ValidatePathParams(params interface{}) error {
-
 	var (
 		pathParams GetRecommendationParams
 		ok         bool

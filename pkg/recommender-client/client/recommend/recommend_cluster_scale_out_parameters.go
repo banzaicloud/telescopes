@@ -60,7 +60,8 @@ func NewRecommendClusterScaleOutParamsWithHTTPClient(client *http.Client) *Recom
 	}
 }
 
-/*RecommendClusterScaleOutParams contains all the parameters to send to the API endpoint
+/*
+RecommendClusterScaleOutParams contains all the parameters to send to the API endpoint
 for the recommend cluster scale out operation typically these are written to a http.Request
 */
 type RecommendClusterScaleOutParams struct {

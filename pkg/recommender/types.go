@@ -184,7 +184,7 @@ type NodePool struct {
 
 // PoolPrice calculates the price of the pool
 func (n *NodePool) PoolPrice() float64 {
-	var sum = float64(0)
+	sum := float64(0)
 	switch n.VmClass {
 	case Regular:
 		sum = float64(n.SumNodes) * n.VmType.OnDemandPrice
