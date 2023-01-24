@@ -59,7 +59,6 @@ func (erc *errClassifier) Classify(inErr interface{}) (interface{}, error) {
 	cause := errors.Cause(err)
 
 	switch e := cause.(type) {
-
 	case *runtime.APIError:
 		// (cloud info) service is reachable - operation failed (eg.: bad request)
 		problem = erc.classifyApiError(e, emperror.Context(err))

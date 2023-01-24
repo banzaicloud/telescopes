@@ -82,7 +82,6 @@ func (ciCli *cloudInfoClient) GetProductDetails(provider string, service string,
 
 	allProducts, _, err := ciCli.ProductsApi.GetProducts(context.Background(), provider, service, region)
 	if err != nil {
-
 		ciCli.logger.Error("failed to retrieve product details", tags)
 		return nil, discriminateErrCtx(err)
 	}
@@ -128,7 +127,6 @@ func (ciCli *cloudInfoClient) GetProvider(prv string) (string, error) {
 
 	provider, _, err := ciCli.ProviderApi.GetProvider(context.Background(), prv)
 	if err != nil {
-
 		ciCli.logger.Error("failed to retrieve provider", tags)
 		return "", discriminateErrCtx(err)
 	}
@@ -144,7 +142,6 @@ func (ciCli *cloudInfoClient) GetService(prv string, svc string) (string, error)
 
 	service, _, err := ciCli.ServiceApi.GetService(context.Background(), prv, svc)
 	if err != nil {
-
 		ciCli.logger.Error("failed to retrieve service", tags)
 		return "", discriminateErrCtx(err)
 	}
@@ -160,7 +157,6 @@ func (ciCli *cloudInfoClient) GetRegion(prv, svc, reg string) (string, error) {
 
 	r, _, err := ciCli.RegionApi.GetRegion(context.Background(), prv, svc, reg)
 	if err != nil {
-
 		ciCli.logger.Error("failed to retrieve region", tags)
 		return "", discriminateErrCtx(err)
 	}
@@ -176,7 +172,6 @@ func (ciCli *cloudInfoClient) GetZones(provider, service, region string) ([]stri
 
 	r, _, err := ciCli.RegionApi.GetRegion(context.Background(), provider, service, region)
 	if err != nil {
-
 		ciCli.logger.Error("failed to retrieve zones", tags)
 		return nil, discriminateErrCtx(err)
 	}
@@ -192,7 +187,6 @@ func (ciCli *cloudInfoClient) GetRegions(provider, service string) ([]cloudinfo.
 
 	r, _, err := ciCli.RegionsApi.GetRegions(context.Background(), provider, service)
 	if err != nil {
-
 		ciCli.logger.Error("failed to retrieve regions", tags)
 		return nil, discriminateErrCtx(err)
 	}
@@ -207,7 +201,6 @@ func (ciCli *cloudInfoClient) GetContinentsData(provider, service string) ([]clo
 
 	r, _, err := ciCli.ContinentsApi.GetContinentsData(context.Background(), provider, service)
 	if err != nil {
-
 		ciCli.logger.Error("failed to retrieve continent data", tags)
 		return nil, discriminateErrCtx(err)
 	}
@@ -221,7 +214,6 @@ func (ciCli *cloudInfoClient) GetContinents() ([]string, error) {
 	ciCli.logger.Info("retrieving continents")
 	c, _, err := ciCli.ContinentsApi.GetContinents(context.Background())
 	if err != nil {
-
 		ciCli.logger.Error("failed to retrieve continents")
 		return nil, discriminateErrCtx(err)
 	}

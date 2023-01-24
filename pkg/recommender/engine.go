@@ -299,7 +299,6 @@ func (e *Engine) RecommendMultiCluster(req MultiClusterRecommendationReq) (map[s
 
 	for _, provider := range req.Providers {
 		for _, service := range provider.Services {
-
 			regions, err := e.getRegions(provider.Provider, service, req.Continents)
 			if err != nil {
 				return nil, emperror.With(err, RecommenderErrorTag)

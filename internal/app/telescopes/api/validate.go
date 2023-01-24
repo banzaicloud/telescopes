@@ -105,11 +105,9 @@ func (ppV *pathParamValidator) ValidateContinents(continents []string) error {
 	)
 
 	for _, continent := range continents {
-
 		found = false
 		for _, ciContinent := range ciContinents {
 			if continent == ciContinent {
-
 				found = true
 				continue
 			}
