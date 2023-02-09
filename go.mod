@@ -11,8 +11,7 @@ require (
 	github.com/banzaicloud/bank-vaults v0.0.0-20190426093051-56575dca8ce3
 	github.com/banzaicloud/go-gin-prometheus v0.0.0-20190417120951-df9373ad5327
 	github.com/gin-contrib/cors v0.0.0-20190424000812-bd1331c62cae
-	github.com/gin-contrib/sse v0.0.0-20190124093953-61b50c2ef482 // indirect
-	github.com/gin-gonic/gin v1.3.0
+	github.com/gin-gonic/gin v1.7.7
 	github.com/go-openapi/errors v0.19.0
 	github.com/go-openapi/runtime v0.19.0
 	github.com/go-openapi/strfmt v0.19.0
@@ -31,8 +30,7 @@ require (
 	github.com/spf13/afero v1.2.0 // indirect
 	github.com/spf13/pflag v1.0.3
 	github.com/spf13/viper v1.3.2
-	github.com/stretchr/testify v1.3.0
-	github.com/ugorji/go/codec v0.0.0-20190204201341-e444a5086c43 // indirect
+	github.com/stretchr/testify v1.4.0
 	golang.org/x/net v0.0.0-20190424112056-4829fb13d2c6
 	golang.org/x/oauth2 v0.0.0-20190115181402-5dab4167f31c
 	google.golang.org/genproto v0.0.0-20190123001331-8819c946db44 // indirect
