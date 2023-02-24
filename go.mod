@@ -33,7 +33,7 @@ require (
 	github.com/spf13/viper v1.3.2
 	github.com/stretchr/testify v1.3.0
 	github.com/ugorji/go/codec v0.0.0-20190204201341-e444a5086c43 // indirect
-	golang.org/x/net v0.0.0-20190424112056-4829fb13d2c6
+	golang.org/x/net v0.7.0
 	golang.org/x/oauth2 v0.0.0-20190115181402-5dab4167f31c
 	google.golang.org/genproto v0.0.0-20190123001331-8819c946db44 // indirect
 	google.golang.org/grpc v1.18.0 // indirect
