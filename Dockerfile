@@ -1,8 +1,9 @@
 # build stage
-FROM golang:1.16-alpine3.13 AS builder
+FROM golang:1.19.2-buster AS builder
 ENV GOFLAGS="-mod=readonly"
 
-RUN apk add --update --no-cache ca-certificates make git curl mercurial
+RUN apt-get update && apt-get install -y ca-certificates make git curl mercurial
+#RUN apk add --update --no-cache ca-certificates make git curl mercurial
 
 RUN mkdir -p /build
 WORKDIR /build
