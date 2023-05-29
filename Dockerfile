@@ -1,5 +1,5 @@
 # build stage
-FROM golang:1.19.2-buster AS builder
+FROM golang:1.19.9-buster AS builder
 ENV GOFLAGS="-mod=readonly"
 
 RUN apt-get update && apt-get install -y ca-certificates make git curl mercurial
