@@ -15,14 +15,13 @@
 package api
 
 import (
-	"reflect"
 
 	"github.com/banzaicloud/telescopes/internal/platform/classifier"
 	"github.com/banzaicloud/telescopes/pkg/recommender"
 	"github.com/gin-gonic/gin/binding"
 	"github.com/goph/emperror"
 	"github.com/pkg/errors"
-	"gopkg.in/go-playground/validator.v8"
+	"github.com/go-playground/validator/v10"
 )
 
 const (
@@ -54,29 +53,30 @@ func ConfigureValidator() error {
 
 // networkPerfValidator validates the network performance in the recommendation request.
 func networkPerfValidator() validator.Func {
-	return func(v *validator.Validate, topStruct reflect.Value, currentStruct reflect.Value, field reflect.Value,
-		fieldtype reflect.Type, fieldKind reflect.Kind, param string) bool {
 
+	return func(fl validator.FieldLevel) bool {
 		for _, n := range []string{ntwLow, ntwMedium, ntwHigh, ntwExtra} {
-			if field.String() == n {
+			if fl.Field().String() == n {
 				return true
 			}
 		}
 		return false
+
 	}
 }
 
 // categoryValidator validates the category in the recommendation request.
 func categoryValidator() validator.Func {
-	return func(v *validator.Validate, topStruct reflect.Value, currentStruct reflect.Value, field reflect.Value,
-		fieldtype reflect.Type, fieldKind reflect.Kind, param string) bool {
+
+	return func(fl validator.FieldLevel) bool {
 		for _, c := range []string{categoryCompute, categoryGeneral, categoryGpu, categoryMemory, categoryStorage} {
-			if field.String() == c {
+			if fl.Field().String() == c {
 				return true
 			}
 		}
 		return false
 	}
+
 }
 
 // CloudInfoValidator contract for validating cloud info data
