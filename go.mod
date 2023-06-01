@@ -7,7 +7,7 @@ require (
 	github.com/banzaicloud/bank-vaults v0.0.0-20190426093051-56575dca8ce3
 	github.com/banzaicloud/go-gin-prometheus v0.0.0-20190417120951-df9373ad5327
 	github.com/gin-contrib/cors v0.0.0-20190424000812-bd1331c62cae
-	github.com/gin-gonic/gin v1.6.0
+	github.com/gin-gonic/gin v1.7.7
 	github.com/go-openapi/errors v0.19.0
 	github.com/go-openapi/runtime v0.19.0
 	github.com/go-openapi/strfmt v0.19.0
