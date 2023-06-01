@@ -18,7 +18,6 @@ import (
 	"net/http"
 	"os"
 
-	"github.com/banzaicloud/bank-vaults/pkg/auth"
 	ginprometheus "github.com/banzaicloud/go-gin-prometheus"
 	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
@@ -86,10 +85,6 @@ func (r *RouteHandler) ConfigureRoutes(router *gin.Engine) {
 	}
 }
 
-// EnableAuth enables authentication middleware
-func (r *RouteHandler) EnableAuth(router *gin.Engine, role string, sgnKey string) {
-	router.Use(auth.JWTAuth(auth.NewVaultTokenStore(role), sgnKey, nil))
-}
 
 func (r *RouteHandler) signalStatus(c *gin.Context) {
 	c.JSON(http.StatusOK, "ok")
