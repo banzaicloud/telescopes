@@ -18,7 +18,6 @@ import (
 	"net/http"
 	"os"
 
-	ginprometheus "github.com/banzaicloud/go-gin-prometheus"
 	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
 	"github.com/goph/logur"
@@ -88,10 +87,4 @@ func (r *RouteHandler) ConfigureRoutes(router *gin.Engine) {
 
 func (r *RouteHandler) signalStatus(c *gin.Context) {
 	c.JSON(http.StatusOK, "ok")
-}
-
-func (r *RouteHandler) EnableMetrics(router *gin.Engine, metricsAddr string) {
-	p := ginprometheus.NewPrometheus("http", []string{"provider", "service", "region"})
-	p.SetListenAddress(metricsAddr)
-	p.Use(router, "/metrics")
 }

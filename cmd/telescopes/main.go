@@ -109,11 +109,6 @@ func main() {
 		//routeHandler.EnableAuth(router, appRole, config.App.Vault.TokenSigningKey)
 	}
 
-	// add prometheus metric endpoint
-	if config.Metrics.Enabled {
-		routeHandler.EnableMetrics(router, config.Metrics.Address)
-	}
-
 	routeHandler.ConfigureRoutes(router)
 	logger.Info("configured routes")
 
