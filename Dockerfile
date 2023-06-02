@@ -1,9 +1,11 @@
 # build stage
-FROM golang:1.20.4-buster AS builder
+FROM us.gcr.io/platform-205701/ubi/ubi-go:8.7 AS builder
 ENV GOFLAGS="-mod=readonly"
 
-RUN apt-get update && apt-get install -y ca-certificates make git curl mercurial
+#RUN apt-get update && apt-get install -y ca-certificates make git curl mercurial
 #RUN apk add --update --no-cache ca-certificates make git curl mercurial
+USER root
+RUN microdnf update && microdnf install -y ca-certificates make git curl && microdnf clean all
 
 RUN mkdir -p /build
 WORKDIR /build
