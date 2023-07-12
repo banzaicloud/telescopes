@@ -1,0 +1,2 @@
+DOCKER_FILE_PATH: telescopes/Dockerfile
+HELM_CHART_SOURCE_DIRECTORY: telescopes/chart
