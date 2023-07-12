@@ -1,0 +1,32 @@
+{{- if .Values.global.ingress.enabled -}}
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: telescopes
+  annotations:
+    nginx.ingress.kubernetes.io/use-regex: "true"
+    nginx.ingress.kubernetes.io/rewrite-target: /$2
+spec:
+  ingressClassName: {{ .Values.global.ingress.className | quote }}
+  rules:
+    - http:
+        paths:
+          - backend:
+              service:
+                name: telescopes
+                port:
+                  number: {{ .Values.service.port }}
+            path: /ccm/recommendations(/|$)(.*)
+            pathType: ImplementationSpecific
+    {{- range .Values.global.ingress.hosts }}
+      host: {{ . | quote }}
+    {{- end }}
+  {{- if .Values.global.ingress.tls.enabled }}
+  tls:
+    - hosts:
+        {{- range .Values.global.ingress.hosts }}
+        - {{ . | quote }}
+        {{- end }}
+      secretName: {{ .Values.global.ingress.tls.secretName }}
+  {{- end }}
+{{- end }}
